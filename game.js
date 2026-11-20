@@ -1,7 +1,7 @@
 const $=id=>document.getElementById(id);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // ===== Ядро: реестры (новый контент добавляется здесь или через Game.use) =====
-const G=window.Game={version:'0.0.4.4 Альфа 3D',items:{},nodes:{},recipes:[],mods:[],
+const G=window.Game={version:'0.0.4.5 Альфа 3D',items:{},nodes:{},recipes:[],mods:[],
  registerItem(id,o){o.ru=o.n;Object.defineProperty(o,'n',{get(){return L(this.ru)},enumerable:true});this.items[id]=o},registerNode(id,o){if(o.hint){o.hru=o.hint;Object.defineProperty(o,'hint',{get(){return L(this.hru)},enumerable:true})}this.nodes[id]=o},registerRecipe(r){this.recipes.push(r)},
  use(f){this.mods.push(f);f(this)}};
 G.use(g=>{
@@ -360,7 +360,7 @@ function drawChest(){const c=$('chest');if(!openC){c.hidden=true;return}c.hidden
  openC.inv.forEach((s,j)=>{const d=document.createElement('div');d.className='slot';if(s){d.title=G.items[s.id].n;d.innerHTML=ico(s.id,'80%')+(s.n>1?'<b>'+s.n+'</b>':'')}d.onclick=()=>fromChest(j);c.appendChild(d)})}
 $('bDel').onclick=demolish;
 // ===== Анимации (0.0.4.1) =====
-let SPR=0,PA={n:'',t:0,d:1},swimK=0,deadT=0,lastHp=100,hurtT=0,shake=0,fovC=62,lookY=0,TG=null,LASTN=null;
+let SPR=0,FAST_SWIM=0,IN_WATER=0,PA={n:'',t:0,d:1},swimK=0,deadT=0,lastHp=100,hurtT=0,shake=0,fovC=62,lookY=0,TG=null,LASTN=null;
 const FL=new Set(),TV=new THREE.Vector3(),WT={value:0};
 function playA(n){PA={n,t:0,d:{chop:.55,mine:.7,hit:.4,drink:1.2,eat:.9,build:1,pick:.6,hurt:.4}[n]||.5}}
 function poseP(dt){
@@ -380,7 +380,7 @@ function poseP(dt){
  else if(A=='build'){arx=-1.2+Math.sin(u*Math.PI*4)*.7;alx=-.5;lean+=.12}
  else if(A=='pick'){lean+=.45*bell;arx=alx=-.8*bell;dy=-.1*bell}
  else if(A=='hurt'){lean=-.4*bell;hx=-.3*bell;arx=alx=1.1*bell}
- if(sw>.01){const ph=t*5;arx+=(-1.5+Math.sin(ph)*1.6-arx)*sw;alx+=(-1.5+Math.sin(ph+Math.PI)*1.6-alx)*sw;lx+=(Math.sin(ph*2)*.4-lx)*sw;rx+=(-Math.sin(ph*2)*.4-rx)*sw;lean*=1-sw;hx+=-1*sw;twist*=1-sw;dy*=1-sw}
+ if(sw>.01){const ph=t*(FAST_SWIM?8:5);arx+=(-1.5+Math.sin(ph)*1.6-arx)*sw;alx+=(-1.5+Math.sin(ph+Math.PI)*1.6-alx)*sw;lx+=(Math.sin(ph*2)*.4-lx)*sw;rx+=(-Math.sin(ph*2)*.4-rx)*sw;lean*=1-sw;hx+=-1*sw;twist*=1-sw;dy*=1-sw}
  const kd=dead?Math.min(1,deadT*3):0;if(dead){alz=-.6*kd;arz=.6*kd;lx=rx=alx=arx=0;lean=0}
  pl.position.set(P.x+Math.sin(P.f)*fw,P.y-(P.y<0&&sw<.5?.2:0)+dy-(dead?.25*kd:0),P.z+Math.cos(P.f)*fw);
  pl.rotation.set(dead?-Math.min(1.45,deadT*2.4):1.2*sw,P.f,0);
@@ -420,6 +420,12 @@ function mkPts(g,cnt,size,col,op,add){const gm=new THREE.BufferGeometry();gm.set
 function updPts(o,dt,em){const ar=o.p.geometry.attributes.position.array;o.st.forEach((s,i)=>{s.l-=dt;if(s.l<=0)em(s);s.x+=s.vx*dt;s.y+=s.vy*dt;s.z+=s.vz*dt;ar[i*3]=s.x;ar[i*3+1]=s.y;ar[i*3+2]=s.z});o.p.geometry.attributes.position.needsUpdate=true}
 const spk=s=>{s.l=.7+Math.random();s.x=(Math.random()-.5)*.3;s.y=.45;s.z=(Math.random()-.5)*.3;s.vx=(Math.random()-.5)*.5;s.vy=1+Math.random()*1.3;s.vz=(Math.random()-.5)*.5},
  smk=s=>{s.l=2+Math.random()*1.5;s.x=(Math.random()-.5)*.2;s.y=1;s.z=(Math.random()-.5)*.2;s.vx=.35+Math.random()*.2;s.vy=.6+Math.random()*.3;s.vz=(Math.random()-.5)*.1};
+const swimSplash=mkPts(pl,28,.065,0xffffff,.9,1);
+function splashEmit(s){
+ if(!(IN_WATER&&FAST_SWIM&&mvAmt>.15)){s.l=.12;s.x=0;s.y=-9;s.z=0;s.vx=s.vy=s.vz=0;return}
+ s.l=.25+Math.random()*.3;s.x=(Math.random()-.5)*.8;s.y=.05+Math.random()*.18;s.z=(Math.random()-.5)*.65;
+ s.vx=(Math.random()-.5)*1.2;s.vy=.5+Math.random()*1.2;s.vz=(Math.random()-.5)*1.2
+}
 // ===== Главное меню, персонаж, мир, настройки (0.0.4.2) =====
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let MENU=true,HAVEWORLD=false,UI={page:'main',tab:'look'},MD=7.5,MP=.25,GR=null,GRN=0,ST={q:1,vol:.7,sens:1,fov:62,fps:0,lang:''};
@@ -538,7 +544,7 @@ const langRow=()=>'<div class="mr"><div class="ml">'+ico('ui_lang',16)+' '+L('Я
 function pgMain(){const w=HAVEWORLD?L('Мир: {w} · сид {s} · день {d}',{w:'<b>'+esc(L(WP.name))+'</b>',s:'<b>'+esc(SEEDTXT)+'</b>',d:day}):L('Мира пока нет — создай новый');
  const saved=Object.values(SAVE_DB.worlds||{}).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
  const worlds=saved.length?'<div class="mr"><b>'+L('Мои миры')+'</b>'+saved.map(q=>'<button class="pr" data-a="worldload" data-v="'+esc(q.id)+'"><b>'+esc(L(q.name||'Мир'))+'</b><small>'+L('Сид мира: {s}',{s:esc(q.seed||'')})+' · '+L('День')+' '+(q.day||1)+'</small><i>'+(q.id===activeWorldId?L('Текущий мир'):L('Открыть'))+'</i></button>').join('')+'</div>':'<div class="info">'+L('Нет сохранённых миров')+'</div>';
- return '<div class="logo">'+ico('logo',72)+'<h1>'+GN()+'</h1><div class="sub">v0.0.4.4 '+L('Альфа')+' 3D</div></div><div class="info">'+w+'</div>'+
+ return '<div class="logo">'+ico('logo',72)+'<h1>'+GN()+'</h1><div class="sub">v0.0.4.5 '+L('Альфа')+' 3D</div></div><div class="info">'+w+'</div>'+
  (HAVEWORLD?icb('ui_play','Продолжить','resume'):'')+icb('ui_world','Новый мир','go','world')+worlds+icb('ui_char','Персонаж','go','char')+icb('ui_gear','Настройки','go','set')+langRow()}
 function pgWorld(){return '<h2>'+L('Новый мир')+'</h2>'+row('Название','<input type="text" id="wname" maxlength="24" value="'+esc(WF.name)+'">')+
  row('Сид (пусто — случайный мир)','<div class="sd"><input type="text" id="wseed" maxlength="24" placeholder="'+L('случайный')+'" value="'+esc(WF.seed)+'">'+icb('ui_dice','','dice')+'</div>')+
@@ -569,7 +575,7 @@ $('menu').addEventListener('input',e=>{const t=e.target;
  if(t.id=='wname')WF.name=t.value;else if(t.id=='wseed')WF.seed=t.value;
  else if(t.id=='cname'){CH.name=t.value.slice(0,16);saveChar();$('pname').textContent=CH.name}
  else if(t.id=='svol'){ST.vol=+t.value;saveSet()}else if(t.id=='ssens'){ST.sens=+t.value;saveSet()}else if(t.id=='sfov'){ST.fov=+t.value;fovC=ST.fov;saveSet()}});
-// ===== Локализация (0.0.4.4) =====
+// ===== Локализация (0.0.4.5) =====
 const GAME={ru:'Чудоземье',en:'Miraculous Land',es:'Tierra Milagrosa'},GN=()=>GAME[ST.lang]||GAME.en;
 const TRL=[
 ['Дерево','Wood','Madera'],['Камень','Stone','Piedra'],['Волокно','Fiber','Fibra'],['Ягоды','Berries','Bayas'],['Топор','Axe','Hacha'],['Кирка','Pickaxe','Pico'],['Костёр','Campfire','Hoguera'],['Бинт','Bandage','Venda'],
@@ -621,7 +627,7 @@ function applyLang(){const sb=(id,ic,t)=>$(id).innerHTML='<span class="cb">'+ico
  sb('bAct','ui_act','Действие (E)');sb('bCraft','ui_craft','Крафт (C)');sb('bNew','ui_redo','');
  $('bNew').title=L('Новая игра');$('bMenu').title=L('Меню (Esc)');$('bDel').title=L('Разобрать постройку (X)');
  $('dtxt').textContent=L('Вы погибли');$('bRe').textContent=L('Начать заново');$('menu').dataset.busy=L('Генерация мира...');
- $('gname').textContent=GN();$('gver').textContent='v0.0.4.4 '+L('Альфа')+' 3D';document.title=GN();document.documentElement.lang=ST.lang;$('pname').textContent=CH.name;
+ $('gname').textContent=GN();$('gver').textContent='v0.0.4.5 '+L('Альфа')+' 3D';document.title=GN();document.documentElement.lang=ST.lang;$('pname').textContent=CH.name;
  if(inv)refresh()}
 // ===== Симуляция =====
 const dark=()=>clamp(.35-Math.sin(time*6.2832)*.6,0,.8);
@@ -638,15 +644,23 @@ function step(dt){if(autoTest&&autoTest.active){const directions=[['KeyW'],['Key
  if(!dead&&!MENU){
   let ix=(KEYS.KeyD||KEYS.ArrowRight?1:0)-(KEYS.KeyA||KEYS.ArrowLeft?1:0),iy=(KEYS.KeyW||KEYS.ArrowUp?1:0)-(KEYS.KeyS||KEYS.ArrowDown?1:0);
   if(joy){const l=Math.hypot(joy.dx,joy.dy);if(l>8){const k=Math.min(1,l/50);ix=joy.dx/l*k;iy=-joy.dy/l*k}}
-  const l=Math.hypot(ix,iy);mvAmt=Math.min(1,l);SPR=((KEYS.ShiftLeft||KEYS.ShiftRight||(joy&&Math.hypot(joy.dx,joy.dy)>70))&&l>.5)?1:0;
+  const l=Math.hypot(ix,iy);mvAmt=Math.min(1,l);IN_WATER=gy(P.x,P.z)<WATER_LEVEL-.05?1:0;
+  const burstInput=!!(KEYS.ShiftLeft||KEYS.ShiftRight||(joy&&Math.hypot(joy.dx,joy.dy)>70));
+  const burstAllowed=S.water>=15&&S.warm>=15;
+  FAST_SWIM=IN_WATER&&burstAllowed&&burstInput&&l>.5?1:0;
+  SPR=IN_WATER?FAST_SWIM:(burstAllowed&&burstInput&&l>.5?1:0);
   if(l>.01){if(l>1){ix/=l;iy/=l}
-   const mx=ix*Math.cos(yaw)-iy*Math.sin(yaw),mz=-ix*Math.sin(yaw)-iy*Math.cos(yaw),spd=(gy(P.x,P.z)<-.1?2.6:5.2)*mvAmt*(SPR?1.6:1);
+   const mx=ix*Math.cos(yaw)-iy*Math.sin(yaw),mz=-ix*Math.sin(yaw)-iy*Math.cos(yaw),spd=(IN_WATER?2.6:5.2)*mvAmt*(SPR?1.6:1);
    move(mx/Math.max(.01,mvAmt)*spd*dt,mz/Math.max(.01,mvAmt)*spd*dt);
    let d=Math.atan2(mx,mz)-P.f;d=Math.atan2(Math.sin(d),Math.cos(d));P.f+=d*Math.min(1,dt*12);walkT+=dt*spd*1.7;const st=Math.floor(walkT/Math.PI);if(st!=lastSt){lastSt=st;snd(70+Math.random()*40,.06,'triangle',.04)}}
   if(!autoTest||!autoTest.active){time+=dt/WP.day;if(time>=1){time-=1;day++}
   acc+=dt;if(acc>=1){acc-=1;nodes.forEach(n=>{if(n.dead&&--n.rt<=0){n.dead=false;put(n)}})}
   const dk=dark(),fire=F.some(f=>Math.hypot(f.x-P.x,f.z-P.z)<9),shel=PC.some(p=>p.pk=='roof'&&Math.abs(p.x-P.x)<=1.1&&Math.abs(p.z-P.z)<=1.1);
-  S.food-=(.25+SPR*.25)*dt*WP.diff;S.water-=(.35+SPR*.35)*dt*WP.diff;S.warm+=fire?10*dt:shel?(dk>.45?.4:1.5)*dt:dk>.45?-1.2*dt:1.5*dt;
+  const swimming=!!IN_WATER,running=!!SPR&&!swimming;
+  S.food-=.25*(running?2:swimming&&FAST_SWIM?2:1)*dt*WP.diff;
+  S.water-=.35*(running?2:1)*dt*WP.diff;
+  if(swimming)S.warm-=1.2*(FAST_SWIM?2:1)*dt;
+  else S.warm+=fire?4.5*dt:shel?(dk>.45?.4:1.5)*dt:dk>.45?-1.2*dt:1.5*dt;
   for(const k of['food','water','warm'])S[k]=clamp(S[k],0,100);
   let dm=0;if(S.food<=0)dm+=1.2;if(S.water<=0)dm+=1.5;if(S.warm<=0)dm+=1;
   if(dm)S.hp-=dm*dt;else if(S.food>30&&S.water>30&&S.warm>30)S.hp=Math.min(100,S.hp+.6*dt);
@@ -655,7 +669,7 @@ function step(dt){if(autoTest&&autoTest.active){const directions=[['KeyW'],['Key
   saveT+=dt;if(saveT>8){saveT=0;save()}}}
  const ground=gy(P.x,P.z),surfaceY=ground<WATER_LEVEL-.05?WATER_LEVEL:Math.max(ground,-.6);
  P.y+=(surfaceY-P.y)*Math.min(1,dt*15);
- poseP(dt);
+ poseP(dt);updPts(swimSplash,dt,splashEmit);
  shk.forEach(n=>{n.sh-=dt;if(n.sh<=0){n.sh=0;shk.delete(n);put(n)}else put(n,Math.sin(n.sh*50)*n.sh*.5)});
  FL.forEach(n=>{n.fall-=dt;if(n.fall<=0){n.fall=0;n.gone=true;FL.delete(n);put(n);snd(70,.35,'sine',.12)}else{const u=1-n.fall/1.1;put(n,n.fs*u*u*1.5)}});
  F.forEach(f=>{const q=1+Math.sin(tm*18+f.x)*.12+Math.random()*.08;f.f1.scale.set(q,q*1.1,q);f.f2.scale.set(q,q*1.2,q);f.L.intensity=1.4+Math.sin(tm*17+f.x)*.25+Math.random()*.2;if(Math.random()<dt*2&&Math.hypot(f.x-P.x,f.z-P.z)<12)snd(900+Math.random()*900,.03,'square',.012);updPts(f.sk,dt,spk);updPts(f.sm,dt,smk)});
