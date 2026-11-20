@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="ru"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b100b">
+<link rel="manifest" href="./manifest.json">
 <title>Miraculous Land</title>
 <style>
 :root{--bg:#0b100b;--panel:rgba(12,18,12,.8);--fg:#e8efe0;--line:#3a4a36}
@@ -57,4 +59,21 @@ body.menu #dock,body.menu #hud,body.menu #hint,body.menu #top,body.menu #toast{d
 </div>
 <div id="menu"></div><div id="fps" hidden></div><div id="hurt"></div><div id="dead" hidden><div><span id="dtxt"></span><br><button id="bRe"></button></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="game.js"></script></body></html>
+<script src="game.js"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', event => {
+    if (event.data && event.data.type === 'ML_ASSETS_UPDATED') {
+      if (window.confirm('Доступно обновление Miraculous Land. Перезагрузить игру?')) {
+        try { if (typeof save === 'function') save(); } catch (_) {}
+        location.reload();
+      }
+    }
+  });
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js', {scope: './', updateViaCache: 'none'})
+      .then(registration => registration.update())
+      .catch(() => {});
+  });
+}
+</script></body></html>

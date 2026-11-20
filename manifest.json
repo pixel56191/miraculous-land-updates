@@ -17,5 +17,32 @@
         "size": 1745
       }
     }
-  }
+  },
+  "name": "Miraculous Land",
+  "short_name": "Miraculous Land",
+  "description": "Survival adventure in Miraculous Land",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#0b100b",
+  "theme_color": "#0b100b",
+  "categories": [
+    "games"
+  ],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
 }
