@@ -16,6 +16,16 @@ async function digestHex(buffer) {
   return Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('');
 }
 
+async function fetchWithTimeout(url, options = {}, timeoutMs = 10000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, {...options, signal: controller.signal});
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function notifyClients(type, extra = {}) {
   const clients = await self.clients.matchAll({type: 'window', includeUncontrolled: true});
   for (const client of clients) client.postMessage({type, ...extra});
@@ -53,7 +63,7 @@ async function refreshChangedAssets(announce = true) {
     if (announce) await notifyClients('ML_UPDATE_CHECKING');
     let manifestResponse, manifest;
     try {
-      manifestResponse = await fetch(MANIFEST_URL, {cache: 'no-store'});
+      manifestResponse = await fetchWithTimeout(MANIFEST_URL, {cache: 'no-store'}, 4000);
       if (!manifestResponse.ok) throw new Error('Manifest request failed');
       manifest = await manifestResponse.clone().json();
       if (!manifest.files || typeof manifest.files !== 'object') throw new Error('Invalid update manifest');
@@ -86,8 +96,8 @@ async function refreshChangedAssets(announce = true) {
     if (announce && missing.length) await notifyClients('ML_UPDATE_DOWNLOADING', {files: missing});
     const fingerprintInput = entries.map(([name, info]) => name + ':' + info.sha256).sort().join('|');
     const fingerprint = (await digestHex(new TextEncoder().encode(fingerprintInput))).slice(0, 20);
-    const nextName = CACHE_PREFIX + fingerprint;
-    await caches.delete(nextName);
+    const nextName = CACHE_PREFIX + fingerprint + '-' + Date.now().toString(36);
+    
     const nextCache = await caches.open(nextName);
 
     try {
@@ -103,7 +113,7 @@ async function refreshChangedAssets(announce = true) {
         const previousHash = oldManifest && oldManifest.files && oldManifest.files[name] && oldManifest.files[name].sha256;
         const cached = await nextCache.match(assetUrl);
         if (cached && previousHash === info.sha256) continue;
-        const response = await fetch(assetUrl, {cache: 'no-store'});
+        const response = await fetchWithTimeout(assetUrl, {cache: 'no-store'}, 15000);
         if (!response.ok) throw new Error('Could not download ' + name);
         const actualHash = await digestHex(await response.clone().arrayBuffer());
         if (actualHash.toLowerCase() !== String(info.sha256).toLowerCase()) throw new Error('SHA-256 mismatch for ' + name);
@@ -135,7 +145,7 @@ async function cacheStaticResources() {
   for (const url of [...ICON_URLS, THREE_URL]) {
     if (await cache.match(url)) continue;
     try {
-      const response = await fetch(url, url === THREE_URL ? {mode: 'no-cors'} : undefined);
+      const response = await fetchWithTimeout(url, url === THREE_URL ? {mode: 'no-cors'} : {}, 5000);
       if (response.ok || response.type === 'opaque') await cache.put(url, response);
     } catch (_) {}
   }
