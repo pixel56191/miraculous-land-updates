@@ -1,7 +1,7 @@
 const $=id=>document.getElementById(id);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // ===== Ядро: реестры (новый контент добавляется здесь или через Game.use) =====
-const G=window.Game={version:'0.0.4.8 Альфа 3D',items:{},nodes:{},recipes:[],mods:[],
+const G=window.Game={version:'0.0.4.9 Альфа 3D',items:{},nodes:{},recipes:[],mods:[],
  registerItem(id,o){o.ru=o.n;Object.defineProperty(o,'n',{get(){return L(this.ru)},enumerable:true});this.items[id]=o},registerNode(id,o){if(o.hint){o.hru=o.hint;Object.defineProperty(o,'hint',{get(){return L(this.hru)},enumerable:true})}this.nodes[id]=o},registerRecipe(r){this.recipes.push(r)},
  use(f){this.mods.push(f);f(this)}};
 G.use(g=>{
@@ -82,43 +82,29 @@ function put(n,tilt=0){if(n.t=='campfire')return;
  else if(RKT.includes(n.t)){VV.set(n.x,n.y+k*.3,n.z);SS.set(k*n.a*1.2,k*.8,k*n.a);M4.compose(VV,QQ,SS);RK.setMatrixAt(n.i,M4);RK.instanceMatrix.needsUpdate=true}
  else{VV.set(n.x,n.y+.3*k,n.z);SS.set(k,k*.75,k);M4.compose(VV,QQ,SS);BS.setMatrixAt(n.i,M4);BS.instanceMatrix.needsUpdate=true;
   const kb=n.dead?.0001:1;for(let j=0;j<4;j++){const a=j*1.7+n.r;VV.set(n.x+Math.cos(a)*.5*k,n.y+.5*k+j*.05,n.z+Math.sin(a)*.5*k);SS.set(kb,kb,kb);M4.compose(VV,IDQ,SS);BR.setMatrixAt(n.i*4+j,M4)}BR.instanceMatrix.needsUpdate=true}}
-let BIRDS=[],BIRD_POP_TIMER=0,BIRD_MAT=null,BIRD_BODY_GEO=null,BIRD_WING_GEO=null;
+let BIRDS=[],BIRD_POP_TIMER=0,BIRD_MAT=null,BIRD_BEAK_MAT=null,BIRD_BODY_GEO=null,BIRD_HEAD_GEO=null,BIRD_WING_GEO=null,BIRD_BEAK_GEO=null,BIRD_TAIL_GEO=null;
 function makeBird(){
- const g=new THREE.Group(),body=new THREE.Mesh(BIRD_BODY_GEO,BIRD_MAT),left=new THREE.Group(),right=new THREE.Group();
- body.scale.set(1.45,.65,.7);g.add(body);
- const lm=new THREE.Mesh(BIRD_WING_GEO,BIRD_MAT),rm=new THREE.Mesh(BIRD_WING_GEO,BIRD_MAT);
- left.position.set(-.08,0,0);right.position.set(.08,0,0);rm.rotation.y=Math.PI;
- left.add(lm);right.add(rm);g.add(left,right);world.add(g);
- const b={g,left,right,phase:Math.random()*Math.PI*2,radius:16+Math.random()*20,height:14+Math.random()*8,speed:.045+Math.random()*.04};
- BIRDS.push(b);return b;
+ const g=new THREE.Group(),body=new THREE.Mesh(BIRD_BODY_GEO,BIRD_MAT),head=new THREE.Mesh(BIRD_HEAD_GEO,BIRD_MAT),left=new THREE.Group(),right=new THREE.Group();
+ body.scale.set(.27,.145,.43);g.add(body);head.position.set(0,.055,.31);head.scale.set(.155,.145,.16);g.add(head);
+ const beak=new THREE.Mesh(BIRD_BEAK_GEO,BIRD_BEAK_MAT);beak.rotation.x=Math.PI/2;beak.position.set(0,.045,.48);g.add(beak);
+ for(const x of[-.075,0,.075]){const tail=new THREE.Mesh(BIRD_TAIL_GEO,BIRD_MAT);tail.rotation.x=-Math.PI/2;tail.position.set(x,-.015,-.39);tail.scale.set(.8,1,.8);g.add(tail)}
+ const lm=new THREE.Mesh(BIRD_WING_GEO,BIRD_MAT),rm=new THREE.Mesh(BIRD_WING_GEO,BIRD_MAT);left.position.set(-.12,.045,0);right.position.set(.12,.045,0);lm.position.x=-.2;rm.position.x=.2;lm.scale.set(.36,.045,.2);rm.scale.set(.36,.045,.2);
+ left.add(lm);right.add(rm);g.add(left,right);g.scale.setScalar(1.35);world.add(g);
+ const b={g,left,right,phase:Math.random()*Math.PI*2,radius:11+Math.random()*19,height:8+Math.random()*5,speed:.045+Math.random()*.04};BIRDS.push(b);return b;
 }
 function createBirds(){
- BIRDS=[];
- BIRD_MAT=new THREE.MeshStandardMaterial({color:0x30343a,roughness:1,flatShading:true,side:THREE.DoubleSide});
- BIRD_BODY_GEO=new THREE.IcosahedronGeometry(.12,0);
- BIRD_WING_GEO=new THREE.BufferGeometry();
- BIRD_WING_GEO.setAttribute('position',new THREE.Float32BufferAttribute([0,0,0,-.78,0,.03,-.16,.015,.2],3));BIRD_WING_GEO.computeVertexNormals();
- const density=Math.max(0,WP.animals||0),initialCount=density>0?Math.max(3,Math.round((8+Math.random()*9)*density)):0;
- for(let i=0;i<initialCount;i++)makeBird();
- BIRD_POP_TIMER=30+Math.random()*55;
+ BIRDS=[];BIRD_MAT=new THREE.MeshStandardMaterial({color:0x30343a,roughness:1,flatShading:true});BIRD_BEAK_MAT=new THREE.MeshStandardMaterial({color:0xd5a33b,roughness:.9});
+ BIRD_BODY_GEO=new THREE.SphereGeometry(1,10,7);BIRD_HEAD_GEO=new THREE.SphereGeometry(1,10,7);BIRD_WING_GEO=new THREE.SphereGeometry(1,9,6);BIRD_BEAK_GEO=new THREE.ConeGeometry(.052,.17,5);BIRD_TAIL_GEO=new THREE.ConeGeometry(.045,.24,5);
+ const density=Math.max(0,WP.animals||0),initialCount=density>0?Math.max(3,Math.round((8+Math.random()*9)*density)):0;for(let i=0;i<initialCount;i++)makeBird();BIRD_POP_TIMER=30+Math.random()*55;
 }
 function updateBirdPopulation(dt){
- if(WP.animals<=0)return;
- BIRD_POP_TIMER-=dt;if(BIRD_POP_TIMER>0)return;
+ if(WP.animals<=0)return;BIRD_POP_TIMER-=dt;if(BIRD_POP_TIMER>0)return;
  const density=Math.max(.5,WP.animals),minCount=Math.max(3,Math.floor(3*density)),maxCount=Math.round(24*density),roll=Math.random();
- if(roll<.42&&BIRDS.length<maxCount)makeBird();
- else if(roll<.84&&BIRDS.length>minCount){const i=Math.floor(Math.random()*BIRDS.length),b=BIRDS.splice(i,1)[0];world.remove(b.g)}
+ if(roll<.42&&BIRDS.length<maxCount)makeBird();else if(roll<.84&&BIRDS.length>minCount){const i=Math.floor(Math.random()*BIRDS.length),b=BIRDS.splice(i,1)[0];world.remove(b.g)}
  BIRD_POP_TIMER=35+Math.random()*75;
 }
 function animateBirds(dt){
- updateBirdPopulation(dt);
- for(const b of BIRDS){
-  const a=tm*b.speed+b.phase;
-  b.g.position.set(Math.cos(a)*b.radius,b.height+Math.sin(tm*.55+b.phase)*.65,Math.sin(a)*b.radius);
-  b.g.rotation.y=-a+Math.PI/2;
-  const flap=Math.sin(tm*7+b.phase)*.62;
-  b.left.rotation.z=flap;b.right.rotation.z=-flap;
- }
+ updateBirdPopulation(dt);for(const b of BIRDS){const a=tm*b.speed+b.phase;b.g.position.set(Math.cos(a)*b.radius,b.height+Math.sin(tm*.55+b.phase)*.45,Math.sin(a)*b.radius);b.g.rotation.y=-a;const flap=Math.sin(tm*7+b.phase)*.72;b.left.rotation.z=flap;b.right.rotation.z=-flap}
 }
 function buildWorld(){
  if(world)scene.remove(world);world=new THREE.Group();scene.add(world);nodes=[];grid=new Map();F=[];
@@ -450,9 +436,10 @@ function poseP(dt){
  else if(A=='hurt'){lean=-.4*bell;hx=-.3*bell;arx=alx=1.1*bell}
  const tread=sw*(1-clamp(mvAmt*3,0,1)),movingSwim=sw-tread;
  if(movingSwim>.01){const ph=t*(FAST_SWIM?8:5);arx+=(-1.5+Math.sin(ph)*1.6-arx)*movingSwim;alx+=(-1.5+Math.sin(ph+Math.PI)*1.6-alx)*movingSwim;lx+=(Math.sin(ph*2)*.4-lx)*movingSwim;rx+=(-Math.sin(ph*2)*.4-rx)*movingSwim;lean*=1-movingSwim;hx+=-1*movingSwim;twist*=1-movingSwim;dy*=1-movingSwim}
- if(tread>.01){const ph=t*2.5;arx+=(.18+Math.sin(ph)*.16-arx)*tread;alx+=(.18-Math.sin(ph)*.16-alx)*tread;lx+=(.12+Math.sin(ph+1)*.1-lx)*tread;rx+=(.12-Math.sin(ph+1)*.1-rx)*tread;lean*=1-tread;hx*=1-tread;dy+=Math.sin(ph*.7)*.035*tread}
+ if(tread>.01){const ph=t*2.5;arx+=(-.28+Math.sin(ph)*.2-arx)*tread;alx+=(-.28-Math.sin(ph)*.2-alx)*tread;lx+=(.28+Math.sin(ph+1)*.2-lx)*tread;rx+=(.28-Math.sin(ph+1)*.2-rx)*tread;lean*=1-tread;hx*=1-tread;dy+=Math.sin(ph*.7)*.045*tread}
  const kd=dead?Math.min(1,deadT*3):0;if(dead){alz=-.6*kd;arz=.6*kd;lx=rx=alx=arx=0;lean=0}
- pl.position.set(P.x+Math.sin(P.f)*fw,P.y-(P.y<0&&sw<.5?.2:0)+dy-(dead?.25*kd:0)+Math.sin(t*2.5)*.025*tread,P.z+Math.cos(P.f)*fw);
+ const swimSink=.78*tread+.28*movingSwim;
+  pl.position.set(P.x+Math.sin(P.f)*fw,P.y-swimSink-(P.y<0&&sw<.5?.2:0)+dy-(dead?.25*kd:0)+Math.sin(t*2.5)*.045*tread,P.z+Math.cos(P.f)*fw);
  pl.rotation.set(dead?-Math.min(1.45,deadT*2.4):1.2*movingSwim,P.f,0);
  legL.rotation.x=lx;legR.rotation.x=rx;armL.rotation.set(alx,0,alz);armR.rotation.set(arx,0,arz);
  upB.rotation.set(lean+Math.sin(t*2.1)*.025*fatigue,twist,0);upB.scale.y=1+br*.008+Math.sin(t*2.1)*.018*fatigue;upB.position.y=.85+Math.sin(t*2.1)*.025*fatigue;head.rotation.set(hx-lean*.5-.16*fatigue,lookY,0);armL.rotation.z+=.1*fatigue;armR.rotation.z-=.1*fatigue;if(mouthMesh){mouthMesh.scale.y=1+fatigue*(.4+.6*(.5+.5*Math.sin(t*3.8)));mouthMesh.scale.x=1+fatigue*.18}if(cheekL&&cheekR){const puff=1+fatigue*.12*Math.max(0,Math.sin(t*3.8));cheekL.scale.set(.95,puff,1);cheekR.scale.set(.95,puff,1)}if(steamPuffs)steamPuffs.children.forEach((p,i)=>{const q=Math.max(0,Math.sin(t*3.8-i*.8))*fatigue;p.visible=q>.05;p.material.opacity=q*.38;p.position.y=-.1+i*.045+q*.16;p.scale.setScalar(.7+q*1.4)});
