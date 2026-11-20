@@ -60,8 +60,7 @@ body.menu #dock,body.menu #hud,body.menu #hint,body.menu #top,body.menu #toast{d
 <div id="menu"></div><div id="fps" hidden></div><div id="hurt"></div><div id="dead" hidden><div><span id="dtxt"></span><br><button id="bRe"></button></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="game.js"></script>
-<script>
-if ('serviceWorker' in navigator) {
+<script>if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('message', event => {
     if (event.data && event.data.type === 'ML_ASSETS_UPDATED') {
       if (window.confirm('Доступно обновление Miraculous Land. Перезагрузить игру?')) {
