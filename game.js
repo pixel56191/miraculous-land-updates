@@ -105,7 +105,7 @@ function createBirds(){
 }
 function updateBirdPopulation(dt){if(WP.animals<=0)return;BIRD_POP_TIMER-=dt;if(BIRD_POP_TIMER>0)return;const density=Math.max(.5,WP.animals),minCount=Math.max(3,Math.floor(3*density)),maxCount=Math.round(24*density),roll=Math.random();if(roll<.42&&BIRDS.length<maxCount)makeBird();else if(roll<.84&&BIRDS.length>minCount){const i=Math.floor(Math.random()*BIRDS.length),b=BIRDS.splice(i,1)[0];world.remove(b.g)}BIRD_POP_TIMER=35+Math.random()*75}
 function birdPerchTarget(){
- for(let i=0;i<220;i++){const x=(Math.random()-.5)*178,z=(Math.random()-.5)*178,y=hgt(x,z);if(Math.hypot(x,z)<16)continue;if(y<-.12)return{x,z,y:.22,perch:'WATER'};if(y>.08&&y<1.6){let nearWater=false;for(const a of[0,1.5,3,4.5])if(hgt(x+Math.cos(a)*2.5,z+Math.sin(a)*2.5)<0)nearWater=true;if(nearWater)return{x,z,y:y+.2,perch:'LAND'}}}
+ for(let i=0;i<220;i++){const x=(Math.random()-.5)*178,z=(Math.random()-.5)*178,y=hgt(x,z);if(Math.hypot(x,z)<16)continue;if(y<-.12)return{x,z,y:.22,perch:'WATER'};if(y>.08&&y<1.6){let nearWater=false;for(const a of[0,1.5,3,4.5])if(hgt(x+Math.cos(a)*2.5,z+Math.sin(a)*2.5)<0)nearWater=true;if(nearWater)return{x,z,y:y+.34,perch:'LAND'}}}
  return{x:30+Math.random()*20,z:30+Math.random()*20,y:.22,perch:'WATER'};
 }
 function animateBirds(dt){
@@ -114,7 +114,7 @@ function animateBirds(dt){
   if(b.state==='FLYING'){b.timer-=dt;const a=tm*b.speed+b.phase;g.position.set(Math.cos(a)*b.radius,b.height+Math.sin(tm*.55+b.phase)*.48,Math.sin(a)*b.radius);g.rotation.set(0,-a,Math.sin(tm*1.2+b.phase)*.035);const flap=Math.sin(tm*5.8+b.phase)*.48;b.left.rotation.z=-flap;b.right.rotation.z=flap;if(b.timer<=0){const t=birdPerchTarget();b.tx=t.x;b.tz=t.z;b.ty=t.y;b.perch=t.perch;b.state='DIVING';b.timer=6+Math.random()*2}}
   else if(b.state==='DIVING'){const k=Math.min(1,dt*.55);g.position.x+=(b.tx-g.position.x)*k;g.position.z+=(b.tz-g.position.z)*k;g.position.y+=(b.ty-g.position.y)*k;g.rotation.z+=(Math.sin(tm*2+b.phase)*.025-g.rotation.z)*Math.min(1,dt*2);const flap=Math.sin(tm*7+b.phase)*.23;b.left.rotation.z=-flap;b.right.rotation.z=flap;if(Math.hypot(b.tx-g.position.x,b.tz-g.position.z)<.65&&Math.abs(g.position.y-b.ty)<.55){b.state='WATER';b.timer=4+Math.random()*5;g.position.set(b.tx,b.ty,b.tz)}}
   else if(b.state==='WATER'){b.timer-=dt;g.position.y=b.ty+Math.sin(tm*2.5+b.phase)*.045;g.rotation.set(Math.sin(tm*1.8+b.phase)*.035,Math.atan2(P.x-g.position.x,P.z-g.position.z),Math.sin(tm*2+b.phase)*.025);b.left.rotation.z*=.9;b.right.rotation.z*=.9;if(b.timer<=0){b.state='FLYING';b.timer=15+Math.random()*10;b.phase=Math.random()*6.28;b.radius=17+Math.random()*25;b.height=8+Math.random()*5}}
-  else if(b.state==='FLEEING'){b.flee-=dt;g.position.x+=b.fx*7*dt;g.position.z+=b.fz*7*dt;g.position.y+=9*dt;g.rotation.z+=(b.fx*.45-g.rotation.z)*Math.min(1,dt*4);const flap=Math.sin(tm*10+b.phase)*.72;b.left.rotation.z=-flap;b.right.rotation.z=flap;if(b.flee<=0){b.state='FLYING';b.timer=17+Math.random()*12;b.phase=Math.random()*6.28;b.radius=20+Math.random()*27;b.height=10+Math.random()*5}}
+  else if(b.state==='FLEEING'){b.flee-=dt;g.position.x+=b.fx*7*dt;g.position.z+=b.fz*7*dt;g.position.y+=9*dt;g.rotation.z+=(b.fx*.45-g.rotation.z)*Math.min(1,dt*4);const flap=Math.sin(tm*10+b.phase)*.72;b.left.rotation.z=-flap;b.right.rotation.z=flap;if(b.flee<=0){b.state='FLYING';b.timer=17+Math.random()*12;b.phase=Math.random()*6.28;b.radius=20+Math.random()*27;b.height=Math.max(12,g.position.y)}}
  }
 }
 function buildWorld(){
