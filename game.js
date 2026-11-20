@@ -304,7 +304,7 @@ function mkAn(k){const D=AN[k],g=new THREE.Group(),hd=new THREE.Group(),tl=new T
  cur=tl;sp(.09,0,.62,-.52,.9,.9,2.6,f).rotation.x=-.45;sp(.055,0,.5,-.74,1,1,1.2,dk);cur=g;
  for(const sx of[-1,1]){leg(sx*.14,.5,.32,.5,.055,f,dk);leg(sx*.14,.5,-.3,.5,.06,f,dk)}
  return out([0,.7,.35],[0,.62,-.36])}
-let ANIMAL_POP_TIMER=0;
+let ANIMAL_POP_TIMER=0,WOLF_POP_TIMER=0;
 function addAn(k,x,z){const o=mkAn(k),a={k,x,z,hp:AN[k].hp,dir:Math.random()*6.28,t:0,cd:0,fl:0,g:o.g,legs:o.legs,hd:o.hd,hv:o.hp,tl:o.tl,tv:o.tp};world.add(o.g);AL.push(a);return a}
 function trySpawnAnimal(k,R=Math.random){
  for(let t=0;t<1800;t++){const x=(R()-.5)*180,z=(R()-.5)*180,y=hgt(x,z);
@@ -317,7 +317,17 @@ function spawnAnimals(){
  AL=[];const R=rng(seed+99),landCount=Math.round((22+Math.floor(R()*19))*WP.animals),fishCount=WP.animals>0?Math.round((20+Math.floor(R()*23))*Math.max(.5,WP.animals)):0;
  for(let n=0,t=0;t<5000&&n<landCount;t++){const k=R()<.68?'rabbit':'deer';if(trySpawnAnimal(k,R))n++}
  for(let n=0,t=0;t<5000&&n<fishCount;t++)if(trySpawnAnimal('fish',R))n++;
- ANIMAL_POP_TIMER=45+R()*60;
+ const wolfCount=WP.wolves>0?1+Math.floor(R()*3):0;
+ for(let n=0,t=0;t<2500&&n<wolfCount;t++)if(trySpawnAnimal('wolf',R))n++;
+ ANIMAL_POP_TIMER=45+R()*60;WOLF_POP_TIMER=70+R()*70;
+}
+function updateWolfPopulation(dt){
+ if(dead||MENU||WP.wolves<=0)return;
+ WOLF_POP_TIMER-=dt;if(WOLF_POP_TIMER>0)return;
+ const wolves=AL.filter(a=>a.k=='wolf'&&a.dying<=0),minCount=1,maxCount=6,roll=Math.random();
+ if(roll<.38&&wolves.length<maxCount)trySpawnAnimal('wolf');
+ else if(roll<.76&&wolves.length>minCount){const a=wolves[Math.floor(Math.random()*wolves.length)];world.remove(a.g);AL.splice(AL.indexOf(a),1)}
+ WOLF_POP_TIMER=75+Math.random()*100;
 }
 function updateAnimalPopulation(dt){
  if(dead||MENU||WP.animals<=0)return;
@@ -330,9 +340,9 @@ function updateAnimalPopulation(dt){
 function hitAn(a){const D=AN[a.k],pw=hasTool('spear')?3:hasTool('axe')?2:1;a.hp-=pw;a.fl=2.5;snd(200,.1,'sawtooth');
  if(a.hp<=0){D.drops.forEach(([id,lo,hi])=>{const q=lo+Math.floor(Math.random()*(hi-lo+1));if(q)add(id,q)});a.dying=.8;a.side=Math.random()<.5?1:-1;snd(600,.1,'sine')}else a.hurt=.3}
 function updAnimals(dt){
- updateAnimalPopulation(dt);
+ updateAnimalPopulation(dt);updateWolfPopulation(dt);
  const dk=dark(),fireNear=F.some(f=>Math.hypot(f.x-P.x,f.z-P.z)<10),wolves=AL.filter(a=>a.k=='wolf').length;
- if(!dead&&!MENU&&WP.wolves&&dk>.5&&wolves<3&&Math.random()<dt*.15){const an=Math.random()*6.28,x=P.x+Math.cos(an)*34,z=P.z+Math.sin(an)*34;if(Math.abs(x)<92&&Math.abs(z)<92&&hgt(x,z)>.5)addAn('wolf',x,z)}
+ if(!dead&&!MENU&&WP.wolves&&dk>.5&&wolves<6&&Math.random()<dt*.08){const an=Math.random()*6.28,x=P.x+Math.cos(an)*34,z=P.z+Math.sin(an)*34;if(Math.abs(x)<92&&Math.abs(z)<92&&hgt(x,z)>.5)addAn('wolf',x,z)}
  for(let i=AL.length-1;i>=0;i--){const a=AL[i],D=AN[a.k],dx=P.x-a.x,dz=P.z-a.z,d=Math.hypot(dx,dz);
   if(a.dying>0){a.dying-=dt;const q=1-a.dying/.8;a.g.rotation.z=Math.min(1.5,q*2.2)*(a.side||1);a.g.position.y=Math.max(a.g.position.y-dt*.1,-.5);if(a.dying<=0){world.remove(a.g);AL.splice(i,1)}continue}
   if(a.k=='wolf'&&((dk<.15&&d>20)||d>70)){world.remove(a.g);AL.splice(i,1);continue}
