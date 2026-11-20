@@ -98,15 +98,16 @@ function createBirds(){
  BIRD_BODY_GEO=new THREE.IcosahedronGeometry(.12,0);
  BIRD_WING_GEO=new THREE.BufferGeometry();
  BIRD_WING_GEO.setAttribute('position',new THREE.Float32BufferAttribute([0,0,0,-.78,0,.03,-.16,.015,.2],3));BIRD_WING_GEO.computeVertexNormals();
- const initialCount=3+Math.floor(Math.random()*9);
+ const density=Math.max(0,WP.animals||0),initialCount=density>0?Math.max(3,Math.round((8+Math.random()*9)*density)):0;
  for(let i=0;i<initialCount;i++)makeBird();
  BIRD_POP_TIMER=30+Math.random()*55;
 }
 function updateBirdPopulation(dt){
+ if(WP.animals<=0)return;
  BIRD_POP_TIMER-=dt;if(BIRD_POP_TIMER>0)return;
- const roll=Math.random();
- if(roll<.42&&BIRDS.length<16)makeBird();
- else if(roll<.84&&BIRDS.length>1){const i=Math.floor(Math.random()*BIRDS.length),b=BIRDS.splice(i,1)[0];world.remove(b.g)}
+ const density=Math.max(.5,WP.animals),minCount=Math.max(3,Math.floor(3*density)),maxCount=Math.round(24*density),roll=Math.random();
+ if(roll<.42&&BIRDS.length<maxCount)makeBird();
+ else if(roll<.84&&BIRDS.length>minCount){const i=Math.floor(Math.random()*BIRDS.length),b=BIRDS.splice(i,1)[0];world.remove(b.g)}
  BIRD_POP_TIMER=35+Math.random()*75;
 }
 function animateBirds(dt){
@@ -313,7 +314,7 @@ function trySpawnAnimal(k,R=Math.random){
  return false;
 }
 function spawnAnimals(){
- AL=[];const R=rng(seed+99),landCount=Math.round((22+Math.floor(R()*19))*WP.animals),fishCount=Math.round((20+Math.floor(R()*23))*Math.max(.5,WP.animals));
+ AL=[];const R=rng(seed+99),landCount=Math.round((22+Math.floor(R()*19))*WP.animals),fishCount=WP.animals>0?Math.round((20+Math.floor(R()*23))*Math.max(.5,WP.animals)):0;
  for(let n=0,t=0;t<5000&&n<landCount;t++){const k=R()<.68?'rabbit':'deer';if(trySpawnAnimal(k,R))n++}
  for(let n=0,t=0;t<5000&&n<fishCount;t++)if(trySpawnAnimal('fish',R))n++;
  ANIMAL_POP_TIMER=45+R()*60;
