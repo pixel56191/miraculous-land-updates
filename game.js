@@ -82,22 +82,35 @@ function put(n,tilt=0){if(n.t=='campfire')return;
  else if(RKT.includes(n.t)){VV.set(n.x,n.y+k*.3,n.z);SS.set(k*n.a*1.2,k*.8,k*n.a);M4.compose(VV,QQ,SS);RK.setMatrixAt(n.i,M4);RK.instanceMatrix.needsUpdate=true}
  else{VV.set(n.x,n.y+.3*k,n.z);SS.set(k,k*.75,k);M4.compose(VV,QQ,SS);BS.setMatrixAt(n.i,M4);BS.instanceMatrix.needsUpdate=true;
   const kb=n.dead?.0001:1;for(let j=0;j<4;j++){const a=j*1.7+n.r;VV.set(n.x+Math.cos(a)*.5*k,n.y+.5*k+j*.05,n.z+Math.sin(a)*.5*k);SS.set(kb,kb,kb);M4.compose(VV,IDQ,SS);BR.setMatrixAt(n.i*4+j,M4)}BR.instanceMatrix.needsUpdate=true}}
-let BIRDS=[];
+let BIRDS=[],BIRD_POP_TIMER=0,BIRD_MAT=null,BIRD_BODY_GEO=null,BIRD_WING_GEO=null;
+function makeBird(){
+ const g=new THREE.Group(),body=new THREE.Mesh(BIRD_BODY_GEO,BIRD_MAT),left=new THREE.Group(),right=new THREE.Group();
+ body.scale.set(1.45,.65,.7);g.add(body);
+ const lm=new THREE.Mesh(BIRD_WING_GEO,BIRD_MAT),rm=new THREE.Mesh(BIRD_WING_GEO,BIRD_MAT);
+ left.position.set(-.08,0,0);right.position.set(.08,0,0);rm.rotation.y=Math.PI;
+ left.add(lm);right.add(rm);g.add(left,right);world.add(g);
+ const b={g,left,right,phase:Math.random()*Math.PI*2,radius:16+Math.random()*20,height:14+Math.random()*8,speed:.045+Math.random()*.04};
+ BIRDS.push(b);return b;
+}
 function createBirds(){
  BIRDS=[];
- const mat=new THREE.MeshStandardMaterial({color:0x30343a,roughness:1,flatShading:true,side:THREE.DoubleSide});
- const bodyGeo=new THREE.IcosahedronGeometry(.12,0),wingGeo=new THREE.BufferGeometry();
- wingGeo.setAttribute('position',new THREE.Float32BufferAttribute([0,0,0,-.78,0,.03,-.16,.015,.2],3));wingGeo.computeVertexNormals();
- for(let i=0;i<8;i++){
-  const g=new THREE.Group(),body=new THREE.Mesh(bodyGeo,mat),left=new THREE.Group(),right=new THREE.Group();
-  body.scale.set(1.45,.65,.7);g.add(body);
-  const lm=new THREE.Mesh(wingGeo,mat),rm=new THREE.Mesh(wingGeo,mat);
-  left.position.set(-.08,0,0);right.position.set(.08,0,0);rm.rotation.y=Math.PI;
-  left.add(lm);right.add(rm);g.add(left,right);world.add(g);
-  BIRDS.push({g,left,right,phase:i*Math.PI*2/8,radius:18+(i%4)*4,height:15+(i%3)*2,speed:.055+(i%3)*.009});
- }
+ BIRD_MAT=new THREE.MeshStandardMaterial({color:0x30343a,roughness:1,flatShading:true,side:THREE.DoubleSide});
+ BIRD_BODY_GEO=new THREE.IcosahedronGeometry(.12,0);
+ BIRD_WING_GEO=new THREE.BufferGeometry();
+ BIRD_WING_GEO.setAttribute('position',new THREE.Float32BufferAttribute([0,0,0,-.78,0,.03,-.16,.015,.2],3));BIRD_WING_GEO.computeVertexNormals();
+ const initialCount=3+Math.floor(Math.random()*9);
+ for(let i=0;i<initialCount;i++)makeBird();
+ BIRD_POP_TIMER=30+Math.random()*55;
+}
+function updateBirdPopulation(dt){
+ BIRD_POP_TIMER-=dt;if(BIRD_POP_TIMER>0)return;
+ const roll=Math.random();
+ if(roll<.42&&BIRDS.length<16)makeBird();
+ else if(roll<.84&&BIRDS.length>1){const i=Math.floor(Math.random()*BIRDS.length),b=BIRDS.splice(i,1)[0];world.remove(b.g)}
+ BIRD_POP_TIMER=35+Math.random()*75;
 }
 function animateBirds(dt){
+ updateBirdPopulation(dt);
  for(const b of BIRDS){
   const a=tm*b.speed+b.phase;
   b.g.position.set(Math.cos(a)*b.radius,b.height+Math.sin(tm*.55+b.phase)*.65,Math.sin(a)*b.radius);
@@ -290,13 +303,33 @@ function mkAn(k){const D=AN[k],g=new THREE.Group(),hd=new THREE.Group(),tl=new T
  cur=tl;sp(.09,0,.62,-.52,.9,.9,2.6,f).rotation.x=-.45;sp(.055,0,.5,-.74,1,1,1.2,dk);cur=g;
  for(const sx of[-1,1]){leg(sx*.14,.5,.32,.5,.055,f,dk);leg(sx*.14,.5,-.3,.5,.06,f,dk)}
  return out([0,.7,.35],[0,.62,-.36])}
+let ANIMAL_POP_TIMER=0;
 function addAn(k,x,z){const o=mkAn(k),a={k,x,z,hp:AN[k].hp,dir:Math.random()*6.28,t:0,cd:0,fl:0,g:o.g,legs:o.legs,hd:o.hd,hv:o.hp,tl:o.tl,tv:o.tp};world.add(o.g);AL.push(a);return a}
-function spawnAnimals(){AL=[];const R=rng(seed+99);
- for(let t=0,n=0;t<3000&&n<Math.round(34*WP.animals);t++){const x=(R()-.5)*180,z=(R()-.5)*180,y=hgt(x,z);if(y<1.2||y>7.5||Math.hypot(x,z)<14)continue;addAn(n%3?'rabbit':'deer',x,z);n++}
- for(let t=0,n=0;t<3000&&n<Math.round(36*Math.max(.5,WP.animals));t++){const x=(R()-.5)*180,z=(R()-.5)*180;if(hgt(x,z)>-.6)continue;addAn('fish',x,z);n++}}
+function trySpawnAnimal(k,R=Math.random){
+ for(let t=0;t<1800;t++){const x=(R()-.5)*180,z=(R()-.5)*180,y=hgt(x,z);
+  if(Math.hypot(x,z)<14)continue;
+  if(k=='fish'?y>=-.6:(y<1.2||y>7.5))continue;
+  addAn(k,x,z);return true}
+ return false;
+}
+function spawnAnimals(){
+ AL=[];const R=rng(seed+99),landCount=Math.round((22+Math.floor(R()*19))*WP.animals),fishCount=Math.round((20+Math.floor(R()*23))*Math.max(.5,WP.animals));
+ for(let n=0,t=0;t<5000&&n<landCount;t++){const k=R()<.68?'rabbit':'deer';if(trySpawnAnimal(k,R))n++}
+ for(let n=0,t=0;t<5000&&n<fishCount;t++)if(trySpawnAnimal('fish',R))n++;
+ ANIMAL_POP_TIMER=45+R()*60;
+}
+function updateAnimalPopulation(dt){
+ if(dead||MENU||WP.animals<=0)return;
+ ANIMAL_POP_TIMER-=dt;if(ANIMAL_POP_TIMER>0)return;
+ const wild=AL.filter(a=>a.k!='wolf'&&a.dying<=0),scale=Math.max(.5,WP.animals),minCount=Math.round(12*scale),maxCount=Math.round(88*scale),roll=Math.random();
+ if(roll<.4&&wild.length<maxCount){const r=Math.random();trySpawnAnimal(r<.30?'fish':r<.76?'rabbit':'deer')}
+ else if(roll<.8&&wild.length>minCount){const a=wild[Math.floor(Math.random()*wild.length)];world.remove(a.g);AL.splice(AL.indexOf(a),1)}
+ ANIMAL_POP_TIMER=50+Math.random()*80;
+}
 function hitAn(a){const D=AN[a.k],pw=hasTool('spear')?3:hasTool('axe')?2:1;a.hp-=pw;a.fl=2.5;snd(200,.1,'sawtooth');
  if(a.hp<=0){D.drops.forEach(([id,lo,hi])=>{const q=lo+Math.floor(Math.random()*(hi-lo+1));if(q)add(id,q)});a.dying=.8;a.side=Math.random()<.5?1:-1;snd(600,.1,'sine')}else a.hurt=.3}
 function updAnimals(dt){
+ updateAnimalPopulation(dt);
  const dk=dark(),fireNear=F.some(f=>Math.hypot(f.x-P.x,f.z-P.z)<10),wolves=AL.filter(a=>a.k=='wolf').length;
  if(!dead&&!MENU&&WP.wolves&&dk>.5&&wolves<3&&Math.random()<dt*.15){const an=Math.random()*6.28,x=P.x+Math.cos(an)*34,z=P.z+Math.sin(an)*34;if(Math.abs(x)<92&&Math.abs(z)<92&&hgt(x,z)>.5)addAn('wolf',x,z)}
  for(let i=AL.length-1;i>=0;i--){const a=AL[i],D=AN[a.k],dx=P.x-a.x,dz=P.z-a.z,d=Math.hypot(dx,dz);
