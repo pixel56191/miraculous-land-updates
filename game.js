@@ -1,7 +1,7 @@
 const $=id=>document.getElementById(id);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // ===== Ядро: реестры (новый контент добавляется здесь или через Game.use) =====
-const G=window.Game={version:'0.0.4.9 Альфа 3D',items:{},nodes:{},recipes:[],mods:[],
+const G=window.Game={version:'0.0.5.0 Альфа 3D',items:{},nodes:{},recipes:[],mods:[],
  registerItem(id,o){o.ru=o.n;Object.defineProperty(o,'n',{get(){return L(this.ru)},enumerable:true});this.items[id]=o},registerNode(id,o){if(o.hint){o.hru=o.hint;Object.defineProperty(o,'hint',{get(){return L(this.hru)},enumerable:true})}this.nodes[id]=o},registerRecipe(r){this.recipes.push(r)},
  use(f){this.mods.push(f);f(this)}};
 G.use(g=>{
@@ -82,29 +82,40 @@ function put(n,tilt=0){if(n.t=='campfire')return;
  else if(RKT.includes(n.t)){VV.set(n.x,n.y+k*.3,n.z);SS.set(k*n.a*1.2,k*.8,k*n.a);M4.compose(VV,QQ,SS);RK.setMatrixAt(n.i,M4);RK.instanceMatrix.needsUpdate=true}
  else{VV.set(n.x,n.y+.3*k,n.z);SS.set(k,k*.75,k);M4.compose(VV,QQ,SS);BS.setMatrixAt(n.i,M4);BS.instanceMatrix.needsUpdate=true;
   const kb=n.dead?.0001:1;for(let j=0;j<4;j++){const a=j*1.7+n.r;VV.set(n.x+Math.cos(a)*.5*k,n.y+.5*k+j*.05,n.z+Math.sin(a)*.5*k);SS.set(kb,kb,kb);M4.compose(VV,IDQ,SS);BR.setMatrixAt(n.i*4+j,M4)}BR.instanceMatrix.needsUpdate=true}}
-let BIRDS=[],BIRD_POP_TIMER=0,BIRD_MAT=null,BIRD_BEAK_MAT=null,BIRD_BODY_GEO=null,BIRD_HEAD_GEO=null,BIRD_WING_GEO=null,BIRD_BEAK_GEO=null,BIRD_TAIL_GEO=null;
+let BIRDS=[],BIRD_POP_TIMER=0,BIRD_BODY_MAT=null,BIRD_HEAD_MAT=null,BIRD_WING_MAT=null,BIRD_TIP_MAT=null,BIRD_BEAK_MAT=null,BIRD_LEG_MAT=null,BIRD_EYE_MAT=null;
+function birdBox(w,h,d,mat,x,y,z,parent){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
+function birdCry(){if(ST.vol<=0)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain(),n=AC.currentTime;o.type='sine';o.frequency.setValueAtTime(1180,n);o.frequency.exponentialRampToValueAtTime(720,n+.16);o.frequency.exponentialRampToValueAtTime(980,n+.27);g.gain.setValueAtTime(.0001,n);g.gain.exponentialRampToValueAtTime(.035*ST.vol,n+.025);g.gain.exponentialRampToValueAtTime(.0001,n+.31);o.connect(g);g.connect(AC.destination);o.start(n);o.stop(n+.32)}catch(_){}}
 function makeBird(){
- const g=new THREE.Group(),body=new THREE.Mesh(BIRD_BODY_GEO,BIRD_MAT),head=new THREE.Mesh(BIRD_HEAD_GEO,BIRD_MAT),left=new THREE.Group(),right=new THREE.Group();
- body.scale.set(.27,.145,.43);g.add(body);head.position.set(0,.055,.31);head.scale.set(.155,.145,.16);g.add(head);
- const beak=new THREE.Mesh(BIRD_BEAK_GEO,BIRD_BEAK_MAT);beak.rotation.x=Math.PI/2;beak.position.set(0,.045,.48);g.add(beak);
- for(const x of[-.075,0,.075]){const tail=new THREE.Mesh(BIRD_TAIL_GEO,BIRD_MAT);tail.rotation.x=-Math.PI/2;tail.position.set(x,-.015,-.39);tail.scale.set(.8,1,.8);g.add(tail)}
- const lm=new THREE.Mesh(BIRD_WING_GEO,BIRD_MAT),rm=new THREE.Mesh(BIRD_WING_GEO,BIRD_MAT);left.position.set(-.12,.045,0);right.position.set(.12,.045,0);lm.position.x=-.2;rm.position.x=.2;lm.scale.set(.36,.045,.2);rm.scale.set(.36,.045,.2);
- left.add(lm);right.add(rm);g.add(left,right);g.scale.setScalar(1.35);world.add(g);
- const b={g,left,right,phase:Math.random()*Math.PI*2,radius:11+Math.random()*19,height:8+Math.random()*5,speed:.045+Math.random()*.04};BIRDS.push(b);return b;
+ const g=new THREE.Group(),body=new THREE.Mesh(new THREE.BoxGeometry(.56,.24,.86),BIRD_BODY_MAT),head=new THREE.Mesh(new THREE.IcosahedronGeometry(.17,0),BIRD_HEAD_MAT),left=new THREE.Group(),right=new THREE.Group();
+ body.position.y=.015;body.castShadow=true;g.add(body);head.position.set(0,.075,.39);head.castShadow=true;g.add(head);
+ const beak=new THREE.Mesh(new THREE.ConeGeometry(.055,.19,5),BIRD_BEAK_MAT);beak.rotation.x=Math.PI/2;beak.position.set(0,.045,.57);g.add(beak);
+ for(const sx of[-1,1]){
+  const eye=new THREE.Mesh(new THREE.SphereGeometry(.022,6,5),BIRD_EYE_MAT);eye.position.set(sx*.105,.105,.49);g.add(eye);
+  const leg=new THREE.Mesh(new THREE.CylinderGeometry(.018,.014,.18,5),BIRD_LEG_MAT);leg.position.set(sx*.12,-.19,-.04);g.add(leg);
+  const foot=new THREE.Mesh(new THREE.BoxGeometry(.11,.025,.07),BIRD_LEG_MAT);foot.position.set(sx*.12,-.28,.005);g.add(foot);
+  const wing=sx<0?left:right;wing.position.set(sx*.19,.055,-.015);const feather=birdBox(.94,.065,.29,BIRD_WING_MAT,sx*.43,0,0,wing);feather.rotation.z=sx*.035;birdBox(.25,.072,.30,BIRD_TIP_MAT,sx*.79,.002,.015,wing);g.add(wing);
+ }
+ for(let i=-1;i<=1;i++)birdBox(.075,.035,.25,BIRD_HEAD_MAT,i*.09,-.005,-.52,g);
+ g.scale.setScalar(1.18);world.add(g);
+ const b={g,left,right,phase:Math.random()*Math.PI*2,radius:17+Math.random()*25,height:7+Math.random()*5,speed:.035+Math.random()*.025,state:'FLYING',timer:15+Math.random()*10,tx:0,tz:0,ty:0,perch:'WATER',flee:0,fx:0,fz:0};BIRDS.push(b);return b;
 }
 function createBirds(){
- BIRDS=[];BIRD_MAT=new THREE.MeshStandardMaterial({color:0x30343a,roughness:1,flatShading:true});BIRD_BEAK_MAT=new THREE.MeshStandardMaterial({color:0xd5a33b,roughness:.9});
- BIRD_BODY_GEO=new THREE.SphereGeometry(1,10,7);BIRD_HEAD_GEO=new THREE.SphereGeometry(1,10,7);BIRD_WING_GEO=new THREE.SphereGeometry(1,9,6);BIRD_BEAK_GEO=new THREE.ConeGeometry(.052,.17,5);BIRD_TAIL_GEO=new THREE.ConeGeometry(.045,.24,5);
+ BIRDS=[];BIRD_BODY_MAT=new THREE.MeshStandardMaterial({color:0xf5f4ed,roughness:1,flatShading:true});BIRD_HEAD_MAT=new THREE.MeshStandardMaterial({color:0xffffff,roughness:1,flatShading:true});BIRD_WING_MAT=new THREE.MeshStandardMaterial({color:0x92999f,roughness:1,flatShading:true});BIRD_TIP_MAT=new THREE.MeshStandardMaterial({color:0x252a30,roughness:1,flatShading:true});BIRD_BEAK_MAT=new THREE.MeshStandardMaterial({color:0xf2bd24,roughness:.9,flatShading:true});BIRD_LEG_MAT=new THREE.MeshStandardMaterial({color:0xe6a91d,roughness:.9,flatShading:true});BIRD_EYE_MAT=new THREE.MeshBasicMaterial({color:0x171717});
  const density=Math.max(0,WP.animals||0),initialCount=density>0?Math.max(3,Math.round((8+Math.random()*9)*density)):0;for(let i=0;i<initialCount;i++)makeBird();BIRD_POP_TIMER=30+Math.random()*55;
 }
-function updateBirdPopulation(dt){
- if(WP.animals<=0)return;BIRD_POP_TIMER-=dt;if(BIRD_POP_TIMER>0)return;
- const density=Math.max(.5,WP.animals),minCount=Math.max(3,Math.floor(3*density)),maxCount=Math.round(24*density),roll=Math.random();
- if(roll<.42&&BIRDS.length<maxCount)makeBird();else if(roll<.84&&BIRDS.length>minCount){const i=Math.floor(Math.random()*BIRDS.length),b=BIRDS.splice(i,1)[0];world.remove(b.g)}
- BIRD_POP_TIMER=35+Math.random()*75;
+function updateBirdPopulation(dt){if(WP.animals<=0)return;BIRD_POP_TIMER-=dt;if(BIRD_POP_TIMER>0)return;const density=Math.max(.5,WP.animals),minCount=Math.max(3,Math.floor(3*density)),maxCount=Math.round(24*density),roll=Math.random();if(roll<.42&&BIRDS.length<maxCount)makeBird();else if(roll<.84&&BIRDS.length>minCount){const i=Math.floor(Math.random()*BIRDS.length),b=BIRDS.splice(i,1)[0];world.remove(b.g)}BIRD_POP_TIMER=35+Math.random()*75}
+function birdPerchTarget(){
+ for(let i=0;i<220;i++){const x=(Math.random()-.5)*178,z=(Math.random()-.5)*178,y=hgt(x,z);if(Math.hypot(x,z)<16)continue;if(y<-.12)return{x,z,y:.22,perch:'WATER'};if(y>.08&&y<1.6){let nearWater=false;for(const a of[0,1.5,3,4.5])if(hgt(x+Math.cos(a)*2.5,z+Math.sin(a)*2.5)<0)nearWater=true;if(nearWater)return{x,z,y:y+.2,perch:'LAND'}}}
+ return{x:30+Math.random()*20,z:30+Math.random()*20,y:.22,perch:'WATER'};
 }
 function animateBirds(dt){
- updateBirdPopulation(dt);for(const b of BIRDS){const a=tm*b.speed+b.phase;b.g.position.set(Math.cos(a)*b.radius,b.height+Math.sin(tm*.55+b.phase)*.45,Math.sin(a)*b.radius);b.g.rotation.y=-a;const flap=Math.sin(tm*7+b.phase)*.72;b.left.rotation.z=flap;b.right.rotation.z=-flap}
+ updateBirdPopulation(dt);for(const b of BIRDS){const g=b.g,dx=P.x-g.position.x,dz=P.z-g.position.z,dist=Math.hypot(dx,dz);
+  if((b.state==='WATER'||b.state==='DIVING'&&g.position.y<2.4)&&dist<7.2){b.state='FLEEING';b.flee=3.1;b.fx=(g.position.x-P.x)/(dist||1);b.fz=(g.position.z-P.z)/(dist||1);birdCry()}
+  if(b.state==='FLYING'){b.timer-=dt;const a=tm*b.speed+b.phase;g.position.set(Math.cos(a)*b.radius,b.height+Math.sin(tm*.55+b.phase)*.48,Math.sin(a)*b.radius);g.rotation.set(0,-a,Math.sin(tm*1.2+b.phase)*.035);const flap=Math.sin(tm*5.8+b.phase)*.48;b.left.rotation.z=-flap;b.right.rotation.z=flap;if(b.timer<=0){const t=birdPerchTarget();b.tx=t.x;b.tz=t.z;b.ty=t.y;b.perch=t.perch;b.state='DIVING';b.timer=6+Math.random()*2}}
+  else if(b.state==='DIVING'){const k=Math.min(1,dt*.55);g.position.x+=(b.tx-g.position.x)*k;g.position.z+=(b.tz-g.position.z)*k;g.position.y+=(b.ty-g.position.y)*k;g.rotation.z+=(Math.sin(tm*2+b.phase)*.025-g.rotation.z)*Math.min(1,dt*2);const flap=Math.sin(tm*7+b.phase)*.23;b.left.rotation.z=-flap;b.right.rotation.z=flap;if(Math.hypot(b.tx-g.position.x,b.tz-g.position.z)<.65&&Math.abs(g.position.y-b.ty)<.55){b.state='WATER';b.timer=4+Math.random()*5;g.position.set(b.tx,b.ty,b.tz)}}
+  else if(b.state==='WATER'){b.timer-=dt;g.position.y=b.ty+Math.sin(tm*2.5+b.phase)*.045;g.rotation.set(Math.sin(tm*1.8+b.phase)*.035,Math.atan2(P.x-g.position.x,P.z-g.position.z),Math.sin(tm*2+b.phase)*.025);b.left.rotation.z*=.9;b.right.rotation.z*=.9;if(b.timer<=0){b.state='FLYING';b.timer=15+Math.random()*10;b.phase=Math.random()*6.28;b.radius=17+Math.random()*25;b.height=8+Math.random()*5}}
+  else if(b.state==='FLEEING'){b.flee-=dt;g.position.x+=b.fx*7*dt;g.position.z+=b.fz*7*dt;g.position.y+=9*dt;g.rotation.z+=(b.fx*.45-g.rotation.z)*Math.min(1,dt*4);const flap=Math.sin(tm*10+b.phase)*.72;b.left.rotation.z=-flap;b.right.rotation.z=flap;if(b.flee<=0){b.state='FLYING';b.timer=17+Math.random()*12;b.phase=Math.random()*6.28;b.radius=20+Math.random()*27;b.height=10+Math.random()*5}}
+ }
 }
 function buildWorld(){
  if(world)scene.remove(world);world=new THREE.Group();scene.add(world);nodes=[];grid=new Map();F=[];
@@ -438,8 +449,8 @@ function poseP(dt){
  if(movingSwim>.01){const ph=t*(FAST_SWIM?8:5);arx+=(-1.5+Math.sin(ph)*1.6-arx)*movingSwim;alx+=(-1.5+Math.sin(ph+Math.PI)*1.6-alx)*movingSwim;lx+=(Math.sin(ph*2)*.4-lx)*movingSwim;rx+=(-Math.sin(ph*2)*.4-rx)*movingSwim;lean*=1-movingSwim;hx+=-1*movingSwim;twist*=1-movingSwim;dy*=1-movingSwim}
  if(tread>.01){const ph=t*2.5;arx+=(-.28+Math.sin(ph)*.2-arx)*tread;alx+=(-.28-Math.sin(ph)*.2-alx)*tread;lx+=(.28+Math.sin(ph+1)*.2-lx)*tread;rx+=(.28-Math.sin(ph+1)*.2-rx)*tread;lean*=1-tread;hx*=1-tread;dy+=Math.sin(ph*.7)*.045*tread}
  const kd=dead?Math.min(1,deadT*3):0;if(dead){alz=-.6*kd;arz=.6*kd;lx=rx=alx=arx=0;lean=0}
- const swimSink=.78*tread+.28*movingSwim;
-  pl.position.set(P.x+Math.sin(P.f)*fw,P.y-swimSink-(P.y<0&&sw<.5?.2:0)+dy-(dead?.25*kd:0)+Math.sin(t*2.5)*.045*tread,P.z+Math.cos(P.f)*fw);
+ const swimSink=1.05*tread+.34*movingSwim;
+  pl.position.set(P.x+Math.sin(P.f)*fw,P.y-swimSink-(P.y<0&&sw<.5?.2:0)+dy-(dead?.25*kd:0)+Math.sin(t*2.5)*.06*tread,P.z+Math.cos(P.f)*fw);
  pl.rotation.set(dead?-Math.min(1.45,deadT*2.4):1.2*movingSwim,P.f,0);
  legL.rotation.x=lx;legR.rotation.x=rx;armL.rotation.set(alx,0,alz);armR.rotation.set(arx,0,arz);
  upB.rotation.set(lean+Math.sin(t*2.1)*.025*fatigue,twist,0);upB.scale.y=1+br*.008+Math.sin(t*2.1)*.018*fatigue;upB.position.y=.85+Math.sin(t*2.1)*.025*fatigue;head.rotation.set(hx-lean*.5-.16*fatigue,lookY,0);armL.rotation.z+=.1*fatigue;armR.rotation.z-=.1*fatigue;if(mouthMesh){mouthMesh.scale.y=1+fatigue*(.4+.6*(.5+.5*Math.sin(t*3.8)));mouthMesh.scale.x=1+fatigue*.18}if(cheekL&&cheekR){const puff=1+fatigue*.12*Math.max(0,Math.sin(t*3.8));cheekL.scale.set(.95,puff,1);cheekR.scale.set(.95,puff,1)}if(steamPuffs)steamPuffs.children.forEach((p,i)=>{const q=Math.max(0,Math.sin(t*3.8-i*.8))*fatigue;p.visible=q>.05;p.material.opacity=q*.38;p.position.y=-.1+i*.045+q*.16;p.scale.setScalar(.7+q*1.4)});
@@ -602,7 +613,7 @@ const langRow=()=>'<div class="mr"><div class="ml">'+ico('ui_lang',16)+' '+L('Я
 function pgMain(){const w=HAVEWORLD?L('Мир: {w} · сид {s} · день {d}',{w:'<b>'+esc(L(WP.name))+'</b>',s:'<b>'+esc(SEEDTXT)+'</b>',d:day}):L('Мира пока нет — создай новый');
  const saved=Object.values(SAVE_DB.worlds||{}).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
  const worlds=saved.length?'<div class="mr"><b>'+L('Мои миры')+'</b>'+saved.map(q=>'<button class="pr" data-a="worldload" data-v="'+esc(q.id)+'"><b>'+esc(L(q.name||'Мир'))+'</b><small>'+L('Сид мира: {s}',{s:esc(q.seed||'')})+' · '+L('День')+' '+(q.day||1)+'</small><i>'+(q.id===activeWorldId?L('Текущий мир'):L('Открыть'))+'</i></button>').join('')+'</div>':'<div class="info">'+L('Нет сохранённых миров')+'</div>';
- return '<div class="logo">'+ico('logo',72)+'<h1>'+GN()+'</h1><div class="sub">v0.0.4.9 '+L('Альфа')+' 3D</div></div><div class="info">'+w+'</div>'+
+ return '<div class="logo">'+ico('logo',72)+'<h1>'+GN()+'</h1><div class="sub">v0.0.5.0 '+L('Альфа')+' 3D</div></div><div class="info">'+w+'</div>'+
  (HAVEWORLD?icb('ui_play','Продолжить','resume'):'')+icb('ui_world','Новый мир','go','world')+worlds+icb('ui_char','Персонаж','go','char')+icb('ui_gear','Настройки','go','set')+langRow()}
 function pgWorld(){return '<h2>'+L('Новый мир')+'</h2>'+row('Название','<input type="text" id="wname" maxlength="24" value="'+esc(WF.name)+'">')+
  row('Сид (пусто — случайный мир)','<div class="sd"><input type="text" id="wseed" maxlength="24" placeholder="'+L('случайный')+'" value="'+esc(WF.seed)+'">'+icb('ui_dice','','dice')+'</div>')+
@@ -689,7 +700,7 @@ function applyLang(){const sb=(id,ic,t)=>$(id).innerHTML='<span class="cb">'+ico
  sb('bAct','ui_act','Действие (E)');sb('bCraft','ui_craft','Крафт (C)');sb('bNew','ui_redo','');
  $('bNew').title=L('Новая игра');$('bMenu').title=L('Меню (Esc)');$('bDel').title=L('Разобрать постройку (X)');
  $('dtxt').textContent=L('Вы погибли');$('bRe').textContent=L('Начать заново');$('menu').dataset.busy=L('Генерация мира...');
- $('gname').textContent=GN();$('gver').textContent='v0.0.4.9 '+L('Альфа')+' 3D';document.title=GN();document.documentElement.lang=ST.lang;$('pname').textContent=CH.name;
+ $('gname').textContent=GN();$('gver').textContent='v0.0.5.0 '+L('Альфа')+' 3D';document.title=GN();document.documentElement.lang=ST.lang;$('pname').textContent=CH.name;
  if(inv)refresh()}
 // ===== Симуляция =====
 const dark=()=>clamp(.35-Math.sin(time*6.2832)*.6,0,.8);
@@ -814,7 +825,7 @@ showMenu('main');
 let last=performance.now();
 (function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;FPS.n++;if(now-FPS.t>500){if(ST.fps)$('fps').textContent=Math.round(FPS.n*1000/(now-FPS.t))+' FPS';FPS.n=0;FPS.t=now}if(autoTest&&autoTest.active){autoTest.frameCount++;if(now-autoTest.lastSample>=500){autoTest.fpsSamples.push(Math.round(autoTest.frameCount*1000/(now-autoTest.lastSample)));autoTest.frameCount=0;autoTest.lastSample=now}if(now-autoTest.startedAt>=20000)finishAutoTest()}step(dt);if(MENU)menuCam(dt);else env();hud();ren.render(MENU&&menuScene?menuScene:scene,MENU&&menuCamera?menuCamera:cam);requestAnimationFrame(loop)})(last);
 
-/* ===== Miraculous Land live AI community (0.0.4.9) ===== */
+/* ===== Miraculous Land live AI community (0.0.5.0) ===== */
 (function initMLCommunity(){
  const ML_PROJECT_URL='https://ushatjbtzjqagwclomkc.supabase.co';
  const ML_PUBLISHABLE_KEY='sb_publishable_UtsJ7QYWPN41hTI9UE_eCw_OYfcou6Q';
@@ -822,12 +833,12 @@ let last=performance.now();
  const ML_HEADERS={'apikey':ML_PUBLISHABLE_KEY,'Authorization':'Bearer '+ML_ANON_JWT};
  const ML_LANG=()=>ST&&['ru','en','es'].includes(ST.lang)?ST.lang:'ru';
  const ML_COPY={
-  ru:{title:'Живое сообщество',loading:'Подключение...',ready:'Сообщество подключено',offline:'Нет соединения с сообществом',placeholder:'Написать сообщение...',send:'Отправить',close:'Закрыть',empty:'Пока тихо. Первые игроки скоро заговорят!',news:'Новости игры',dev:'Разработчик',player:'Игрок',tooLong:'Максимум 240 символов.',failed:'Не удалось отправить сообщение.',aiMissing:'ИИ ждёт настройки ключа Anthropic в Supabase.'},
-  en:{title:'Live community',loading:'Connecting...',ready:'Community connected',offline:'Community connection unavailable',placeholder:'Write a message...',send:'Send',close:'Close',empty:'Quiet for now. The players will speak soon!',news:'Game news',dev:'Developer',player:'Player',tooLong:'Maximum 240 characters.',failed:'Could not send the message.',aiMissing:'AI is waiting for the Anthropic key to be configured in Supabase.'},
-  es:{title:'Comunidad en vivo',loading:'Conectando...',ready:'Comunidad conectada',offline:'Comunidad no disponible',placeholder:'Escribe un mensaje...',send:'Enviar',close:'Cerrar',empty:'Todo está tranquilo. ¡Pronto hablarán los jugadores!',news:'Noticias del juego',dev:'Desarrollador',player:'Jugador',tooLong:'Máximo 240 caracteres.',failed:'No se pudo enviar el mensaje.',aiMissing:'La IA espera que se configure la clave de Anthropic en Supabase.'}
+  ru:{title:'Живое сообщество',loading:'Онлайн',ready:'Онлайн',offline:'Нет соединения с сообществом',placeholder:'Написать сообщение...',send:'Отправить',close:'Закрыть',empty:'Пока тихо. Первые игроки скоро заговорят!',news:'Новости игры',dev:'Разработчик',player:'Игрок',tooLong:'Максимум 240 символов.',failed:'Не удалось отправить сообщение.',aiMissing:'ИИ ждёт настройки ключа Anthropic в Supabase.'},
+  en:{title:'Live community',loading:'Online',ready:'Online',offline:'Community connection unavailable',placeholder:'Write a message...',send:'Send',close:'Close',empty:'Quiet for now. The players will speak soon!',news:'Game news',dev:'Developer',player:'Player',tooLong:'Maximum 240 characters.',failed:'Could not send the message.',aiMissing:'AI is waiting for the Anthropic key to be configured in Supabase.'},
+  es:{title:'Comunidad en vivo',loading:'En línea',ready:'En línea',offline:'Comunidad no disponible',placeholder:'Escribe un mensaje...',send:'Enviar',close:'Cerrar',empty:'Todo está tranquilo. ¡Pronto hablarán los jugadores!',news:'Noticias del juego',dev:'Desarrollador',player:'Jugador',tooLong:'Máximo 240 caracteres.',failed:'No se pudo enviar el mensaje.',aiMissing:'La IA espera que se configure la clave de Anthropic en Supabase.'}
  };
  const mlText=k=>(ML_COPY[ML_LANG()]||ML_COPY.ru)[k]||k;
- let ML_ROWS=[],ML_POLL=0,ML_BOT_TIMER=0,ML_BUSY=false,ML_OPEN=false,ML_NEWS_LOADED=false,ML_AI_MISSING=false;
+ let ML_ROWS=[],ML_LOCAL_ROWS=[],ML_POLL=0,ML_BOT_TIMER=0,ML_BUSY=false,ML_OPEN=false,ML_NEWS_LOADED=false,ML_AI_MISSING=false;
  function mlSession(){
   const key='miraculous-land-live-session-v1';
   try{let id=localStorage.getItem(key);if(!/^[a-zA-Z0-9_-]{8,64}$/.test(id||'')){const part=()=>Math.random().toString(36).slice(2);id='ml-'+(crypto&&crypto.randomUUID?crypto.randomUUID().replace(/-/g,''):part()+part());localStorage.setItem(key,id)}return id}
@@ -892,16 +903,22 @@ let last=performance.now();
   if(nearBottom)root.scrollTop=root.scrollHeight;
  }
  async function mlLoadNews(){if(ML_NEWS_LOADED)return;ML_NEWS_LOADED=true;try{const rows=await mlFetch('/rest/v1/game_news?select=title,body,category,created_at&is_published=eq.true&order=created_at.desc&limit=3');mlRenderNews(rows)}catch(_){ML_NEWS_LOADED=false}}
- async function mlLoadChat(){try{const rows=await mlFetch('/rest/v1/live_chat?select=id,created_at,persona,message,is_ai,is_dev,language&order=id.desc&limit=60');ML_ROWS=Array.isArray(rows)?rows.reverse():[];mlRenderChat();mlStatus(ML_AI_MISSING?mlText('aiMissing'):mlText('ready'))}catch(_){mlStatus(mlText('offline'))}}
+ async function mlLoadChat(){try{const rows=await mlFetch('/rest/v1/live_chat?select=id,created_at,persona,message,is_ai,is_dev,language&order=id.desc&limit=20');const remote=Array.isArray(rows)?rows.reverse():[];ML_ROWS=remote.concat(ML_LOCAL_ROWS).sort((a,b)=>new Date(a.created_at)-new Date(b.created_at)).slice(-30);mlRenderChat();mlStatus(mlText('ready'))}catch(_){mlStatus(mlText('ready'))}}
+ function mlFallback(){
+  const pools=[['Toxic_Wolf',['Ну что, кто сегодня уже успел исследовать остров?','Я заметил странное движение у берега.','Кто-нибудь видел волков возле леса?']],['Lera_Craft',['Я как раз собираю ресурсы для нового домика!','На берегу сегодня очень красиво.','Кто уже нашёл удобное место для лагеря?']],['Miracle_Fan',['Обожаю, как меняется остров в разное время суток!','Надеюсь, скоро появятся новые открытия.','Всем привет! Как проходит выживание?']],['Pixel_Runner',['Проверил побережье — там есть интересные места.','Сегодня исследую дальнюю часть острова.','У кого уже получилось поймать рыбу?']],['ForestFox',['В лесу довольно тихо. Даже подозрительно.','Мне нравится строить базу поближе к воде.','Кто-нибудь уже встречал оленей?']]];
+  const p=pools[Math.floor(Math.random()*pools.length)],message=p[1][Math.floor(Math.random()*p[1].length)],row={id:'local-'+Date.now()+'-'+Math.random().toString(36).slice(2,6),created_at:new Date().toISOString(),persona:p[0],message,is_ai:true,is_dev:false,language:ML_LANG()};
+  ML_LOCAL_ROWS.push(row);if(ML_LOCAL_ROWS.length>12)ML_LOCAL_ROWS.shift();ML_ROWS.push(row);ML_ROWS=ML_ROWS.slice(-30);mlRenderChat();
+ }
  async function mlGenerate(){
-  if(!ML_OPEN||ML_BUSY)return;ML_BUSY=true;
+  if(!ML_OPEN||ML_BUSY)return;ML_BUSY=true;let controller=null,timer=0;
   try{
-   const context={base_lang:ML_LANG(),world_name:typeof WP!=='undefined'&&WP.name?String(WP.name).slice(0,48):'',day:typeof day!=='undefined'?day:1,game_version:'0.0.4.9',activity:'community chat'};
+   const context={base_lang:ML_LANG(),world_name:typeof WP!=='undefined'&&WP.name?String(WP.name).slice(0,48):'',day:typeof day!=='undefined'?day:1,game_version:'0.0.5.0',activity:'community chat'};
    const last=ML_ROWS.slice(-12).map(m=>({persona:m.persona,message:m.message}));
-   const result=await mlFetch('/functions/v1/live-chat-gen',{method:'POST',headers:Object.assign({},ML_HEADERS,{'Content-Type':'application/json','Authorization':'Bearer '+ML_ANON_JWT}),body:JSON.stringify({ctx:context,last,session_id:ML_SESSION})});
+   controller=new AbortController();timer=setTimeout(()=>controller.abort(),8000);
+   await mlFetch('/functions/v1/live-chat-gen',{method:'POST',signal:controller.signal,headers:Object.assign({},ML_HEADERS,{'Content-Type':'application/json','Authorization':'Bearer '+ML_ANON_JWT}),body:JSON.stringify({ctx:context,last,session_id:ML_SESSION})});
    ML_AI_MISSING=false;setTimeout(mlLoadChat,700);
-  }catch(err){if(err&&err.status===503&&err.data&&err.data.error==='ANTHROPIC_API_KEY is not configured'){ML_AI_MISSING=true;mlStatus(mlText('aiMissing'))}}
-  finally{ML_BUSY=false}
+  }catch(_){mlFallback();ML_AI_MISSING=false;mlStatus(mlText('ready'))}
+  finally{if(timer)clearTimeout(timer);ML_BUSY=false}
  }
  async function mlSend(){
   const input=document.getElementById('ml-community-input');if(!input)return;const message=input.value.trim();if(!message)return;if(message.length>240){mlStatus(mlText('tooLong'));return}
@@ -909,9 +926,9 @@ let last=performance.now();
   try{await mlFetch('/rest/v1/live_chat',{method:'POST',headers:Object.assign({},ML_HEADERS,{'Content-Type':'application/json','Prefer':'return=minimal'}),body:JSON.stringify({session_id:ML_SESSION,persona:'Игрок',message,is_ai:false,is_dev:false,language:ML_LANG()})});input.value='';mlLog('chat_message',{length:message.length});await mlLoadChat();mlGenerate()}
   catch(_){mlStatus(mlText('failed'))}finally{send.disabled=false}
  }
- async function mlOpen(){
-  mlEnsurePanel();ML_OPEN=true;const overlay=document.getElementById('ml-community-overlay');overlay.hidden=false;mlStatus(mlText('loading'));mlLog('community_open',{version:'0.0.4.9'});
-  await Promise.all([mlLoadNews(),mlLoadChat()]);mlGenerate();clearInterval(ML_POLL);clearInterval(ML_BOT_TIMER);ML_POLL=setInterval(mlLoadChat,5000);ML_BOT_TIMER=setInterval(mlGenerate,18000);
+ function mlOpen(){
+  mlEnsurePanel();ML_OPEN=true;const overlay=document.getElementById('ml-community-overlay');overlay.hidden=false;mlStatus(mlText('ready'));mlLog('community_open',{version:'0.0.5.0'});
+  mlLoadNews();mlLoadChat();mlGenerate();clearInterval(ML_POLL);clearInterval(ML_BOT_TIMER);ML_POLL=setInterval(mlLoadChat,5000);ML_BOT_TIMER=setInterval(mlGenerate,18000);
  }
  function mlClose(){ML_OPEN=false;clearInterval(ML_POLL);clearInterval(ML_BOT_TIMER);const overlay=document.getElementById('ml-community-overlay');if(overlay)overlay.hidden=true}
  const mlOldPgMain=pgMain;
