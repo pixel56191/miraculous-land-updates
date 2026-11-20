@@ -602,7 +602,7 @@ const langRow=()=>'<div class="mr"><div class="ml">'+ico('ui_lang',16)+' '+L('Я
 function pgMain(){const w=HAVEWORLD?L('Мир: {w} · сид {s} · день {d}',{w:'<b>'+esc(L(WP.name))+'</b>',s:'<b>'+esc(SEEDTXT)+'</b>',d:day}):L('Мира пока нет — создай новый');
  const saved=Object.values(SAVE_DB.worlds||{}).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
  const worlds=saved.length?'<div class="mr"><b>'+L('Мои миры')+'</b>'+saved.map(q=>'<button class="pr" data-a="worldload" data-v="'+esc(q.id)+'"><b>'+esc(L(q.name||'Мир'))+'</b><small>'+L('Сид мира: {s}',{s:esc(q.seed||'')})+' · '+L('День')+' '+(q.day||1)+'</small><i>'+(q.id===activeWorldId?L('Текущий мир'):L('Открыть'))+'</i></button>').join('')+'</div>':'<div class="info">'+L('Нет сохранённых миров')+'</div>';
- return '<div class="logo">'+ico('logo',72)+'<h1>'+GN()+'</h1><div class="sub">v0.0.4.8 '+L('Альфа')+' 3D</div></div><div class="info">'+w+'</div>'+
+ return '<div class="logo">'+ico('logo',72)+'<h1>'+GN()+'</h1><div class="sub">v0.0.4.9 '+L('Альфа')+' 3D</div></div><div class="info">'+w+'</div>'+
  (HAVEWORLD?icb('ui_play','Продолжить','resume'):'')+icb('ui_world','Новый мир','go','world')+worlds+icb('ui_char','Персонаж','go','char')+icb('ui_gear','Настройки','go','set')+langRow()}
 function pgWorld(){return '<h2>'+L('Новый мир')+'</h2>'+row('Название','<input type="text" id="wname" maxlength="24" value="'+esc(WF.name)+'">')+
  row('Сид (пусто — случайный мир)','<div class="sd"><input type="text" id="wseed" maxlength="24" placeholder="'+L('случайный')+'" value="'+esc(WF.seed)+'">'+icb('ui_dice','','dice')+'</div>')+
@@ -689,7 +689,7 @@ function applyLang(){const sb=(id,ic,t)=>$(id).innerHTML='<span class="cb">'+ico
  sb('bAct','ui_act','Действие (E)');sb('bCraft','ui_craft','Крафт (C)');sb('bNew','ui_redo','');
  $('bNew').title=L('Новая игра');$('bMenu').title=L('Меню (Esc)');$('bDel').title=L('Разобрать постройку (X)');
  $('dtxt').textContent=L('Вы погибли');$('bRe').textContent=L('Начать заново');$('menu').dataset.busy=L('Генерация мира...');
- $('gname').textContent=GN();$('gver').textContent='v0.0.4.8 '+L('Альфа')+' 3D';document.title=GN();document.documentElement.lang=ST.lang;$('pname').textContent=CH.name;
+ $('gname').textContent=GN();$('gver').textContent='v0.0.4.9 '+L('Альфа')+' 3D';document.title=GN();document.documentElement.lang=ST.lang;$('pname').textContent=CH.name;
  if(inv)refresh()}
 // ===== Симуляция =====
 const dark=()=>clamp(.35-Math.sin(time*6.2832)*.6,0,.8);
@@ -814,7 +814,7 @@ showMenu('main');
 let last=performance.now();
 (function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;FPS.n++;if(now-FPS.t>500){if(ST.fps)$('fps').textContent=Math.round(FPS.n*1000/(now-FPS.t))+' FPS';FPS.n=0;FPS.t=now}if(autoTest&&autoTest.active){autoTest.frameCount++;if(now-autoTest.lastSample>=500){autoTest.fpsSamples.push(Math.round(autoTest.frameCount*1000/(now-autoTest.lastSample)));autoTest.frameCount=0;autoTest.lastSample=now}if(now-autoTest.startedAt>=20000)finishAutoTest()}step(dt);if(MENU)menuCam(dt);else env();hud();ren.render(MENU&&menuScene?menuScene:scene,MENU&&menuCamera?menuCamera:cam);requestAnimationFrame(loop)})(last);
 
-/* ===== Miraculous Land live AI community (0.0.4.8) ===== */
+/* ===== Miraculous Land live AI community (0.0.4.9) ===== */
 (function initMLCommunity(){
  const ML_PROJECT_URL='https://ushatjbtzjqagwclomkc.supabase.co';
  const ML_PUBLISHABLE_KEY='sb_publishable_UtsJ7QYWPN41hTI9UE_eCw_OYfcou6Q';
@@ -896,7 +896,7 @@ let last=performance.now();
  async function mlGenerate(){
   if(!ML_OPEN||ML_BUSY)return;ML_BUSY=true;
   try{
-   const context={base_lang:ML_LANG(),world_name:typeof WP!=='undefined'&&WP.name?String(WP.name).slice(0,48):'',day:typeof day!=='undefined'?day:1,game_version:'0.0.4.8',activity:'community chat'};
+   const context={base_lang:ML_LANG(),world_name:typeof WP!=='undefined'&&WP.name?String(WP.name).slice(0,48):'',day:typeof day!=='undefined'?day:1,game_version:'0.0.4.9',activity:'community chat'};
    const last=ML_ROWS.slice(-12).map(m=>({persona:m.persona,message:m.message}));
    const result=await mlFetch('/functions/v1/live-chat-gen',{method:'POST',headers:Object.assign({},ML_HEADERS,{'Content-Type':'application/json','Authorization':'Bearer '+ML_ANON_JWT}),body:JSON.stringify({ctx:context,last,session_id:ML_SESSION})});
    ML_AI_MISSING=false;setTimeout(mlLoadChat,700);
@@ -910,7 +910,7 @@ let last=performance.now();
   catch(_){mlStatus(mlText('failed'))}finally{send.disabled=false}
  }
  async function mlOpen(){
-  mlEnsurePanel();ML_OPEN=true;const overlay=document.getElementById('ml-community-overlay');overlay.hidden=false;mlStatus(mlText('loading'));mlLog('community_open',{version:'0.0.4.8'});
+  mlEnsurePanel();ML_OPEN=true;const overlay=document.getElementById('ml-community-overlay');overlay.hidden=false;mlStatus(mlText('loading'));mlLog('community_open',{version:'0.0.4.9'});
   await Promise.all([mlLoadNews(),mlLoadChat()]);mlGenerate();clearInterval(ML_POLL);clearInterval(ML_BOT_TIMER);ML_POLL=setInterval(mlLoadChat,5000);ML_BOT_TIMER=setInterval(mlGenerate,18000);
  }
  function mlClose(){ML_OPEN=false;clearInterval(ML_POLL);clearInterval(ML_BOT_TIMER);const overlay=document.getElementById('ml-community-overlay');if(overlay)overlay.hidden=true}
