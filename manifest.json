@@ -29,13 +29,13 @@
   "version": "0.0.4.7",
   "files": {
     "index.html": {
-      "sha256": "05777ef7b6019f8b7bb60df2e4075ae638ceeb5d2cb6f666a10255c5566013e5",
+      "sha256": "cecd10debd4f7900b6428ff29ac47b08fe6e2a28bed4f82358d8d61a57d69ab2",
       "size": 9948,
       "url": "index.html"
     },
     "game.js": {
-      "sha256": "39e344ad3547be84e585ffc527eefe3f37e1159daeca0cf27699a6f5b43a48d7",
-      "size": 113334,
+      "sha256": "e52e475b5ad1ebc6285feafebcf2b182c5bada317a656359f183ca194cc7b05f",
+      "size": 113582,
       "url": "game.js"
     }
   }
