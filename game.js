@@ -840,7 +840,7 @@ let last=performance.now();
   es:{title:'Comunidad en vivo',loading:'Conectando...',ready:'Comunidad conectada',offline:'Comunidad no disponible',placeholder:'Escribe un mensaje...',send:'Enviar',close:'Cerrar',empty:'Todo está tranquilo. ¡Pronto hablarán los jugadores!',news:'Noticias del juego',dev:'Desarrollador',player:'Jugador',tooLong:'Máximo 240 caracteres.',failed:'No se pudo enviar el mensaje.',aiMissing:'La IA espera que se configure la clave de Anthropic en Supabase.'}
  };
  const mlText=k=>(ML_COPY[ML_LANG()]||ML_COPY.ru)[k]||k;
- let ML_ROWS=[],ML_POLL=0,ML_BOT_TIMER=0,ML_BUSY=false,ML_OPEN=false,ML_NEWS_LOADED=false;
+ let ML_ROWS=[],ML_POLL=0,ML_BOT_TIMER=0,ML_BUSY=false,ML_OPEN=false,ML_NEWS_LOADED=false,ML_AI_MISSING=false;
  function mlSession(){
   const key='miraculous-land-live-session-v1';
   try{let id=localStorage.getItem(key);if(!/^[a-zA-Z0-9_-]{8,64}$/.test(id||'')){const part=()=>Math.random().toString(36).slice(2);id='ml-'+(crypto&&crypto.randomUUID?crypto.randomUUID().replace(/-/g,''):part()+part());localStorage.setItem(key,id)}return id}
@@ -905,15 +905,15 @@ let last=performance.now();
   if(nearBottom)root.scrollTop=root.scrollHeight;
  }
  async function mlLoadNews(){if(ML_NEWS_LOADED)return;ML_NEWS_LOADED=true;try{const rows=await mlFetch('/rest/v1/game_news?select=title,body,category,created_at&is_published=eq.true&order=created_at.desc&limit=3');mlRenderNews(rows)}catch(_){ML_NEWS_LOADED=false}}
- async function mlLoadChat(){try{const rows=await mlFetch('/rest/v1/live_chat?select=id,created_at,persona,message,is_ai,is_dev,language&order=id.desc&limit=60');ML_ROWS=Array.isArray(rows)?rows.reverse():[];mlRenderChat();mlStatus(mlText('ready'))}catch(_){mlStatus(mlText('offline'))}}
+ async function mlLoadChat(){try{const rows=await mlFetch('/rest/v1/live_chat?select=id,created_at,persona,message,is_ai,is_dev,language&order=id.desc&limit=60');ML_ROWS=Array.isArray(rows)?rows.reverse():[];mlRenderChat();mlStatus(ML_AI_MISSING?mlText('aiMissing'):mlText('ready'))}catch(_){mlStatus(mlText('offline'))}}
  async function mlGenerate(){
   if(!ML_OPEN||ML_BUSY)return;ML_BUSY=true;
   try{
    const context={base_lang:ML_LANG(),world_name:typeof WP!=='undefined'&&WP.name?String(WP.name).slice(0,48):'',day:typeof day!=='undefined'?day:1,game_version:'0.0.4.8',activity:'community chat'};
    const last=ML_ROWS.slice(-12).map(m=>({persona:m.persona,message:m.message}));
    const result=await mlFetch('/functions/v1/live-chat-gen',{method:'POST',headers:Object.assign({},ML_HEADERS,{'Content-Type':'application/json','Authorization':'Bearer '+ML_ANON_JWT}),body:JSON.stringify({ctx:context,last,session_id:ML_SESSION})});
-   if(result&&result.error==='ANTHROPIC_API_KEY is not configured')mlStatus(mlText('aiMissing'));setTimeout(mlLoadChat,700);
-  }catch(err){if(err&&err.status===503&&err.data&&err.data.error==='ANTHROPIC_API_KEY is not configured')mlStatus(mlText('aiMissing'))}
+   ML_AI_MISSING=false;setTimeout(mlLoadChat,700);
+  }catch(err){if(err&&err.status===503&&err.data&&err.data.error==='ANTHROPIC_API_KEY is not configured'){ML_AI_MISSING=true;mlStatus(mlText('aiMissing'))}}
   finally{ML_BUSY=false}
  }
  async function mlSend(){
