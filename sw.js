@@ -67,10 +67,17 @@ async function refreshChangedAssets(notifyClients) {
 
 async function cacheIcons() {
   const cache = await caches.open(CACHE_NAME);
-  for (const url of ICON_URLS) {
+  const resources = [...ICON_URLS,
+    'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'];
+  for (const url of resources) {
     if (await cache.match(url)) continue;
-    const response = await fetch(url);
-    if (response.ok) await cache.put(url, response);
+    try {
+      const response = await fetch(url, url.startsWith('https://cdnjs.cloudflare.com/')
+        ? {mode: 'no-cors'} : undefined);
+      if (response.ok || response.type === 'opaque') await cache.put(url, response);
+    } catch (_) {
+      // Offline install can still complete; the asset will be cached on its first online request.
+    }
   }
 }
 
