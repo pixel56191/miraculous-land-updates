@@ -26,7 +26,7 @@
       "purpose": "any maskable"
     }
   ],
-  "version": "0.0.4.9",
+  "version": "0.0.5.0",
   "files": {
     "index.html": {
       "sha256": "ca9b683b6b4aacd5841137cbd5176090ea95d35d4c0579d04d6882a79cf59f0b",
@@ -34,8 +34,8 @@
       "url": "index.html"
     },
     "game.js": {
-      "sha256": "7434fbeec8864096509c3a6214c2e13fc8d7e94025133b2ffa83eb4c8709e2ac",
-      "size": 126707,
+      "sha256": "362cbba771cbbdc607319ae7653b33a0fedae2a439c143f20fbfa36f047a49cd",
+      "size": 131968,
       "url": "game.js"
     }
   }
