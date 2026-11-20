@@ -34,15 +34,9 @@
       "url": "index.html"
     },
     "game.js": {
-      "sha256": "1cd582e8fec745ac225543dc8cf413df20b7f9cf7b8f78c1cf7ad6b8e00207a7",
-      "size": 145384,
-      "url": "game.js",
-      "patch": {
-        "url": "patches/game.js.bsdiff",
-        "from_sha256": "ce64bdf4b67a154d653dab71be4b30cf5ce0f6d1b973202576001189a530f5af",
-        "sha256": "cb0f530a3bfa612aca4eb3bcf9b18078390ce16224b72236a9bb540a86b16f55",
-        "size": 534
-      }
+      "sha256": "0ba4cb90298ad5a07c93c5e610a928124a1ccafd21c69b5abe052cc1d827697b",
+      "size": 127582,
+      "url": "game.js"
     }
   }
 }
