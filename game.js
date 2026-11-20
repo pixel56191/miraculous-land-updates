@@ -652,7 +652,7 @@ function step(dt){if(autoTest&&autoTest.active){const directions=[['KeyW'],['Key
   if(l>.01){if(l>1){ix/=l;iy/=l}
    const mx=ix*Math.cos(yaw)-iy*Math.sin(yaw),mz=-ix*Math.sin(yaw)-iy*Math.cos(yaw),spd=(IN_WATER?2.6:5.2)*mvAmt*(SPR?1.6:1);
    move(mx/Math.max(.01,mvAmt)*spd*dt,mz/Math.max(.01,mvAmt)*spd*dt);
-   let d=Math.atan2(mx,mz)-P.f;d=Math.atan2(Math.sin(d),Math.cos(d));P.f+=d*Math.min(1,dt*12);walkT+=dt*spd*1.7;const st=Math.floor(walkT/Math.PI);if(st!=lastSt){lastSt=st;snd(70+Math.random()*40,.06,'triangle',.04)}}
+   let d=Math.atan2(mx,mz)-P.f;d=Math.atan2(Math.sin(d),Math.cos(d));P.f+=d*Math.min(1,dt*12);walkT+=dt*spd*1.7;const st=Math.floor(walkT/Math.PI);if(st!=lastSt){lastSt=st;if(IN_WATER)snd(260+Math.random()*100,.07,'sine',.025);else snd(70+Math.random()*40,.06,'triangle',.04)}}
   if(!autoTest||!autoTest.active){time+=dt/WP.day;if(time>=1){time-=1;day++}
   acc+=dt;if(acc>=1){acc-=1;nodes.forEach(n=>{if(n.dead&&--n.rt<=0){n.dead=false;put(n)}})}
   const dk=dark(),fire=F.some(f=>Math.hypot(f.x-P.x,f.z-P.z)<9),shel=PC.some(p=>p.pk=='roof'&&Math.abs(p.x-P.x)<=1.1&&Math.abs(p.z-P.z)<=1.1);
