@@ -1,7 +1,7 @@
 const $=id=>document.getElementById(id);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // ===== Ядро: реестры (новый контент добавляется здесь или через Game.use) =====
-const G=window.Game={version:'0.0.5.1 Альфа 3D',items:{},nodes:{},recipes:[],mods:[],
+const G=window.Game={version:'0.0.5.2 Альфа 3D',items:{},nodes:{},recipes:[],mods:[],
  registerItem(id,o){o.ru=o.n;Object.defineProperty(o,'n',{get(){return L(this.ru)},enumerable:true});this.items[id]=o},registerNode(id,o){if(o.hint){o.hru=o.hint;Object.defineProperty(o,'hint',{get(){return L(this.hru)},enumerable:true})}this.nodes[id]=o},registerRecipe(r){this.recipes.push(r)},
  use(f){this.mods.push(f);f(this)}};
 G.use(g=>{
@@ -11,6 +11,7 @@ G.use(g=>{
  g.registerItem('campfire',{n:'Костёр',place:'campfire'});g.registerItem('bandage',{n:'Бинт',eat:{hp:25}});
  g.registerItem('meat',{n:'Сырое мясо',eat:{food:8,hp:-8},cook:'meat_c'});g.registerItem('meat_c',{n:'Жареное мясо',eat:{food:38}});
  g.registerItem('fish',{n:'Рыба',eat:{food:6,hp:-4},cook:'fish_c'});g.registerItem('fish_c',{n:'Жареная рыба',eat:{food:28,water:3}});
+ g.registerItem('herb',{n:'Лечебная трава'});g.registerItem('infusion',{n:'Травяной настой'});g.registerItem('warm_wrap',{n:'Тёплая повязка'});
  g.registerItem('hide',{n:'Шкура'});g.registerItem('bone',{n:'Кость'});g.registerItem('spear',{n:'Копьё',tool:'spear'});
  g.registerItem('plank',{n:'Доски'});g.registerItem('clay',{n:'Глина',smelt:'brick'});g.registerItem('brick',{n:'Кирпич'});
  g.registerItem('iron_ore',{n:'Железная руда',smelt:'iron_ingot'});g.registerItem('coal',{n:'Уголь'});g.registerItem('iron_ingot',{n:'Железный слиток'});
@@ -20,12 +21,14 @@ G.use(g=>{
  g.registerNode('tree',{hint:'Рубить дерево',solid:1,r:.45,hp:4,tool:'axe',drops:[['wood',2,3],['fiber',0,1]]});
  g.registerNode('rock',{hint:'Добывать камень',solid:1,r:.85,hp:5,tool:'pick',drops:[['stone',2,3]]});
  g.registerNode('bush',{hint:'Собрать ягоды',hp:1,drops:[['berry',1,3],['fiber',0,2]],regrow:70});
+ g.registerNode('herb',{hint:'Собрать лечебную траву',hp:1,drops:[['herb',1,2]],regrow:120});
  g.registerNode('campfire',{solid:1,r:.6,hp:99,fixed:1});
  g.registerNode('clay',{hint:'Копать глину',solid:1,r:.7,hp:3,drops:[['clay',2,3]]});
  g.registerNode('iron',{hint:'Добывать железную руду',solid:1,r:.8,hp:6,tool:'pick',need:'pick',drops:[['iron_ore',1,2]]});
  g.registerNode('coal',{hint:'Добывать уголь',solid:1,r:.8,hp:5,tool:'pick',need:'pick',drops:[['coal',1,3]]});
  g.registerRecipe({out:'axe',n:1,in:{wood:3,stone:2}});g.registerRecipe({out:'pickaxe',n:1,in:{wood:3,stone:3}});
  g.registerRecipe({out:'campfire',n:1,in:{wood:5,stone:2}});g.registerRecipe({out:'bandage',n:1,in:{fiber:3}});
+ g.registerRecipe({out:'infusion',n:1,in:{herb:2,berry:1}});g.registerRecipe({out:'warm_wrap',n:1,in:{hide:2,fiber:2}});
  g.registerRecipe({out:'spear',n:1,in:{wood:3,stone:1,fiber:2}});
  g.registerRecipe({out:'bench',n:1,in:{wood:6,stone:3}});g.registerRecipe({out:'furnace',n:1,in:{stone:10,clay:4}});
  g.registerRecipe({out:'plank',n:2,in:{wood:2},at:'bench'});g.registerRecipe({out:'floor',n:1,in:{plank:4},at:'bench'});
@@ -63,23 +66,83 @@ const stars=new THREE.Points(sg,new THREE.PointsMaterial({size:1.7,sizeAttenuati
 const sunD=new THREE.Mesh(new THREE.SphereGeometry(14,16,12),new THREE.MeshBasicMaterial({color:0xfff1b0,fog:false})),
  moonD=new THREE.Mesh(new THREE.SphereGeometry(9,16,12),new THREE.MeshBasicMaterial({color:0xdfe8ff,fog:false}));scene.add(sunD,moonD);
 const cNT=new THREE.Color(0x02050f),cDT=new THREE.Color(0x3f86d6),cNB=new THREE.Color(0x070b18),cDB=new THREE.Color(0xa8cdee),cDu=new THREE.Color(0xff8a4a),tc=new THREE.Color();
+
+// ===== Погода и сезонный цикл v0.0.5.2 =====
+window.ML_GAME_ACTIONS=window.ML_GAME_ACTIONS||[];
+window.mlTrackGameAction=function(action){window.ML_GAME_ACTIONS.push(String(action).slice(0,120));if(window.ML_GAME_ACTIONS.length>12)window.ML_GAME_ACTIONS.shift()};
+let weatherType='clear',weatherTimer=32,weatherWind=0,weatherFlash=0,weatherThunderAt=0,lastWetState=false;
+let rainPoints=null,snowPoints=null,rainSource=null,rainGain=null;
+function winterMode(){return new Date().getMonth()>=11}
+function applyWinterGround(){
+ const winter=winterMode();if(!terrainGeo||!terrainBaseColors||terrainWinter===winter)return;
+ const a=terrainGeo.attributes.color;for(let i=0;i<a.count;i++){const k=i*3,blend=winter?.88:0;a.array[k]=terrainBaseColors[k]*(1-blend)+blend;a.array[k+1]=terrainBaseColors[k+1]*(1-blend)+blend;a.array[k+2]=terrainBaseColors[k+2]*(1-blend)+blend}
+ a.needsUpdate=true;terrainWinter=winter;
+}
+function initWeatherParticles(){
+ const make=(count,mat)=>{const geo=new THREE.BufferGeometry(),arr=new Float32Array(count*3);for(let i=0;i<count;i++){arr[i*3]=(Math.random()-.5)*46;arr[i*3+1]=Math.random()*24;arr[i*3+2]=(Math.random()-.5)*46}geo.setAttribute('position',new THREE.BufferAttribute(arr,3));const pts=new THREE.Points(geo,mat);pts.frustumCulled=false;scene.add(pts);return pts};
+ rainPoints=make(520,new THREE.PointsMaterial({color:0xb9d8ef,size:.11,transparent:true,opacity:.68,depthWrite:false}));
+ snowPoints=make(300,new THREE.PointsMaterial({color:0xffffff,size:.16,transparent:true,opacity:.86,depthWrite:false}));
+ rainPoints.visible=false;snowPoints.visible=false;
+}
+initWeatherParticles();
+function setRainAudio(active){
+ if(!AC&&active){snd(90,.001,'sine',.001)}
+ if(!AC)return;
+ try{
+  if(!rainSource){const buffer=AC.createBuffer(1,AC.sampleRate*2,AC.sampleRate),data=buffer.getChannelData(0);for(let i=0;i<data.length;i++)data[i]=(Math.random()*2-1)*.28;rainSource=AC.createBufferSource();rainSource.buffer=buffer;rainSource.loop=true;const filter=AC.createBiquadFilter();filter.type='lowpass';filter.frequency.value=850;rainGain=AC.createGain();rainGain.gain.value=0;rainSource.connect(filter);filter.connect(rainGain);rainGain.connect(AC.destination);rainSource.start()}
+  rainGain.gain.setTargetAtTime(active?Math.max(.001,ST.vol*.035):0,AC.currentTime,.7);
+ }catch(_){}
+}
+function chooseWeather(){
+ const month=new Date().getMonth(),winter=month>=11,preSnow=month===10;
+ const pool=winter?[['clear',2],['fog',1],['rain',1],['storm',.45],['wind',1],['snow',3]]:[['clear',4],['fog',1.2],['rain',2],['storm',.65],['wind',1.4],...(preSnow?[['snow',.35]]:[])];
+ let total=pool.reduce((a,x)=>a+x[1],0),r=Math.random()*total;for(const x of pool){r-=x[1];if(r<=0){weatherType=x[0];break}}
+ weatherTimer=65+Math.random()*115;window.mlTrackGameAction('Погода изменилась: '+weatherType);weatherWind=weatherType==='wind'?1.2:weatherType==='storm'?1.45:weatherType==='rain'?.65:.25;
+ if(weatherType==='storm')weatherThunderAt=8+Math.random()*20;
+ setRainAudio(weatherType==='rain'||weatherType==='storm');
+}
+function weatherName(){return L(({clear:'Ясно',fog:'Туман',rain:'Дождь',storm:'Гроза',wind:'Ветер',snow:'Снег'})[weatherType]||'Ясно')}
+function updateWeather(dt){
+ weatherTimer-=dt;if(weatherTimer<=0)chooseWeather();
+ applyWinterGround();
+ const rain=weatherType==='rain'||weatherType==='storm',snow=weatherType==='snow';
+ rainPoints.visible=rain;snowPoints.visible=snow;
+ const windX=Math.sin(tm*.21)*weatherWind,windZ=Math.cos(tm*.17)*weatherWind;
+ if(rain||snow){
+  const pts=rain?rainPoints:snowPoints,arr=pts.geometry.attributes.position.array;
+  for(let i=0;i<arr.length;i+=3){
+   arr[i]+=windX*dt*(rain?3:1.4);arr[i+2]+=windZ*dt*(rain?3:1.4);arr[i+1]-=dt*(rain?22:1.7);
+   if(arr[i+1]<-1){arr[i]=(Math.random()-.5)*46;arr[i+1]=18+Math.random()*9;arr[i+2]=(Math.random()-.5)*46}
+   if(Math.abs(arr[i])>25)arr[i]*=-.7;if(Math.abs(arr[i+2])>25)arr[i+2]*=-.7;
+  }
+  pts.geometry.attributes.position.needsUpdate=true;pts.position.set(P.x,0,P.z);
+ }
+ if(GRASS_MESH){const sway=weatherType==='wind'||weatherType==='storm'||rain?weatherWind:0;GRASS_MESH.rotation.z=Math.sin(tm*1.7)*sway*.008}
+ if(weatherType==='storm'){
+  weatherThunderAt-=dt;if(weatherThunderAt<=0){weatherFlash=.18;weatherThunderAt=15+Math.random()*27;snd(48,1.15,'sawtooth',.045)}
+ }
+ weatherFlash=Math.max(0,weatherFlash-dt);
+}
+
 function env(){const a=time*6.2832,sn=Math.sin(a),cs=Math.cos(a),dy=clamp(sn*2+.4,0,1),du=Math.max(0,1-Math.abs(sn)*3.5);
- skyU.top.value.copy(cNT).lerp(cDT,dy);skyU.bot.value.copy(cNB).lerp(cDB,dy).lerp(cDu,du*.85);
- scene.fog.color.copy(skyU.bot.value);sky.position.copy(cam.position);
- sun.intensity=dy*1.3;sun.color.setHex(0xfff2d0).lerp(cDu,du*.7);hemi.intensity=.2+dy*.55;moon.intensity=(1-dy)*.4;
+ const gloom=weatherType==='storm'?.52:weatherType==='rain'?.32:weatherType==='fog'?.18:0;
+ skyU.top.value.copy(cNT).lerp(cDT,dy).multiplyScalar(1-gloom);skyU.bot.value.copy(cNB).lerp(cDB,dy).lerp(cDu,du*.85).multiplyScalar(1-gloom*.72);
+ scene.fog.color.copy(skyU.bot.value);scene.fog.near=weatherType==='fog'?5:weatherType==='rain'||weatherType==='storm'?18:45;scene.fog.far=weatherType==='fog'?58:weatherType==='rain'||weatherType==='storm'?105:180;sky.position.copy(cam.position);
+ sun.intensity=dy*1.3*(1-gloom)+weatherFlash*13;sun.color.setHex(0xfff2d0).lerp(cDu,du*.7);hemi.intensity=.2+dy*.55+weatherFlash*2.5;moon.intensity=(1-dy)*.4;
  const d=new THREE.Vector3(cs*.9,sn,.35).normalize();
  sun.position.set(P.x+d.x*90,P.y+Math.max(d.y,.15)*90,P.z+d.z*90);sun.target.position.set(P.x,P.y,P.z);
  moon.position.set(P.x-d.x*90,P.y+90,P.z-d.z*90);
  sunD.position.copy(cam.position).addScaledVector(d,400);moonD.position.copy(cam.position).addScaledVector(d,-400);
  stars.position.copy(cam.position);stars.material.opacity=Math.pow(1-dy,2);}
 // ===== Мир =====
-let world,nodes,grid,TR,RK,BS,BR,F=[],water;
+let world,nodes,grid,TR,RK,BS,BR,HB,HF,GRASS_MESH=null,terrainGeo=null,terrainBaseColors=null,terrainWinter=null,F=[],water;
 const M4=new THREE.Matrix4(),QQ=new THREE.Quaternion(),EE=new THREE.Euler(),VV=new THREE.Vector3(),SS=new THREE.Vector3(),IDQ=new THREE.Quaternion();
 const mt=c=>new THREE.MeshStandardMaterial({color:c,roughness:.9,flatShading:true});
 function put(n,tilt=0){if(n.t=='campfire')return;
  const k=n.gone?.0001:n.s;EE.set(tilt,n.r,0);QQ.setFromEuler(EE);
  if(n.t=='tree'){VV.set(n.x,n.y-.05,n.z);SS.set(k,k,k);M4.compose(VV,QQ,SS);TR.forEach(m=>{m.setMatrixAt(n.i,M4);m.instanceMatrix.needsUpdate=true})}
  else if(RKT.includes(n.t)){VV.set(n.x,n.y+k*.3,n.z);SS.set(k*n.a*1.2,k*.8,k*n.a);M4.compose(VV,QQ,SS);RK.setMatrixAt(n.i,M4);RK.instanceMatrix.needsUpdate=true}
+ else if(n.t==='herb'){VV.set(n.x,n.y+.18*k,n.z);SS.set(k,k,k);M4.compose(VV,QQ,SS);HB.setMatrixAt(n.i,M4);HB.instanceMatrix.needsUpdate=true;for(let j=0;j<3;j++){const a=j*2.094+n.r;VV.set(n.x+Math.cos(a)*.22*k,n.y+.48*k,n.z+Math.sin(a)*.22*k);SS.set(k,k,k);M4.compose(VV,IDQ,SS);HF.setMatrixAt(n.i*3+j,M4)}HF.instanceMatrix.needsUpdate=true}
  else{VV.set(n.x,n.y+.3*k,n.z);SS.set(k,k*.75,k);M4.compose(VV,QQ,SS);BS.setMatrixAt(n.i,M4);BS.instanceMatrix.needsUpdate=true;
   const kb=n.dead?.0001:1;for(let j=0;j<4;j++){const a=j*1.7+n.r;VV.set(n.x+Math.cos(a)*.5*k,n.y+.5*k+j*.05,n.z+Math.sin(a)*.5*k);SS.set(kb,kb,kb);M4.compose(VV,IDQ,SS);BR.setMatrixAt(n.i*4+j,M4)}BR.instanceMatrix.needsUpdate=true}}
 let BIRDS=[],BIRD_POP_TIMER=0,BIRD_BODY_MAT=null,BIRD_HEAD_MAT=null,BIRD_WING_MAT=null,BIRD_TIP_MAT=null,BIRD_BEAK_MAT=null,BIRD_LEG_MAT=null,BIRD_EYE_MAT=null;
@@ -127,17 +190,18 @@ function buildWorld(){
   if(y<.9)c.setRGB(.76+j,.69+j,.47);else if(sl<.82||y>9)c.setRGB(.42+j,.4+j,.38);else c.setRGB(.2+j+y*.012,.47+j-y*.01,.16+j*.5);
   if(y<0)c.multiplyScalar(.7);col[i*3]=c.r;col[i*3+1]=c.g;col[i*3+2]=c.b}
  g.setAttribute('color',new THREE.BufferAttribute(col,3));
+ terrainGeo=g;terrainBaseColors=col.slice();terrainWinter=null;applyWinterGround();
  const ter=new THREE.Mesh(g,new THREE.MeshStandardMaterial({vertexColors:true,roughness:1}));ter.receiveShadow=true;world.add(ter);
  const wg=new THREE.PlaneGeometry(200,200,64,64);wg.rotateX(-Math.PI/2);
  water=new THREE.Mesh(wg,new THREE.MeshStandardMaterial({color:0x2f7fb5,transparent:true,opacity:.78,roughness:.12,metalness:.25}));water.userData.b=wg.attributes.position.array.slice();world.add(water);
- const R=rng(seed),cnt={tree:0,rock:0,bush:0};
+ const R=rng(seed),cnt={tree:0,rock:0,bush:0,herb:0};
  const reg=n=>{const k=Math.floor(n.x/6)+','+Math.floor(n.z/6);(grid.get(k)||grid.set(k,[]).get(k)).push(n)};
  const addN=(t,x,y,z,s)=>{const n={t,x,y,z,s,r:R()*6.28,a:.8+R()*.5,hp:G.nodes[t].hp,i:cnt[RKT.includes(t)?'rock':t]++};nodes.push(n);reg(n)};
  for(let x=-95;x<95;x+=2.2)for(let z=-95;z<95;z+=2.2){
   const px=x+(R()-.5)*2,pz=z+(R()-.5)*2,y=hgt(px,pz),r=R();
   if(y<.7||y>9.5||Math.hypot(px,pz)<6)continue;
   if(vn(px/14+50,pz/14)>WP.forest&&r<WP.ftree)addN('tree',px,y,pz,.8+R()*.8);
-  else if(y<1.7&&r>.94-.04*WP.res&&r<.94)addN('clay',px,y,pz,.7+R()*.5);else if(y>4.5&&r>.93-.05*WP.res&&r<.93)addN(r<.93-.025*WP.res?'coal':'iron',px,y,pz,.7+R()*.6);else if(r<.03*WP.res)addN('rock',px,y,pz,.6+R()*1.1);else if(r>.975)addN('bush',px,y,pz,.8+R()*.4)}
+  else if(y<1.7&&r>.94-.04*WP.res&&r<.94)addN('clay',px,y,pz,.7+R()*.5);else if(y>4.5&&r>.93-.05*WP.res&&r<.93)addN(r<.93-.025*WP.res?'coal':'iron',px,y,pz,.7+R()*.6);else if(r<.03*WP.res)addN('rock',px,y,pz,.6+R()*1.1);else if(r>.965&&y<3.5)addN('herb',px,y,pz,.65+R()*.45);else if(r>.975)addN('bush',px,y,pz,.8+R()*.4)}
  const mk=(geo,mat,n,cs=true)=>{const m=new THREE.InstancedMesh(geo,mat,Math.max(1,n));m.castShadow=cs;m.receiveShadow=true;world.add(m);return m};
  const cone=(r,hh,y)=>new THREE.ConeGeometry(r,hh,7).translate(0,y,0);
  TR=[mk(new THREE.CylinderGeometry(.18,.28,2.4,6).translate(0,1.2,0),mt(0x5b3d24),cnt.tree),mk(cone(1.9,2.2,2.6),mt(0x2f6b34),cnt.tree),mk(cone(1.5,2,3.7),mt(0x38803c),cnt.tree),mk(cone(1.05,1.8,4.8),mt(0x43953f),cnt.tree)];
@@ -145,10 +209,11 @@ function buildWorld(){
  for(let i=0;i<ip.count;i++){const x=ip.getX(i),y=ip.getY(i),z=ip.getZ(i),k=.8+h(x*9,z*7+y*5)*.4;ip.setXYZ(i,x*k,y*k,z*k)}
  ig.computeVertexNormals();RK=mk(ig,mt(0x8a8a86),cnt.rock);
  BS=mk(new THREE.IcosahedronGeometry(.75,1),mt(0x3d7a2a),cnt.bush);BR=mk(new THREE.SphereGeometry(.09,6,5),new THREE.MeshStandardMaterial({color:0xc0203a,roughness:.4}),cnt.bush*4,false);
+ HB=mk(new THREE.IcosahedronGeometry(.28,0),mt(0x357b4b),cnt.herb);HF=mk(new THREE.SphereGeometry(.11,7,6),new THREE.MeshStandardMaterial({color:0x7777ff,roughness:.55}),cnt.herb*3,false);
  const cl=new THREE.Color();
- nodes.forEach(n=>{put(n);const m=n.t=='tree'?TR:RKT.includes(n.t)?[RK]:[BS];cl.setScalar(.7+h(n.x,n.z)*.3);if(TINT[n.t])cl.multiply(TINT[n.t]);m.forEach((q,j)=>{if(!(n.t=='tree'&&j==0)){q.setColorAt(n.i,cl)}})});
+ nodes.forEach(n=>{put(n);const m=n.t=='tree'?TR:RKT.includes(n.t)?[RK]:n.t=='herb'?[HB]:[BS];cl.setScalar(.7+h(n.x,n.z)*.3);if(TINT[n.t])cl.multiply(TINT[n.t]);m.forEach((q,j)=>{if(!(n.t=='tree'&&j==0)){q.setColorAt(n.i,cl)}})});
  [...TR,RK,BS].forEach(m=>{if(m.instanceColor)m.instanceColor.needsUpdate=true});
- const gc=7000,gr=mk(new THREE.ConeGeometry(.07,.55,3).translate(0,.27,0),new THREE.MeshStandardMaterial({color:0x5aa84a,roughness:1}),gc,false);gr.castShadow=false;
+ const gc=7000,gr=mk(new THREE.ConeGeometry(.07,.55,3).translate(0,.27,0),new THREE.MeshStandardMaterial({color:0x5aa84a,roughness:1}),gc,false);GRASS_MESH=gr;gr.castShadow=false;
  let gi=0;for(let t=0;t<30000&&gi<gc;t++){const x=(R()-.5)*190,z=(R()-.5)*190,y=hgt(x,z);if(y<1||y>8)continue;
   const s=.6+R()*1.1;VV.set(x,y,z);EE.set((R()-.5)*.3,R()*6.28,(R()-.5)*.3);QQ.setFromEuler(EE);SS.set(s,s*(.7+R()*.8),s);M4.compose(VV,QQ,SS);gr.setMatrixAt(gi,M4);cl.setScalar(.6+R()*.5);gr.setColorAt(gi,cl);gi++}
  GRN=gi;GR=gr;gr.count=Math.floor(gi*GQ());gr.instanceColor.needsUpdate=true;PC=[];openC=null;TR.forEach((m,i)=>sway(m.material,i?1.2:.12));sway(BS.material,.5);sway(gr.material,3);spawnAnimals();createBirds()}
@@ -230,13 +295,15 @@ function take(id,n){for(let i=0;i<inv.length&&n>0;i++){const s=inv[i];if(s&&s.id
 function useSlot(i){const s=inv[i];if(!s||dead)return;if(openC){moveToChest(i);return}const it=G.items[s.id];
  if(it.smelt&&nearPc('furnace',3.5)){if(!count('coal'))return log(L('Нужен уголь'));take('coal',1);take(s.id,1);add(it.smelt,1);snd(260,.25,'triangle');log(L('Переплавлено: {n}',{n:G.items[it.smelt].n}))}
  else if(it.cook&&F.some(f=>Math.hypot(f.x-P.x,f.z-P.z)<3.5)){take(s.id,1);add(it.cook,1);snd(300,.2,'triangle');log(L('Вы пожарили: {n}',{n:G.items[it.cook].n}))}
- else if(it.eat){for(const k in it.eat)S[k]=Math.min(100,S[k]+it.eat[k]);take(s.id,1);snd(500,.1,'sine');playA('eat');log(L('{n} использовано',{n:it.n})+(it.cook?L(' (лучше пожарить на костре)'):''))}
+ else if(s.id==='infusion'){S.cold=0;S.coldTimer=0;S.poison=0;S.warm=Math.min(100,S.warm+28);window.mlTrackGameAction('Выпил травяной настой и вылечился');take(s.id,1);snd(520,.2,'sine');log(L('Настой помог: болезни прошли, стало теплее'))}
+ else if(s.id==='warm_wrap'){S.insulation=240;S.warm=Math.min(100,S.warm+12);window.mlTrackGameAction('Надел тёплую повязку');take(s.id,1);snd(340,.16,'triangle');log(L('Тёплая повязка согревает'))}
+ else if(it.eat){for(const k in it.eat)S[k]=Math.min(100,S[k]+it.eat[k]);if((s.id==='meat'||s.id==='fish')&&Math.random()<.5){S.poison=1;window.mlTrackGameAction('Съел сырую пищу и получил отравление');log(L('Похоже, вы отравились сырой пищей!'))}else{window.mlTrackGameAction('Съел: '+it.n);log(L('{n} использовано',{n:it.n}))};if(s.id==='berry')S.heat=0;take(s.id,1);snd(500,.1,'sine');playA('eat')}
  else if(it.place&&it.place!='campfire'){if(placePiece(it.place))take(s.id,1)}
  else if(it.place){const x=P.x+Math.sin(P.f)*1.9,z=P.z+Math.cos(P.f)*1.9;
   if(hgt(x,z)<.2||near(x,z).some(n=>!n.gone&&G.nodes[n.t].solid&&Math.hypot(n.x-x,n.z-z)<(G.nodes[n.t].r*n.s+.9)))return log(L('Сюда нельзя поставить'));
   mkFire(x,z);take(s.id,1)}
  else log(it.smelt?L('Нужна печь рядом'):L('{n} — материал или инструмент',{n:it.n}))}
-function craft(r){if(!Object.entries(r.in).every(([k,v])=>count(k)>=v))return;if(r.at&&!nearPc('bench'))return log(L('Нужен верстак рядом'));for(const k in r.in)take(k,r.in[k]);add(r.out,r.n);playA('build');log(L('Создано: {n}',{n:G.items[r.out].n}))}
+function craft(r){if(!Object.entries(r.in).every(([k,v])=>count(k)>=v))return;if(r.at&&!nearPc('bench'))return log(L('Нужен верстак рядом'));for(const k in r.in)take(k,r.in[k]);add(r.out,r.n);window.mlTrackGameAction('Скрафтил: '+G.items[r.out].n);playA('build');log(L('Создано: {n}',{n:G.items[r.out].n}))}
 function refresh(){
  $('inv').innerHTML='';inv.forEach((s,i)=>{const d=document.createElement('div');d.className='slot';
   if(s){const it=G.items[s.id];d.title=it.n;d.innerHTML=ico(s.id,'80%')+(s.n>1?'<b>'+s.n+'</b>':'');const pv=LASTN&&LASTN[i];if(LASTN&&(!pv||pv.id!=s.id||s.n>pv.n))d.classList.add('pop')}d.onclick=()=>useSlot(i);$('inv').appendChild(d)});
@@ -248,11 +315,11 @@ let tt;function log(m){const t=$('toast');t.innerHTML=m;t.style.opacity=1;clearT
 function target(){let animal=null,ad=3.2;for(const a of AL){if(a.dying>0||!['rabbit','deer','wolf'].includes(a.k))continue;const q=Math.hypot(a.x-P.x,a.z-P.z)-.4;if(q<ad){ad=q;animal=a}}if(animal)return animal;let best=null,bd=3.2;for(const n of near(P.x,P.z)){const d=G.nodes[n.t];if(n.gone||n.dead||d.fixed||n.fall>0)continue;const q=Math.hypot(n.x-P.x,n.z-P.z)-(d.r||.4)*n.s;if(q<bd){bd=q;best=n}}for(const a of AL){if(a.dying>0)continue;const q=Math.hypot(a.x-P.x,a.z-P.z)-.4;if(q<bd){bd=q;best=a}}for(const c of PC){if(c.pk!='chest')continue;const q=Math.hypot(c.x-P.x,c.z-P.z)-.5;if(q<bd){bd=q;best=c}}return best}
 function waterAhead(){if(hgt(P.x,P.z)<-.05)return true;for(const d of[.8,1.8,2.8])if(hgt(P.x+Math.sin(P.f)*d,P.z+Math.cos(P.f)*d)<-.05)return true;return false}
 const shk=new Set();let swing=0,walkT=0,mvAmt=0,tm=0;
-function act(){if(cool>0||dead||MENU)return;const n=target();cool=.5;swing=.35;playA(n?(n.p?'pick':n.k?'hit':RKT.includes(n.t)?'mine':n.t=='bush'?'pick':'chop'):waterAhead()?'drink':'hit');if(n&&n.p)return openChest(n);if(n&&n.k)return hitAn(n);
+function act(){if(cool>0||dead||MENU)return;const n=target();cool=.5;swing=.35;playA(n?(n.p?'pick':n.k?'hit':RKT.includes(n.t)?'mine':(n.t=='bush'||n.t=='herb')?'pick':'chop'):waterAhead()?'drink':'hit');if(n&&n.p)return openChest(n);if(n&&n.k)return hitAn(n);
  if(n){const def=G.nodes[n.t];if(def.need&&!hasTool(def.need))return log(L('Нужна кирка'));n.hp-=def.tool&&hasTool(def.tool)?2.5:1;n.sh=.3;shk.add(n);snd(150,.1,'sawtooth');
   if(n.hp<=0){def.drops.forEach(([id,a,b])=>{const q=a+Math.floor(Math.random()*(b-a+1));if(q)add(id,q)});
    if(def.regrow){n.dead=true;n.rt=def.regrow;n.hp=def.hp}else if(n.t=='tree'){n.fall=1.1;n.fs=P.z<n.z?1:-1;FL.add(n);snd(110,.25,'sawtooth')}else n.gone=true;put(n)}return}
- if(waterAhead()){S.water=Math.min(100,S.water+25);snd(420,.15,'sine');return log(ico('ui_water',18)+' '+L('Вы попили'))}log(L('Рядом ничего нет'))}
+ if(waterAhead()){S.water=Math.min(100,S.water+25);S.heat=0;S.heatTimer=0;snd(420,.15,'sine');return log(ico('ui_water',18)+' '+L('Вы попили'))}log(L('Рядом ничего нет'))}
 // ===== Животные и звуки (0.0.3) =====
 const AN={
  rabbit:{hint:'Поймать кролика',c:0xb9a58b,w:.2,h:.18,l:.3,lh:.1,hs:.13,hp:2,spd:3.6,fear:8,drops:[['meat',1,1],['hide',0,1]]},
@@ -334,7 +401,7 @@ function updateAnimalPopulation(dt){
  else if(roll<.8&&wild.length>minCount){const a=wild[Math.floor(Math.random()*wild.length)];world.remove(a.g);AL.splice(AL.indexOf(a),1)}
  ANIMAL_POP_TIMER=50+Math.random()*80;
 }
-function hitAn(a){const D=AN[a.k],pw=hasTool('spear')?3:hasTool('axe')?2:1;a.hp-=pw;a.fl=2.5;snd(200,.1,'sawtooth');
+function hitAn(a){if(a.k==='wolf')window.mlTrackGameAction('Получил урон/сражался с волком');const D=AN[a.k],pw=hasTool('spear')?3:hasTool('axe')?2:1;a.hp-=pw;a.fl=2.5;snd(200,.1,'sawtooth');
  if(a.hp<=0){D.drops.forEach(([id,lo,hi])=>{const q=lo+Math.floor(Math.random()*(hi-lo+1));if(q)add(id,q)});a.dying=.8;a.side=Math.random()<.5?1:-1;snd(600,.1,'sine')}else a.hurt=.3}
 function updAnimals(dt){
  updateAnimalPopulation(dt);updateWolfPopulation(dt);
@@ -600,7 +667,7 @@ const PRESETS=[
 function seedFrom(t){if(/^-?\d+$/.test(t))return((parseInt(t,10)%1000000)+1000000)%1000000;let h=5381;for(let i=0;i<t.length;i++)h=((h<<5)+h+t.charCodeAt(i))|0;return Math.abs(h)%1000000}
 function newGame(txt,wp,nosave,newSlot){WP=Object.assign({},WPD,wp||{});const st=String(txt||'').trim();SEEDTXT=st||String(Math.floor(Math.random()*1e6));seed=seedFrom(SEEDTXT);
  if(newSlot||(!activeWorldId&&!nosave))activeWorldId='world-'+Date.now()+'-'+Math.floor(Math.random()*1e6);
- buildWorld();P={x:0,y:hgt(0,0),z:0,f:0};S={hp:100,food:90,water:90,warm:80};inv=new Array(16).fill(null);time=WP.start;day=1;dead=false;$('dead').hidden=true;openC=null;PA={n:'',t:0,d:1};lastHp=100;hurtT=0;deadT=0;refresh();if(!nosave)save()}
+ buildWorld();P={x:0,y:hgt(0,0),z:0,f:0};S={hp:100,food:90,water:90,warm:80,wet:0,cold:0,coldTimer:0,poison:0,heat:0,heatTimer:0,insulation:0};inv=new Array(16).fill(null);time=WP.start;day=1;dead=false;$('dead').hidden=true;openC=null;PA={n:'',t:0,d:1};lastHp=100;hurtT=0;deadT=0;refresh();if(!nosave)save()}
 function createWorld(){if(HAVEWORLD)save();
  const w={name:(WF.name||'').trim()||L('Новый мир')};WOPT.forEach(r=>r.f(WF[r.k],w));const m=$('menu');m.classList.add('busy');
  setTimeout(()=>{newGame(WF.seed,w,0,1);HAVEWORLD=true;m.classList.remove('busy');hideMenu();log(L('Сид мира: {s}',{s:esc(SEEDTXT)}))},40)}
@@ -687,7 +754,7 @@ const TRL=[
 ['Низ','Bottom','Parte inferior'],['Цвет низа','Bottom color','Color de la parte inferior'],['Обувь','Footwear','Calzado'],['Цвет обуви','Footwear color','Color del calzado'],['Головной убор','Headwear','Tocado'],
 ['Очки','Glasses','Gafas'],['Рюкзак','Backpack','Mochila'],['Цвет аксессуаров','Accessory color','Color de accesorios'],['Имя','Name','Nombre'],['Внешность','Appearance','Aspecto'],['Одежда','Clothes','Ropa'],
 ['Аксессуары','Accessories','Accesorios'],['Случайный','Random','Aleatorio'],['Готово','Done','Hecho'],['Качество графики','Graphics quality','Calidad gráfica'],['Низкое','Low','Baja'],['Среднее','Medium','Media'],['Высокое','High','Alta'],
-['Громкость','Volume','Volumen'],['Чувствительность камеры','Camera sensitivity','Sensibilidad de la cámara'],['Поле зрения','Field of view','Campo de visión'],['Показывать FPS','Show FPS','Mostrar FPS'],['Запустить автотест (20 сек)','Run auto test (20 sec)','Iniciar prueba automática (20 s)'],['Автотест завершён','Auto test complete','Prueba automática completada'],['Длительность: {n} сек','Duration: {n} sec','Duración: {n} s'],['FPS — мин: {min} · сред: {avg} · макс: {max}','FPS — min: {min} · avg: {avg} · max: {max}','FPS — mín: {min} · prom: {avg} · máx: {max}'],['Ошибки JavaScript','JavaScript errors','Errores de JavaScript'],['Ошибок не обнаружено','No errors detected','No se detectaron errores'],['Закрыть','Close','Cerrar'],['Язык','Language','Idioma'],['Мир','World','Mundo'],['Пауза','Paused','Pausa'],['Копировать','Copy','Copiar'],['Копировать сид','Copy seed','Copiar semilla'],['Сид мира','World seed','Semilla del mundo'],['Вернуться в игру','Resume game','Volver al juego'],['Сохранить мир','Save world','Guardar mundo'],['Мир сохранён!','World saved!','¡Mundo guardado!'],['Сохранить и выйти','Save and exit','Guardar y salir'],['Выйти без сохранения','Exit without saving','Salir sin guardar'],['Выйти без сохранения?','Exit without saving?','¿Salir sin guardar?'],['Последние изменения мира не будут сохранены.','Recent world changes will not be saved.','Los últimos cambios del mundo no se guardarán.'],['Выйти','Exit','Salir'],['Отмена','Cancel','Cancelar'],['Сид скопирован','Seed copied','Semilla copiada']];
+['Громкость','Volume','Volumen'],['Чувствительность камеры','Camera sensitivity','Sensibilidad de la cámara'],['Поле зрения','Field of view','Campo de visión'],['Показывать FPS','Show FPS','Mostrar FPS'],['Запустить автотест (20 сек)','Run auto test (20 sec)','Iniciar prueba automática (20 s)'],['Автотест завершён','Auto test complete','Prueba automática completada'],['Длительность: {n} сек','Duration: {n} sec','Duración: {n} s'],['FPS — мин: {min} · сред: {avg} · макс: {max}','FPS — min: {min} · avg: {avg} · max: {max}','FPS — mín: {min} · prom: {avg} · máx: {max}'],['Ошибки JavaScript','JavaScript errors','Errores de JavaScript'],['Ошибок не обнаружено','No errors detected','No se detectaron errores'],['Закрыть','Close','Cerrar'],['Язык','Language','Idioma'],['Мир','World','Mundo'],['Пауза','Paused','Pausa'],['Копировать','Copy','Copiar'],['Копировать сид','Copy seed','Copiar semilla'],['Сид мира','World seed','Semilla del mundo'],['Вернуться в игру','Resume game','Volver al juego'],['Сохранить мир','Save world','Guardar mundo'],['Мир сохранён!','World saved!','¡Mundo guardado!'],['Сохранить и выйти','Save and exit','Guardar y salir'],['Выйти без сохранения','Exit without saving','Salir sin guardar'],['Выйти без сохранения?','Exit without saving?','¿Salir sin guardar?'],['Последние изменения мира не будут сохранены.','Recent world changes will not be saved.','Los últimos cambios del mundo no se guardarán.'],['Выйти','Exit','Salir'],['Отмена','Cancel','Cancelar'],['Сид скопирован','Seed copied','Semilla copiada'],['Лечебная трава','Healing herb','Hierba medicinal'],['Травяной настой','Herbal infusion','Infusión herbal'],['Тёплая повязка','Warm wrap','Vendaje cálido'],['Собрать лечебную траву','Gather healing herbs','Recolectar hierbas medicinales'],['Настой помог: болезни прошли, стало теплее','The infusion cured your illnesses and warmed you up','La infusión curó tus enfermedades y te calentó'],['Тёплая повязка согревает','The warm wrap keeps you insulated','El vendaje cálido te protege del frío'],['Похоже, вы отравились сырой пищей!','Raw food made you sick!','¡La comida cruda te ha intoxicado!'],['Простуда','Cold','Resfriado'],['Отравление','Food poisoning','Intoxicación'],['Перегрев','Overheating','Sobrecalentamiento'],['Тёплая защита','Warm protection','Protección térmica'],['Мокрый','Wet','Mojado'],['Ясно','Clear','Despejado'],['Туман','Fog','Niebla'],['Дождь','Rain','Lluvia'],['Гроза','Thunderstorm','Tormenta'],['Ветер','Wind','Viento'],['Снег','Snow','Nieve']];
 const DICT={en:{},es:{}};TRL.forEach(([k,e,s])=>{DICT.en[k]=e;DICT.es[k]=s});
 function L(s,v){let r=s;if(ST.lang&&ST.lang!='ru'){const d=DICT[ST.lang];if(d&&d[s]!==undefined)r=d[s]}if(v)for(const k in v)r=r.split('{'+k+'}').join(v[k]);return r}
 Object.assign(ICON,{ui_lang:`<path d="M5 6h24a3 3 0 0 1 3 3v14a3 3 0 0 1-3 3H17l-7 6v-6H5a3 3 0 0 1-3-3V9a3 3 0 0 1 3-3z" fill="#3b8fd0"/><path d="M20 20h20a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3h-3v5l-6-5H23a3 3 0 0 1-3-3z" fill="#f2efe6"/><path d="M10 20l4-10 4 10M11.500 17h5" stroke="#f2efe6" fill="none"/>`});
@@ -700,7 +767,7 @@ function applyLang(){const sb=(id,ic,t)=>$(id).innerHTML='<span class="cb">'+ico
  sb('bAct','ui_act','Действие (E)');sb('bCraft','ui_craft','Крафт (C)');sb('bNew','ui_redo','');
  $('bNew').title=L('Новая игра');$('bMenu').title=L('Меню (Esc)');$('bDel').title=L('Разобрать постройку (X)');
  $('dtxt').textContent=L('Вы погибли');$('bRe').textContent=L('Начать заново');$('menu').dataset.busy=L('Генерация мира...');
- $('gname').textContent=GN();$('gver').textContent='v0.0.5.1 '+L('Альфа')+' 3D';document.title=GN();document.documentElement.lang=ST.lang;$('pname').textContent=CH.name;
+ $('gname').textContent=GN();$('gver').textContent='v0.0.5.2 '+L('Альфа')+' 3D';document.title=GN();document.documentElement.lang=ST.lang;$('pname').textContent=CH.name;
  if(inv)refresh()}
 // ===== Симуляция =====
 const dark=()=>clamp(.35-Math.sin(time*6.2832)*.6,0,.8);
@@ -713,7 +780,7 @@ const KEYS={};let yaw=0,pit=.45,dist=9,joy=null,look=null,autoTest=null;
 function startAutoTest(){if(autoTest&&autoTest.active)return;save();const now=performance.now();autoTest={active:true,startedAt:now,lastSample:now,frameCount:0,fpsSamples:[],errors:[],position:P?{x:P.x,y:P.y,z:P.z,f:P.f}:null,stats:S?{hp:S.hp,food:S.food,water:S.water,warm:S.warm}:null,time,day,yaw,pit,dist};autoTest.previousOnError=window.onerror;autoTest.errorHandler=function(message,source,line,column,error){if(autoTest&&autoTest.active)autoTest.errors.push(String(error&&error.stack||message)+' '+String(source||'')+':'+String(line||0)+':'+String(column||0));if(typeof autoTest.previousOnError==='function')return autoTest.previousOnError.apply(this,arguments);return false};autoTest.rejectionHandler=function(event){if(autoTest&&autoTest.active)autoTest.errors.push('Promise: '+String(event.reason&&event.reason.stack||event.reason))};window.onerror=autoTest.errorHandler;window.addEventListener('unhandledrejection',autoTest.rejectionHandler);hideMenu()}
 function finishAutoTest(){const t=autoTest;if(!t||!t.active)return;t.active=false;Object.keys(KEYS).forEach(k=>KEYS[k]=0);if(window.onerror===t.errorHandler)window.onerror=t.previousOnError;window.removeEventListener('unhandledrejection',t.rejectionHandler);if(t.position&&P)Object.assign(P,t.position);if(t.stats&&S)Object.assign(S,t.stats);time=t.time;day=t.day;yaw=t.yaw;pit=t.pit;dist=t.dist;if(HAVEWORLD)save();MENU=true;document.body.classList.add('menu');UI.page='set';render();const samples=t.fpsSamples,min=samples.length?Math.min(...samples):0,max=samples.length?Math.max(...samples):0,avg=samples.length?Math.round(samples.reduce((a,b)=>a+b,0)/samples.length):0;const errors=t.errors.length?t.errors.map((e,i)=>(i+1)+'. '+e).join('\n'):L('Ошибок не обнаружено');const report=$('autotest-report');report.innerHTML='<div class="test-card"><h2>'+L('Автотест завершён')+'</h2><p>'+L('Длительность: {n} сек',{n:'20'})+'</p><p>'+L('FPS — мин: {min} · сред: {avg} · макс: {max}',{min,avg,max})+'</p><h3>'+L('Ошибки JavaScript')+'</h3><pre>'+esc(errors)+'</pre><button id="autotest-close">'+L('Закрыть')+'</button></div>';report.hidden=false;report.querySelector('#autotest-close').onclick=()=>{report.hidden=true}}
 function step(dt){if(MENU)return;if(autoTest&&autoTest.active){const directions=[['KeyW'],['KeyD'],['KeyS'],['KeyA'],['KeyW','KeyD'],['KeyS','KeyD'],['KeyS','KeyA'],['KeyW','KeyA']];const phase=Math.min(7,Math.floor((performance.now()-autoTest.startedAt)/2500));Object.keys(KEYS).forEach(k=>delete KEYS[k]);directions[phase].forEach(k=>KEYS[k]=1)}
- tm+=dt;animateBirds(dt);cool=Math.max(0,cool-dt);swing=Math.max(0,swing-dt);
+ tm+=dt;animateBirds(dt);updateWeather(dt);cool=Math.max(0,cool-dt);swing=Math.max(0,swing-dt);
  if(!dead&&!MENU){
   let ix=(KEYS.KeyD||KEYS.ArrowRight?1:0)-(KEYS.KeyA||KEYS.ArrowLeft?1:0),iy=(KEYS.KeyW||KEYS.ArrowUp?1:0)-(KEYS.KeyS||KEYS.ArrowDown?1:0);
   if(joy){const l=Math.hypot(joy.dx,joy.dy);if(l>8){const k=Math.min(1,l/50);ix=joy.dx/l*k;iy=-joy.dy/l*k}}
@@ -721,7 +788,7 @@ function step(dt){if(MENU)return;if(autoTest&&autoTest.active){const directions=
   const burstInput=!!(KEYS.ShiftLeft||KEYS.ShiftRight||(joy&&Math.hypot(joy.dx,joy.dy)>70));
   const burstAllowed=S.water>=15&&S.warm>=15;
   FAST_SWIM=IN_WATER&&burstAllowed&&burstInput&&l>.5?1:0;
-  SPR=IN_WATER?FAST_SWIM:(burstAllowed&&burstInput&&l>.5?1:0);if(!IN_WATER&&SPR)breath=Math.min(1,breath+dt*.7);else breath=Math.max(0,breath-dt*.1);
+  SPR=IN_WATER?FAST_SWIM:(burstAllowed&&burstInput&&l>.5?1:0);if(!IN_WATER&&SPR)breath=Math.min(1,breath+dt*(S.cold?.4:.7));else breath=Math.max(0,breath-dt*.1);
   if(l>.01){if(l>1){ix/=l;iy/=l}
    const mx=ix*Math.cos(yaw)-iy*Math.sin(yaw),mz=-ix*Math.sin(yaw)-iy*Math.cos(yaw),spd=(IN_WATER?2.6:5.2)*mvAmt*(SPR?1.6:1);
    move(mx/Math.max(.01,mvAmt)*spd*dt,mz/Math.max(.01,mvAmt)*spd*dt);
@@ -729,11 +796,27 @@ function step(dt){if(MENU)return;if(autoTest&&autoTest.active){const directions=
   if(!autoTest||!autoTest.active){time+=dt/WP.day;if(time>=1){time-=1;day++}
   acc+=dt;if(acc>=1){acc-=1;nodes.forEach(n=>{if(n.dead&&--n.rt<=0){n.dead=false;put(n)}})}
   const dk=dark(),fire=F.some(f=>Math.hypot(f.x-P.x,f.z-P.z)<9),shel=PC.some(p=>p.pk=='roof'&&Math.abs(p.x-P.x)<=1.1&&Math.abs(p.z-P.z)<=1.1);
-  const swimming=!!IN_WATER,running=!!SPR&&!swimming;
+  const swimming=!!IN_WATER,running=!!SPR&&!swimming,raining=weatherType==='rain'||weatherType==='storm';if(swimming){S.heat=0;S.heatTimer=0}
+  const exposedRain=raining&&!shel&&!fire;
+  if(swimming)S.wet=Math.max(S.wet,115);else if(exposedRain)S.wet=Math.max(S.wet,weatherType==='storm'?85:55);
+  if(S.wet>0)S.wet=Math.max(0,S.wet-dt*(fire?3.2:shel?1.8:.12));if((S.wet>0)!==lastWetState){window.mlTrackGameAction(S.wet>0?'Промок и теперь мёрзну быстрее':'Высох после намокания');lastWetState=S.wet>0}
+  S.insulation=Math.max(0,(S.insulation||0)-dt);
   S.food-=.25*(running?2:swimming&&FAST_SWIM?2:1)*dt*WP.diff;
   S.water-=.35*(running?2:1)*dt*WP.diff;
-  if(swimming)S.warm-=1.2*(FAST_SWIM?2:1)*dt;
-  else S.warm+=fire?4.5*dt:shel?(dk>.45?.4:1.5)*dt:dk>.45?-1.2*dt:1.5*dt;
+  if(S.poison){S.hp-=.22*dt;S.water-=.3*dt}
+  if(S.heat){S.water-=.45*dt;S.hp-=.08*dt}
+  const coldFactor=(S.wet>0?2:1)*(S.insulation>0?.55:1);
+  if(swimming)S.warm-=1.2*(FAST_SWIM?2:1)*coldFactor*dt;
+  else if(fire)S.warm+=4.5*dt;
+  else if(shel)S.warm+=(dk>.45?.4:1.5)*dt;
+  else if(dk>.45||exposedRain)S.warm-=((dk>.45?1.2:.45)+(exposedRain?.9:0))*coldFactor*dt;
+  else S.warm+=1.5*dt;
+  if(S.warm<10)S.coldTimer=(S.coldTimer||0)+dt;else S.coldTimer=Math.max(0,(S.coldTimer||0)-dt*.35);
+  if(S.coldTimer>28)S.cold=1;
+  const hotBeach=!swimming&&running&&!raining&&dk<.28&&gy(P.x,P.z)<.9;
+  if(hotBeach)S.heatTimer=(S.heatTimer||0)+dt;else S.heatTimer=Math.max(0,(S.heatTimer||0)-dt*.6);
+  if(S.heatTimer>22)S.heat=1;
+  if(swimming||fire)S.wet=Math.max(0,S.wet-(fire?dt*2:0));
   for(const k of['food','water','warm'])S[k]=clamp(S[k],0,100);
   let dm=0;if(S.food<=0)dm+=1.2;if(S.water<=0)dm+=1.5;if(S.warm<=0)dm+=1;
   if(dm)S.hp-=dm*dt;else if(S.food>30&&S.water>30&&S.warm>30)S.hp=Math.min(100,S.hp+.6*dt);
@@ -784,7 +867,7 @@ function restoreWorld(slot){
  (s.gone||[]).forEach(i=>{if(nodes[i]){nodes[i].gone=true;put(nodes[i])}});
  (s.dd||[]).forEach(([i,rt])=>{if(nodes[i]){nodes[i].dead=true;nodes[i].rt=rt;put(nodes[i])}});
  (s.fires||[]).forEach(([x,z])=>mkFire(x,z));(s.pcs||[]).forEach(q=>mkPiece(q.k,q.x,q.z,q.y,q.r,q.i));
- P=s.P;S=s.S;inv=s.inv||new Array(16).fill(null);time=s.time||0;day=s.day||1;dead=false;$('dead').hidden=true;refresh();return true;
+ P=s.P;S=Object.assign({wet:0,cold:0,coldTimer:0,poison:0,heat:0,heatTimer:0,insulation:0},s.S||{});inv=s.inv||new Array(16).fill(null);time=s.time||0;day=s.day||1;dead=false;$('dead').hidden=true;refresh();return true;
 }
 function loadSavedWorld(id){
  const slot=SAVE_DB.worlds[id];if(!slot)return false;
@@ -800,9 +883,11 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){save();sav
 addEventListener('pagehide',()=>{save();saveChar()});
 // ===== Интерфейс и ввод =====
 const bars=[['hp','ui_hp','#d64545'],['food','ui_food','#d98b2b'],['water','ui_water','#3b9be0'],['warm','ui_warm','#c9a82a']];
-$('hud').innerHTML=bars.map(b=>'<div class="bar"><i id="i-'+b[0]+'" style="background:'+b[2]+'"></i><span>'+ico(b[1],14)+'</span></div>').join('');
+$('hud').innerHTML=bars.map(b=>'<div class="bar"><i id="i-'+b[0]+'" style="background:'+b[2]+'"></i><span>'+ico(b[1],14)+'</span>'+(b[0]==='warm'?'<small id="wet-indicator" title="Мокрый" style="display:none;margin-left:3px">💧</small>':'')+'</div>').join('')+'<div id="survival-status" style="font:11px system-ui;color:#f1dba2;text-shadow:0 1px 3px #000;min-height:13px"></div>';
 function hud(){bars.forEach(b=>$('i-'+b[0]).style.width=Math.max(0,S[b[0]])+'%');
- const hr=(6+time*24)%24;$('clock').textContent=L('День')+' '+day+' · '+String(Math.floor(hr)).padStart(2,'0')+':'+String(Math.floor(hr%1*60)).padStart(2,'0')}
+ const wet=$('wet-indicator');if(wet){wet.style.display=S.wet>0?'inline':'none';wet.title=L('Мокрый')}
+ const statuses=[];if(S.cold)statuses.push(L('Простуда'));if(S.poison)statuses.push(L('Отравление'));if(S.heat)statuses.push(L('Перегрев'));if(S.insulation>0)statuses.push(L('Тёплая защита'));$('survival-status').textContent=statuses.join(' · ');
+ const hr=(6+time*24)%24;$('clock').textContent=L('День')+' '+day+' · '+String(Math.floor(hr)).padStart(2,'0')+':'+String(Math.floor(hr%1*60)).padStart(2,'0')+' · '+weatherName()+(winterMode()?' ❄':'')}
 addEventListener('keydown',e=>{if(e.target.tagName=='INPUT'&&e.code!='Escape')return;KEYS[e.code]=1;if(e.code=='KeyE'||e.code=='Space'){act();e.preventDefault()}if(e.code=='KeyC')$('craft').hidden=!$('craft').hidden;if(e.code=='KeyX'&&!MENU)demolish();if(e.code=='Escape')toggleMenu()});
 addEventListener('keyup',e=>KEYS[e.code]=0);
 const cv=ren.domElement;
@@ -833,19 +918,21 @@ let last=performance.now();
  const ML_HEADERS={'apikey':ML_PUBLISHABLE_KEY,'Authorization':'Bearer '+ML_ANON_JWT};
  const ML_LANG=()=>ST&&['ru','en','es'].includes(ST.lang)?ST.lang:'ru';
  const ML_COPY={
-  ru:{title:'Живое сообщество',loading:'Онлайн',ready:'Онлайн',offline:'Нет соединения с сообществом',placeholder:'Написать сообщение...',send:'Отправить',close:'Закрыть',empty:'Пока тихо. Первые игроки скоро заговорят!',news:'Новости игры',dev:'Разработчик',player:'Игрок',tooLong:'Максимум 240 символов.',failed:'Не удалось отправить сообщение.',aiMissing:'ИИ ждёт настройки ключа Anthropic в Supabase.'},
-  en:{title:'Live community',loading:'Online',ready:'Online',offline:'Community connection unavailable',placeholder:'Write a message...',send:'Send',close:'Close',empty:'Quiet for now. The players will speak soon!',news:'Game news',dev:'Developer',player:'Player',tooLong:'Maximum 240 characters.',failed:'Could not send the message.',aiMissing:'AI is waiting for the Anthropic key to be configured in Supabase.'},
-  es:{title:'Comunidad en vivo',loading:'En línea',ready:'En línea',offline:'Comunidad no disponible',placeholder:'Escribe un mensaje...',send:'Enviar',close:'Cerrar',empty:'Todo está tranquilo. ¡Pronto hablarán los jugadores!',news:'Noticias del juego',dev:'Desarrollador',player:'Jugador',tooLong:'Máximo 240 caracteres.',failed:'No se pudo enviar el mensaje.',aiMissing:'La IA espera que se configure la clave de Anthropic en Supabase.'}
+  ru:{title:'Живое сообщество',loading:'Подключение...',ready:'Подключено',online:'Онлайн: {n} · виртуальная активность',offline:'Нет соединения с сообществом',placeholder:'Написать сообщение...',send:'Отправить',close:'Закрыть',empty:'Пока тихо. Первые игроки скоро заговорят!',news:'Новости игры',dev:'Разработчик',player:'Игрок',tooLong:'Максимум 240 символов.',failed:'Не удалось отправить сообщение.',aiMissing:'ИИ ждёт настройки ключа Anthropic в Supabase.'},
+  en:{title:'Live community',loading:'Connecting...',ready:'Connected',online:'Online: {n} · simulated activity',offline:'Community connection unavailable',placeholder:'Write a message...',send:'Send',close:'Close',empty:'Quiet for now. The players will speak soon!',news:'Game news',dev:'Developer',player:'Player',tooLong:'Maximum 240 characters.',failed:'Could not send the message.',aiMissing:'AI is waiting for the Anthropic key to be configured in Supabase.'},
+  es:{title:'Comunidad en vivo',loading:'Conectando...',ready:'Conectado',online:'En línea: {n} · actividad simulada',offline:'Comunidad no disponible',placeholder:'Escribe un mensaje...',send:'Enviar',close:'Cerrar',empty:'Todo está tranquilo. ¡Pronto hablarán los jugadores!',news:'Noticias del juego',dev:'Desarrollador',player:'Jugador',tooLong:'Máximo 240 caracteres.',failed:'No se pudo enviar el mensaje.',aiMissing:'La IA espera que se configure la clave de Anthropic en Supabase.'}
  };
  const mlText=k=>(ML_COPY[ML_LANG()]||ML_COPY.ru)[k]||k;
- let ML_ROWS=[],ML_LOCAL_ROWS=[],ML_POLL=0,ML_BOT_TIMER=0,ML_BUSY=false,ML_OPEN=false,ML_NEWS_LOADED=false,ML_AI_MISSING=false;
+ let ML_ROWS=[],ML_LOCAL_ROWS=[],ML_POLL=0,ML_BOT_TIMER=0,ML_ONLINE_TIMER=0,ML_NEWS_TIMER=0,ML_BUSY=false,ML_OPEN=false,ML_NEWS_LOADED=false,ML_AI_MISSING=false,ML_PENDING_DEV='',ML_CURRENT_NEWS='',ML_LAST_NEWS_AT='',ML_ONLINE=145,ML_PEAK_UNTIL=0;
  function mlSession(){
   const key='miraculous-land-live-session-v1';
   try{let id=localStorage.getItem(key);if(!/^[a-zA-Z0-9_-]{8,64}$/.test(id||'')){const part=()=>Math.random().toString(36).slice(2);id='ml-'+(crypto&&crypto.randomUUID?crypto.randomUUID().replace(/-/g,''):part()+part());localStorage.setItem(key,id)}return id}
   catch(_){return 'ml-'+Math.random().toString(36).slice(2)+Date.now().toString(36)}
  }
  const ML_SESSION=mlSession();
- function mlStatus(s){const n=document.getElementById('ml-community-status');if(n)n.textContent=s}
+ function mlStatus(s){const n=document.getElementById('ml-community-status');if(n)n.textContent=s;const o=document.getElementById('ml-community-online');if(o)o.textContent=mlText('online').replace('{n}',String(Math.round(ML_ONLINE)))}
+ function mlUpdateOnline(){const now=Date.now(),hour=new Date().getHours();if(now>ML_PEAK_UNTIL&&Math.random()<.025)ML_PEAK_UNTIL=now+45000+Math.random()*75000;const peak=now<ML_PEAK_UNTIL;const base=hour>=19&&hour<24?175:hour>=8&&hour<19?145:70;const target=peak?1800+Math.random()*700:base+(Math.random()-.5)*(base<100?20:55);ML_ONLINE+=(target-ML_ONLINE)*.32;mlStatus(mlText('ready'))}
+ function mlNewsWave(){ML_PEAK_UNTIL=Date.now()+90000+Math.random()*90000;ML_ONLINE=Math.max(ML_ONLINE,1900+Math.random()*500);mlStatus(mlText('ready'))}
  async function mlFetch(path,options){
   const res=await fetch(ML_PROJECT_URL+path,Object.assign({headers:Object.assign({},ML_HEADERS)},options||{}));
   let data=null;try{data=await res.json()}catch(_){}
@@ -861,7 +948,7 @@ let last=performance.now();
    '#ml-community-overlay[hidden]{display:none!important}',
    '#ml-community-panel{width:min(680px,100%);height:min(820px,88vh);display:flex;flex-direction:column;overflow:hidden;border:1px solid #526b49;border-radius:18px;background:#101910;color:#e8efe0;box-shadow:0 18px 60px #000c;font:14px system-ui,sans-serif;touch-action:auto}',
    '#ml-community-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 15px;background:#1a2819;border-bottom:1px solid #3a4a36}',
-   '#ml-community-head strong{display:block;font-size:17px}#ml-community-status{display:block;font-size:11px;opacity:.7;margin-top:3px}',
+   '#ml-community-head strong{display:block;font-size:17px}#ml-community-status{display:block;font-size:11px;opacity:.7;margin-top:3px}#ml-community-online{display:block;color:#91d58a;font-size:12px;margin-top:3px}',
    '#ml-community-close{width:38px;height:38px;padding:0;font-size:20px}',
    '#ml-community-news{padding:0 13px;max-height:24%;overflow:auto}',
    '.ml-news-card{margin-top:10px;padding:9px 11px;border-radius:10px;background:#263522;border:1px solid #43583b}',
@@ -881,7 +968,7 @@ let last=performance.now();
   ].join('');
   document.head.appendChild(style);
   const overlay=document.createElement('div');overlay.id='ml-community-overlay';overlay.hidden=true;
-  overlay.innerHTML='<section id="ml-community-panel" role="dialog" aria-modal="true"><header id="ml-community-head"><div><strong id="ml-community-title"></strong><small id="ml-community-status"></small></div><button id="ml-community-close" type="button" aria-label="Close">×</button></header><div id="ml-community-news"></div><div id="ml-community-list" aria-live="polite"></div><form id="ml-community-form"><textarea id="ml-community-input" maxlength="240" rows="1"></textarea><button id="ml-community-send" type="submit"></button></form></section>';
+  overlay.innerHTML='<section id="ml-community-panel" role="dialog" aria-modal="true"><header id="ml-community-head"><div><strong id="ml-community-title"></strong><small id="ml-community-status"></small><small id="ml-community-online"></small></div><button id="ml-community-close" type="button" aria-label="Close">×</button></header><div id="ml-community-news"></div><div id="ml-community-list" aria-live="polite"></div><form id="ml-community-form"><textarea id="ml-community-input" maxlength="240" rows="1"></textarea><button id="ml-community-send" type="submit"></button></form></section>';
   document.body.appendChild(overlay);
   document.getElementById('ml-community-title').textContent=mlText('title');
   document.getElementById('ml-community-input').placeholder=mlText('placeholder');
@@ -899,38 +986,50 @@ let last=performance.now();
  function mlRenderChat(){
   const root=document.getElementById('ml-community-list');if(!root)return;const nearBottom=root.scrollHeight-root.scrollTop-root.clientHeight<70;root.replaceChildren();
   if(!ML_ROWS.length){const empty=document.createElement('div');empty.id='ml-community-empty';empty.textContent=mlText('empty');root.appendChild(empty);return}
-  ML_ROWS.forEach(m=>{const row=document.createElement('article');row.className='ml-chat-row'+(m.persona==='Игрок'?' ml-self':'')+(m.is_dev?' ml-dev':'');const who=document.createElement('b');who.textContent=m.is_dev?mlText('dev'):m.persona==='Игрок'?mlText('player'):m.persona;const msg=document.createElement('p');msg.textContent=m.message;const when=document.createElement('time');const d=new Date(m.created_at);when.textContent=isNaN(d.getTime())?'':d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});row.append(who,msg,when);root.appendChild(row)});
+  ML_ROWS.forEach(m=>{const row=document.createElement('article');row.className='ml-chat-row'+(m.persona==='Игрок'?' ml-self':'')+(m.is_dev||String(m.message||'').startsWith('[DEV]')?' ml-dev':'');const who=document.createElement('b');who.textContent=m.is_dev?mlText('dev'):m.persona==='Игрок'?mlText('player'):m.persona;const msg=document.createElement('p');msg.textContent=m.message;const when=document.createElement('time');const d=new Date(m.created_at);when.textContent=isNaN(d.getTime())?'':d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});row.append(who,msg,when);root.appendChild(row)});
   if(nearBottom)root.scrollTop=root.scrollHeight;
  }
- async function mlLoadNews(){if(ML_NEWS_LOADED)return;ML_NEWS_LOADED=true;try{const rows=await mlFetch('/rest/v1/game_news?select=title,body,category,created_at&is_published=eq.true&order=created_at.desc&limit=3');mlRenderNews(rows)}catch(_){ML_NEWS_LOADED=false}}
- async function mlLoadChat(){try{const rows=await mlFetch('/rest/v1/live_chat?select=id,created_at,persona,message,is_ai,is_dev,language&order=id.desc&limit=20');const remote=Array.isArray(rows)?rows.reverse():[];ML_ROWS=remote.concat(ML_LOCAL_ROWS).sort((a,b)=>new Date(a.created_at)-new Date(b.created_at)).slice(-30);mlRenderChat();mlStatus(mlText('ready'))}catch(_){mlStatus(mlText('ready'))}}
- function mlFallback(){
-  const pools=[['Toxic_Wolf',['Ну что, кто сегодня уже успел исследовать остров?','Я заметил странное движение у берега.','Кто-нибудь видел волков возле леса?']],['Lera_Craft',['Я как раз собираю ресурсы для нового домика!','На берегу сегодня очень красиво.','Кто уже нашёл удобное место для лагеря?']],['Miracle_Fan',['Обожаю, как меняется остров в разное время суток!','Надеюсь, скоро появятся новые открытия.','Всем привет! Как проходит выживание?']],['Pixel_Runner',['Проверил побережье — там есть интересные места.','Сегодня исследую дальнюю часть острова.','У кого уже получилось поймать рыбу?']],['ForestFox',['В лесу довольно тихо. Даже подозрительно.','Мне нравится строить базу поближе к воде.','Кто-нибудь уже встречал оленей?']]];
-  const p=pools[Math.floor(Math.random()*pools.length)],message=p[1][Math.floor(Math.random()*p[1].length)],row={id:'local-'+Date.now()+'-'+Math.random().toString(36).slice(2,6),created_at:new Date().toISOString(),persona:p[0],message,is_ai:true,is_dev:false,language:ML_LANG()};
-  ML_LOCAL_ROWS.push(row);if(ML_LOCAL_ROWS.length>12)ML_LOCAL_ROWS.shift();ML_ROWS.push(row);ML_ROWS=ML_ROWS.slice(-30);mlRenderChat();
- }
- async function mlGenerate(){
-  if(!ML_OPEN||ML_BUSY)return;ML_BUSY=true;let controller=null,timer=0;
+ async function mlLoadNews(){try{
+  const rows=await mlFetch('/rest/v1/game_news?select=title,body,category,created_at&is_published=eq.true&order=created_at.desc&limit=3');
+  const release=({
+   ru:{title:'v0.0.5.2 — Погода и сезоны',body:'На острове появились туман, дождь, грозы, ветер и снег. Следи за температурой, сушись у костра, собирай лечебные травы и готовься к зиме.'},
+   en:{title:'v0.0.5.2 — Weather and seasons',body:'The island now has fog, rain, thunderstorms, wind and snow. Watch your temperature, dry off by a campfire, gather healing herbs and prepare for winter.'},
+   es:{title:'v0.0.5.2 — Clima y estaciones',body:'La isla ahora tiene niebla, lluvia, tormentas, viento y nieve. Vigila tu temperatura, sécate junto a una hoguera, recoge hierbas medicinales y prepárate para el invierno.'}
+  })[ML_LANG()];
+  const list=[release].concat(Array.isArray(rows)?rows:[]).slice(0,3);mlRenderNews(list);
+  const top=Array.isArray(rows)&&rows.length?rows[0]:null;
+  ML_CURRENT_NEWS=top?String(top.title||'')+': '+String(top.body||'').slice(0,220):release.title+': '+release.body;
+  if(!ML_LAST_NEWS_AT){ML_LAST_NEWS_AT=top&&top.created_at||'release-v0.0.5.2';mlNewsWave()}
+  else if(top&&top.created_at&&top.created_at!==ML_LAST_NEWS_AT){ML_LAST_NEWS_AT=top.created_at;mlNewsWave();if(ML_OPEN)mlGenerate()}
+  ML_NEWS_LOADED=true;
+ }catch(_){ML_NEWS_LOADED=false}}
+ async function mlLoadChat(){try{const until=encodeURIComponent(new Date().toISOString());const rows=await mlFetch('/rest/v1/live_chat?select=id,created_at,persona,message,is_ai,is_dev,language&created_at=lte.'+until+'&order=id.desc&limit=30');const remote=Array.isArray(rows)?rows.reverse():[];ML_ROWS=remote.concat(ML_LOCAL_ROWS).sort((a,b)=>new Date(a.created_at)-new Date(b.created_at)).slice(-30);mlRenderChat();mlStatus(mlText('ready'))}catch(_){mlStatus(mlText('ready'))}}
+ function mlFallback(){mlStatus(mlText('aiMissing'))}
+ async function mlGenerate(force=false,devMessage=''){
+  if(!ML_OPEN)return;if(ML_BUSY){if(devMessage)ML_PENDING_DEV=devMessage;return}ML_BUSY=true;let controller=null,timer=0;
   try{
-   const context={base_lang:ML_LANG(),world_name:typeof WP!=='undefined'&&WP.name?String(WP.name).slice(0,48):'',day:typeof day!=='undefined'?day:1,game_version:'0.0.5.1',activity:'community chat'};
-   const last=ML_ROWS.slice(-12).map(m=>({persona:m.persona,message:m.message}));
-   controller=new AbortController();timer=setTimeout(()=>controller.abort(),8000);
-   await mlFetch('/functions/v1/live-chat-gen',{method:'POST',signal:controller.signal,headers:Object.assign({},ML_HEADERS,{'Content-Type':'application/json','Authorization':'Bearer '+ML_ANON_JWT}),body:JSON.stringify({ctx:context,last,session_id:ML_SESSION})});
-   ML_AI_MISSING=false;setTimeout(mlLoadChat,700);
-  }catch(_){mlFallback();ML_AI_MISSING=false;mlStatus(mlText('ready'))}
-  finally{if(timer)clearTimeout(timer);ML_BUSY=false}
+   const hr=(6+time*24)%24,clothes=typeof CH!=='undefined'?JSON.stringify({top:CH.top,bottom:CH.bottom,head:CH.head}):'';
+   const context={base_lang:ML_LANG(),world_name:typeof WP!=='undefined'&&WP.name?String(WP.name).slice(0,48):'',day:typeof day!=='undefined'?day:1,game_version:'0.0.5.2',activity:'clothing '+clothes,recent_actions:(window.ML_GAME_ACTIONS||[]).slice(-6),weather:typeof weatherName==='function'?weatherName():'clear',time_of_day:String(Math.floor(hr)).padStart(2,'0')+':'+String(Math.floor(hr%1*60)).padStart(2,'0'),latest_news:ML_CURRENT_NEWS,online_count:Math.round(ML_ONLINE)};
+   const last=ML_ROWS.slice(-6).map(m=>({persona:m.persona,message:m.message}));
+   controller=new AbortController();timer=setTimeout(()=>controller.abort(),12000);
+   const result=await mlFetch('/functions/v1/live-chat-gen',{method:'POST',signal:controller.signal,headers:Object.assign({},ML_HEADERS,{'Content-Type':'application/json','Authorization':'Bearer '+ML_ANON_JWT}),body:JSON.stringify({ctx:context,last,session_id:ML_SESSION,dev_message:devMessage||''})});
+   if(result&&Array.isArray(result.messages)&&result.messages.length){ML_AI_MISSING=false;setTimeout(mlLoadChat,1100)}
+   else mlStatus(mlText('aiMissing'));
+  }catch(e){if(e&&e.status===503)mlStatus(mlText('aiMissing'));else if(e&&e.status===429)mlStatus(mlText('ready'));else mlStatus(mlText('offline'))}
+  finally{if(timer)clearTimeout(timer);ML_BUSY=false;if(ML_PENDING_DEV){const pending=ML_PENDING_DEV;ML_PENDING_DEV='';setTimeout(()=>mlGenerate(true,pending),8500)}}
  }
  async function mlSend(){
-  const input=document.getElementById('ml-community-input');if(!input)return;const message=input.value.trim();if(!message)return;if(message.length>240){mlStatus(mlText('tooLong'));return}
+  const input=document.getElementById('ml-community-input');if(!input)return;let message=input.value.trim();if(!message)return;if(message.length>240){mlStatus(mlText('tooLong'));return}
+  const isDev=/^(\[DEV\]|DEV:)\s*/i.test(message);if(isDev)message='[DEV] '+message.replace(/^(\[DEV\]|DEV:)\s*/i,'');
   const send=document.getElementById('ml-community-send');send.disabled=true;
-  try{await mlFetch('/rest/v1/live_chat',{method:'POST',headers:Object.assign({},ML_HEADERS,{'Content-Type':'application/json','Prefer':'return=minimal'}),body:JSON.stringify({session_id:ML_SESSION,persona:'Игрок',message,is_ai:false,is_dev:false,language:ML_LANG()})});input.value='';mlLog('chat_message',{length:message.length});await mlLoadChat();mlGenerate()}
+  try{await mlFetch('/rest/v1/live_chat',{method:'POST',headers:Object.assign({},ML_HEADERS,{'Content-Type':'application/json','Prefer':'return=minimal'}),body:JSON.stringify({session_id:ML_SESSION,persona:'Игрок',message,is_ai:false,is_dev:false,language:ML_LANG()})});input.value='';mlLog('chat_message',{length:message.length,developer:isDev});await mlLoadChat();if(isDev)mlGenerate(true,message);else mlGenerate()}
   catch(_){mlStatus(mlText('failed'))}finally{send.disabled=false}
  }
  function mlOpen(){
-  mlEnsurePanel();ML_OPEN=true;const overlay=document.getElementById('ml-community-overlay');overlay.hidden=false;mlStatus(mlText('ready'));mlLog('community_open',{version:'0.0.5.1'});
-  mlLoadNews();mlLoadChat();mlGenerate();clearInterval(ML_POLL);clearInterval(ML_BOT_TIMER);ML_POLL=setInterval(mlLoadChat,5000);ML_BOT_TIMER=setInterval(mlGenerate,18000);
+  mlEnsurePanel();ML_OPEN=true;const overlay=document.getElementById('ml-community-overlay');overlay.hidden=false;mlStatus(mlText('ready'));mlLog('community_open',{version:'0.0.5.2'});
+  mlUpdateOnline();mlLoadNews().then(()=>mlGenerate());mlLoadChat();clearInterval(ML_POLL);clearInterval(ML_BOT_TIMER);clearInterval(ML_ONLINE_TIMER);clearInterval(ML_NEWS_TIMER);ML_POLL=setInterval(mlLoadChat,1100);ML_BOT_TIMER=setInterval(()=>mlGenerate(),9000);ML_ONLINE_TIMER=setInterval(mlUpdateOnline,4000);ML_NEWS_TIMER=setInterval(mlLoadNews,20000);
  }
- function mlClose(){ML_OPEN=false;clearInterval(ML_POLL);clearInterval(ML_BOT_TIMER);const overlay=document.getElementById('ml-community-overlay');if(overlay)overlay.hidden=true}
+ function mlClose(){ML_OPEN=false;clearInterval(ML_POLL);clearInterval(ML_BOT_TIMER);clearInterval(ML_ONLINE_TIMER);clearInterval(ML_NEWS_TIMER);const overlay=document.getElementById('ml-community-overlay');if(overlay)overlay.hidden=true}
  const mlOldPgMain=pgMain;
  pgMain=function(){return mlOldPgMain()+'<button class="mb" data-a="community">🌐 <span>'+mlText('title')+'</span></button>'};
  $('menu').addEventListener('click',e=>{const b=e.target.closest('[data-a="community"]');if(b){e.preventDefault();mlOpen()}});

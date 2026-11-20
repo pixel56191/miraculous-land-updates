@@ -26,7 +26,7 @@
       "purpose": "any maskable"
     }
   ],
-  "version": "0.0.5.1",
+  "version": "0.0.5.2",
   "files": {
     "index.html": {
       "sha256": "ca9b683b6b4aacd5841137cbd5176090ea95d35d4c0579d04d6882a79cf59f0b",
@@ -34,14 +34,14 @@
       "url": "index.html"
     },
     "game.js": {
-      "sha256": "1221c80baf6963ef3e5bd8076e1d479a647ac0acc2c5960e8ebfc0f812aa78ca",
-      "size": 131975,
+      "sha256": "51476be8b7d6a068e4007cdb38ecd4f8e1d3066d041c09ea9f080cab27aed105",
+      "size": 144299,
       "url": "game.js",
       "patch": {
         "url": "patches/game.js.bsdiff",
-        "from_sha256": "7a699d96eccd90e63ed9bd2ac27a6522b69286df4c17fb8c549a00e56431e27e",
-        "sha256": "0e9b8cea2287688796aa3504ca37b66114e7c9524d51a0f803abf851cf9eca78",
-        "size": 165
+        "from_sha256": "e3b4bf50c14c15c91710e5c7a75d61f3c6bbf5007cbb384decebcf477929afd0",
+        "sha256": "b22bf13378e192afb00b35e9f2e38c25280d50f9363d3ab5aedec0773fea68bd",
+        "size": 1062
       }
     }
   }
