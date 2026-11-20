@@ -68,8 +68,6 @@ const sunD=new THREE.Mesh(new THREE.SphereGeometry(14,16,12),new THREE.MeshBasic
 const cNT=new THREE.Color(0x02050f),cDT=new THREE.Color(0x3f86d6),cNB=new THREE.Color(0x070b18),cDB=new THREE.Color(0xa8cdee),cDu=new THREE.Color(0xff8a4a),tc=new THREE.Color();
 
 // ===== Погода и сезонный цикл v0.0.5.2 =====
-window.ML_GAME_ACTIONS=window.ML_GAME_ACTIONS||[];
-window.mlTrackGameAction=function(action){window.ML_GAME_ACTIONS.push(String(action).slice(0,120));if(window.ML_GAME_ACTIONS.length>12)window.ML_GAME_ACTIONS.shift()};
 let weatherType='clear',weatherTimer=32,weatherWind=0,weatherFlash=0,weatherThunderAt=0,lastWetState=false;
 let rainPoints=null,snowPoints=null,rainSource=null,rainGain=null,coldSneezeTimer=18+Math.random()*10;
 function winterMode(){return new Date().getMonth()>=11}
@@ -97,7 +95,7 @@ function chooseWeather(){
  const month=new Date().getMonth(),winter=month>=11,preSnow=month===10;
  const pool=winter?[['clear',2],['fog',1],['rain',1],['storm',.45],['wind',1],['snow',3]]:[['clear',4],['fog',1.2],['rain',2],['storm',.65],['wind',1.4],...(preSnow?[['snow',.35]]:[])];
  let total=pool.reduce((a,x)=>a+x[1],0),r=Math.random()*total;for(const x of pool){r-=x[1];if(r<=0){weatherType=x[0];break}}
- weatherTimer=65+Math.random()*115;window.mlTrackGameAction('Погода изменилась: '+weatherType);weatherWind=weatherType==='wind'?1.2:weatherType==='storm'?1.45:weatherType==='rain'?.65:.25;
+ weatherTimer=65+Math.random()*115;weatherWind=weatherType==='wind'?1.2:weatherType==='storm'?1.45:weatherType==='rain'?.65:.25;
  if(weatherType==='storm')weatherThunderAt=8+Math.random()*20;
  setRainAudio(weatherType==='rain'||weatherType==='storm');
 }
@@ -295,15 +293,15 @@ function take(id,n){for(let i=0;i<inv.length&&n>0;i++){const s=inv[i];if(s&&s.id
 function useSlot(i){const s=inv[i];if(!s||dead)return;if(openC){moveToChest(i);return}const it=G.items[s.id];
  if(it.smelt&&nearPc('furnace',3.5)){if(!count('coal'))return log(L('Нужен уголь'));take('coal',1);take(s.id,1);add(it.smelt,1);snd(260,.25,'triangle');log(L('Переплавлено: {n}',{n:G.items[it.smelt].n}))}
  else if(it.cook&&F.some(f=>Math.hypot(f.x-P.x,f.z-P.z)<3.5)){take(s.id,1);add(it.cook,1);snd(300,.2,'triangle');log(L('Вы пожарили: {n}',{n:G.items[it.cook].n}))}
- else if(s.id==='infusion'){S.cold=0;S.coldTimer=0;S.poison=0;S.warm=Math.min(100,S.warm+28);window.mlTrackGameAction('Выпил травяной настой и вылечился');take(s.id,1);snd(520,.2,'sine');log(L('Настой помог: болезни прошли, стало теплее'))}
- else if(s.id==='warm_wrap'){S.insulation=240;S.warm=Math.min(100,S.warm+12);window.mlTrackGameAction('Надел тёплую повязку');take(s.id,1);snd(340,.16,'triangle');log(L('Тёплая повязка согревает'))}
- else if(it.eat){for(const k in it.eat)S[k]=Math.min(100,S[k]+it.eat[k]);if((s.id==='meat'||s.id==='fish')&&Math.random()<.5){S.poison=1;window.mlTrackGameAction('Съел сырую пищу и получил отравление');log(L('Похоже, вы отравились сырой пищей!'))}else{window.mlTrackGameAction('Съел: '+it.n);log(L('{n} использовано',{n:it.n}))};if(s.id==='berry')S.heat=0;take(s.id,1);snd(500,.1,'sine');playA('eat')}
+ else if(s.id==='infusion'){S.cold=0;S.coldTimer=0;S.poison=0;S.warm=Math.min(100,S.warm+28);take(s.id,1);snd(520,.2,'sine');log(L('Настой помог: болезни прошли, стало теплее'))}
+ else if(s.id==='warm_wrap'){S.insulation=240;S.warm=Math.min(100,S.warm+12);take(s.id,1);snd(340,.16,'triangle');log(L('Тёплая повязка согревает'))}
+ else if(it.eat){for(const k in it.eat)S[k]=Math.min(100,S[k]+it.eat[k]);if((s.id==='meat'||s.id==='fish')&&Math.random()<.5){S.poison=1;log(L('Похоже, вы отравились сырой пищей!'))}else{log(L('{n} использовано',{n:it.n}))};if(s.id==='berry')S.heat=0;take(s.id,1);snd(500,.1,'sine');playA('eat')}
  else if(it.place&&it.place!='campfire'){if(placePiece(it.place))take(s.id,1)}
  else if(it.place){const x=P.x+Math.sin(P.f)*1.9,z=P.z+Math.cos(P.f)*1.9;
   if(hgt(x,z)<.2||near(x,z).some(n=>!n.gone&&G.nodes[n.t].solid&&Math.hypot(n.x-x,n.z-z)<(G.nodes[n.t].r*n.s+.9)))return log(L('Сюда нельзя поставить'));
   mkFire(x,z);take(s.id,1)}
  else log(it.smelt?L('Нужна печь рядом'):L('{n} — материал или инструмент',{n:it.n}))}
-function craft(r){if(!Object.entries(r.in).every(([k,v])=>count(k)>=v))return;if(r.at&&!nearPc('bench'))return log(L('Нужен верстак рядом'));for(const k in r.in)take(k,r.in[k]);add(r.out,r.n);window.mlTrackGameAction('Скрафтил: '+G.items[r.out].n);playA('build');log(L('Создано: {n}',{n:G.items[r.out].n}))}
+function craft(r){if(!Object.entries(r.in).every(([k,v])=>count(k)>=v))return;if(r.at&&!nearPc('bench'))return log(L('Нужен верстак рядом'));for(const k in r.in)take(k,r.in[k]);add(r.out,r.n);playA('build');log(L('Создано: {n}',{n:G.items[r.out].n}))}
 function refresh(){
  $('inv').innerHTML='';inv.forEach((s,i)=>{const d=document.createElement('div');d.className='slot';
   if(s){const it=G.items[s.id];d.title=it.n;d.innerHTML=ico(s.id,'80%')+(s.n>1?'<b>'+s.n+'</b>':'');const pv=LASTN&&LASTN[i];if(LASTN&&(!pv||pv.id!=s.id||s.n>pv.n))d.classList.add('pop')}d.onclick=()=>useSlot(i);$('inv').appendChild(d)});
@@ -401,7 +399,7 @@ function updateAnimalPopulation(dt){
  else if(roll<.8&&wild.length>minCount){const a=wild[Math.floor(Math.random()*wild.length)];world.remove(a.g);AL.splice(AL.indexOf(a),1)}
  ANIMAL_POP_TIMER=50+Math.random()*80;
 }
-function hitAn(a){if(a.k==='wolf')window.mlTrackGameAction('Получил урон/сражался с волком');const D=AN[a.k],pw=hasTool('spear')?3:hasTool('axe')?2:1;a.hp-=pw;a.fl=2.5;snd(200,.1,'sawtooth');
+function hitAn(a){if(a.k==='wolf')const D=AN[a.k],pw=hasTool('spear')?3:hasTool('axe')?2:1;a.hp-=pw;a.fl=2.5;snd(200,.1,'sawtooth');
  if(a.hp<=0){D.drops.forEach(([id,lo,hi])=>{const q=lo+Math.floor(Math.random()*(hi-lo+1));if(q)add(id,q)});a.dying=.8;a.side=Math.random()<.5?1:-1;snd(600,.1,'sine')}else a.hurt=.3}
 function updAnimals(dt){
  updateAnimalPopulation(dt);updateWolfPopulation(dt);
@@ -800,7 +798,7 @@ function step(dt){if(MENU)return;if(autoTest&&autoTest.active){const directions=
   const swimming=!!IN_WATER,running=!!SPR&&!swimming,raining=weatherType==='rain'||weatherType==='storm';if(swimming){S.heat=0;S.heatTimer=0}
   const exposedRain=raining&&!shel&&!fire;
   if(swimming)S.wet=Math.max(S.wet,115);else if(exposedRain)S.wet=Math.max(S.wet,weatherType==='storm'?85:55);
-  if(S.wet>0)S.wet=Math.max(0,S.wet-dt*(fire?3.2:shel?1.8:.12));if((S.wet>0)!==lastWetState){window.mlTrackGameAction(S.wet>0?'Промок и теперь мёрзну быстрее':'Высох после намокания');lastWetState=S.wet>0}
+  if(S.wet>0)S.wet=Math.max(0,S.wet-dt*(fire?3.2:shel?1.8:.12));if((S.wet>0)!==lastWetState){lastWetState=S.wet>0}
   S.insulation=Math.max(0,(S.insulation||0)-dt);
   S.food-=.25*(running?2:swimming&&FAST_SWIM?2:1)*dt*WP.diff;
   S.water-=.35*(running?2:1)*dt*WP.diff;
@@ -814,7 +812,7 @@ function step(dt){if(MENU)return;if(autoTest&&autoTest.active){const directions=
   else S.warm+=1.5*dt;
   if(S.warm<10)S.coldTimer=(S.coldTimer||0)+dt;else S.coldTimer=Math.max(0,(S.coldTimer||0)-dt*.35);
   if(S.coldTimer>28)S.cold=1;
-  if(S.cold){coldSneezeTimer-=dt;if(coldSneezeTimer<=0){coldSneezeTimer=22+Math.random()*16;playA('sneeze');snd(520,.08,'sine',.035);snd(330,.14,'triangle',.025);window.mlTrackGameAction('Чихнул из-за простуды')}}else coldSneezeTimer=12+Math.random()*12;
+  if(S.cold){coldSneezeTimer-=dt;if(coldSneezeTimer<=0){coldSneezeTimer=22+Math.random()*16;playA('sneeze');snd(520,.08,'sine',.035);snd(330,.14,'triangle',.025);}}else coldSneezeTimer=12+Math.random()*12;
   const hotBeach=!swimming&&running&&!raining&&dk<.28&&gy(P.x,P.z)<.9;
   if(hotBeach)S.heatTimer=(S.heatTimer||0)+dt;else S.heatTimer=Math.max(0,(S.heatTimer||0)-dt*.6);
   if(S.heatTimer>22)S.heat=1;
@@ -912,131 +910,4 @@ showMenu('main');
 let last=performance.now();
 (function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;FPS.n++;if(now-FPS.t>500){if(ST.fps)$('fps').textContent=Math.round(FPS.n*1000/(now-FPS.t))+' FPS';FPS.n=0;FPS.t=now}if(autoTest&&autoTest.active){autoTest.frameCount++;if(now-autoTest.lastSample>=500){autoTest.fpsSamples.push(Math.round(autoTest.frameCount*1000/(now-autoTest.lastSample)));autoTest.frameCount=0;autoTest.lastSample=now}if(now-autoTest.startedAt>=20000)finishAutoTest()}step(dt);if(MENU)menuCam(dt);else env();hud();ren.render(MENU&&menuScene?menuScene:scene,MENU&&menuCamera?menuCamera:cam);requestAnimationFrame(loop)})(last);
 
-/* ===== Miraculous Land live AI community (0.0.5.1) ===== */
-(function initMLCommunity(){
- const ML_PROJECT_URL='https://ushatjbtzjqagwclomkc.supabase.co';
- const ML_PUBLISHABLE_KEY='sb_publishable_UtsJ7QYWPN41hTI9UE_eCw_OYfcou6Q';
- const ML_ANON_JWT='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzaGF0amJ0empxYWd3Y2xvbWtjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUxOTc2OTUsImV4cCI6MjExMDc3MzY5NX0.HDKpA_Y4ldx_6ufQVInSE2oqKqe-AcJEZiX_4Bn9UxQ';
- const ML_HEADERS={'apikey':ML_PUBLISHABLE_KEY,'Authorization':'Bearer '+ML_ANON_JWT};
- const ML_LANG=()=>ST&&['ru','en','es'].includes(ST.lang)?ST.lang:'ru';
- const ML_COPY={
-  ru:{title:'Живое сообщество',loading:'Подключение...',ready:'Подключено',online:'Онлайн: {n} · виртуальная активность',offline:'Нет соединения с сообществом',placeholder:'Написать сообщение...',send:'Отправить',close:'Закрыть',empty:'Пока тихо. Первые игроки скоро заговорят!',news:'Новости игры',dev:'Разработчик',player:'Игрок',tooLong:'Максимум 240 символов.',failed:'Не удалось отправить сообщение.',aiMissing:'ИИ ждёт настройки ключа Anthropic в Supabase.'},
-  en:{title:'Live community',loading:'Connecting...',ready:'Connected',online:'Online: {n} · simulated activity',offline:'Community connection unavailable',placeholder:'Write a message...',send:'Send',close:'Close',empty:'Quiet for now. The players will speak soon!',news:'Game news',dev:'Developer',player:'Player',tooLong:'Maximum 240 characters.',failed:'Could not send the message.',aiMissing:'AI is waiting for the Anthropic key to be configured in Supabase.'},
-  es:{title:'Comunidad en vivo',loading:'Conectando...',ready:'Conectado',online:'En línea: {n} · actividad simulada',offline:'Comunidad no disponible',placeholder:'Escribe un mensaje...',send:'Enviar',close:'Cerrar',empty:'Todo está tranquilo. ¡Pronto hablarán los jugadores!',news:'Noticias del juego',dev:'Desarrollador',player:'Jugador',tooLong:'Máximo 240 caracteres.',failed:'No se pudo enviar el mensaje.',aiMissing:'La IA espera que se configure la clave de Anthropic en Supabase.'}
- };
- const mlText=k=>(ML_COPY[ML_LANG()]||ML_COPY.ru)[k]||k;
- let ML_ROWS=[],ML_LOCAL_ROWS=[],ML_POLL=0,ML_BOT_TIMER=0,ML_ONLINE_TIMER=0,ML_NEWS_TIMER=0,ML_BUSY=false,ML_OPEN=false,ML_NEWS_LOADED=false,ML_AI_MISSING=false,ML_PENDING_DEV='',ML_CURRENT_NEWS='',ML_LAST_NEWS_AT='',ML_ONLINE=145,ML_PEAK_UNTIL=0;
- function mlSession(){
-  const key='miraculous-land-live-session-v1';
-  try{let id=localStorage.getItem(key);if(!/^[a-zA-Z0-9_-]{8,64}$/.test(id||'')){const part=()=>Math.random().toString(36).slice(2);id='ml-'+(crypto&&crypto.randomUUID?crypto.randomUUID().replace(/-/g,''):part()+part());localStorage.setItem(key,id)}return id}
-  catch(_){return 'ml-'+Math.random().toString(36).slice(2)+Date.now().toString(36)}
- }
- const ML_SESSION=mlSession();
- function mlStatus(s){const n=document.getElementById('ml-community-status');if(n)n.textContent=s;const o=document.getElementById('ml-community-online');if(o)o.textContent=mlText('online').replace('{n}',String(Math.round(ML_ONLINE)))}
- function mlUpdateOnline(){const now=Date.now(),hour=new Date().getHours();if(now>ML_PEAK_UNTIL&&Math.random()<.025)ML_PEAK_UNTIL=now+45000+Math.random()*75000;const peak=now<ML_PEAK_UNTIL;const base=hour>=19&&hour<24?175:hour>=8&&hour<19?145:70;const target=peak?1800+Math.random()*700:base+(Math.random()-.5)*(base<100?20:55);ML_ONLINE+=(target-ML_ONLINE)*.32;mlStatus(mlText('ready'))}
- function mlNewsWave(){ML_PEAK_UNTIL=Date.now()+90000+Math.random()*90000;ML_ONLINE=Math.max(ML_ONLINE,1900+Math.random()*500);mlStatus(mlText('ready'));if(ML_OPEN){clearTimeout(ML_BOT_TIMER);ML_BOT_TIMER=setTimeout(()=>mlGenerate(true),850)}}
- function mlBatchDelay(count){const mean=ML_ONLINE>=1000?1.85:ML_ONLINE>=100?5:13;return Math.max(6500,Math.round(mean*Math.max(6,count)*.72*1000*(.82+Math.random()*.36)))}
- function mlScheduleGeneration(delay){clearTimeout(ML_BOT_TIMER);ML_BOT_TIMER=setTimeout(()=>mlGenerate(),Math.max(1500,delay))}
- async function mlFetch(path,options){
-  const res=await fetch(ML_PROJECT_URL+path,Object.assign({headers:Object.assign({},ML_HEADERS)},options||{}));
-  let data=null;try{data=await res.json()}catch(_){}
-  if(!res.ok)throw Object.assign(new Error(data&&data.message||data&&data.error||('HTTP '+res.status)),{status:res.status,data});
-  return data;
- }
- function mlLog(type,payload){mlFetch('/rest/v1/game_events',{method:'POST',headers:Object.assign({},ML_HEADERS,{'Content-Type':'application/json','Prefer':'return=minimal'}),body:JSON.stringify({session_id:ML_SESSION,event_type:type,payload:payload||{}})}).catch(()=>{})}
- function mlEnsurePanel(){
-  if(document.getElementById('ml-community-overlay'))return;
-  const style=document.createElement('style');
-  style.textContent=[
-   '#ml-community-overlay{position:fixed;inset:0;z-index:90;background:#000b;display:flex;align-items:center;justify-content:center;padding:12px;touch-action:auto}',
-   '#ml-community-overlay[hidden]{display:none!important}',
-   '#ml-community-panel{width:min(680px,100%);height:min(820px,88vh);display:flex;flex-direction:column;overflow:hidden;border:1px solid #526b49;border-radius:18px;background:#101910;color:#e8efe0;box-shadow:0 18px 60px #000c;font:14px system-ui,sans-serif;touch-action:auto}',
-   '#ml-community-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 15px;background:#1a2819;border-bottom:1px solid #3a4a36}',
-   '#ml-community-head strong{display:block;font-size:17px}#ml-community-status{display:block;font-size:11px;opacity:.7;margin-top:3px}#ml-community-online{display:block;color:#91d58a;font-size:12px;margin-top:3px}',
-   '#ml-community-close{width:38px;height:38px;padding:0;font-size:20px}',
-   '#ml-community-news{padding:0 13px;max-height:24%;overflow:auto}',
-   '.ml-news-card{margin-top:10px;padding:9px 11px;border-radius:10px;background:#263522;border:1px solid #43583b}',
-   '.ml-news-card b{display:block;margin-bottom:3px}.ml-news-card p{margin:0;line-height:1.4;opacity:.85;white-space:pre-wrap}',
-   '#ml-community-list{flex:1;overflow:auto;padding:12px 13px;display:flex;flex-direction:column;gap:8px;overscroll-behavior:contain}',
-   '.ml-chat-row{padding:8px 10px;border:1px solid #33432f;border-radius:11px;background:#172217;max-width:96%;align-self:flex-start}',
-   '.ml-chat-row.ml-self{align-self:flex-end;background:#22331f;border-color:#4b6c3e}',
-   '.ml-chat-row.ml-dev{border-color:#b38b42;background:#2a2517}',
-   '.ml-chat-row b{font-size:12px;color:#b9df9d}.ml-chat-row.ml-dev b{color:#f1ca76}',
-   '.ml-chat-row p{margin:3px 0 0;line-height:1.4;white-space:pre-wrap;overflow-wrap:anywhere}',
-   '.ml-chat-row time{display:block;margin-top:4px;font-size:10px;opacity:.48;text-align:right}',
-   '#ml-community-empty{margin:auto;text-align:center;opacity:.62;padding:24px;line-height:1.5}',
-   '#ml-community-form{display:flex;gap:7px;padding:10px;border-top:1px solid #3a4a36;background:#151f14}',
-   '#ml-community-input{flex:1;min-width:0;min-height:42px;max-height:100px;resize:none;padding:10px 12px;border:1px solid #4a6040;border-radius:10px;background:#0b120b;color:#e8efe0;font:14px system-ui,sans-serif;user-select:text;touch-action:pan-y}',
-   '#ml-community-send{min-width:88px}',
-   '@media(max-width:600px){#ml-community-overlay{padding:0}#ml-community-panel{width:100%;height:100%;max-height:100%;border-radius:0}#ml-community-news{max-height:20%}#ml-community-send{min-width:72px}}'
-  ].join('');
-  document.head.appendChild(style);
-  const overlay=document.createElement('div');overlay.id='ml-community-overlay';overlay.hidden=true;
-  overlay.innerHTML='<section id="ml-community-panel" role="dialog" aria-modal="true"><header id="ml-community-head"><div><strong id="ml-community-title"></strong><small id="ml-community-status"></small><small id="ml-community-online"></small></div><button id="ml-community-close" type="button" aria-label="Close">×</button></header><div id="ml-community-news"></div><div id="ml-community-list" aria-live="polite"></div><form id="ml-community-form"><textarea id="ml-community-input" maxlength="240" rows="1"></textarea><button id="ml-community-send" type="submit"></button></form></section>';
-  document.body.appendChild(overlay);
-  document.getElementById('ml-community-title').textContent=mlText('title');
-  document.getElementById('ml-community-input').placeholder=mlText('placeholder');
-  document.getElementById('ml-community-send').textContent=mlText('send');
-  document.getElementById('ml-community-close').title=mlText('close');
-  overlay.addEventListener('click',e=>{if(e.target===overlay||e.target.id==='ml-community-close')mlClose()});
-  document.getElementById('ml-community-form').addEventListener('submit',e=>{e.preventDefault();mlSend()});
-  document.getElementById('ml-community-input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();mlSend()}});
- }
- function mlRenderNews(items){
-  const root=document.getElementById('ml-community-news');if(!root)return;root.replaceChildren();if(!items||!items.length)return;
-  const heading=document.createElement('div');heading.style.cssText='font-size:12px;opacity:.65;margin-top:10px';heading.textContent=mlText('news');root.appendChild(heading);
-  items.forEach(item=>{const card=document.createElement('article');card.className='ml-news-card';const title=document.createElement('b');title.textContent=item.title;const body=document.createElement('p');body.textContent=item.body;card.append(title,body);root.appendChild(card)});
- }
- function mlRenderChat(){
-  const root=document.getElementById('ml-community-list');if(!root)return;const nearBottom=root.scrollHeight-root.scrollTop-root.clientHeight<70;root.replaceChildren();
-  if(!ML_ROWS.length){const empty=document.createElement('div');empty.id='ml-community-empty';empty.textContent=mlText('empty');root.appendChild(empty);return}
-  ML_ROWS.forEach(m=>{const row=document.createElement('article');row.className='ml-chat-row'+(m.persona==='Игрок'?' ml-self':'')+(m.is_dev||String(m.message||'').startsWith('[DEV]')?' ml-dev':'');const who=document.createElement('b');who.textContent=m.is_dev?mlText('dev'):m.persona==='Игрок'?mlText('player'):m.persona;const msg=document.createElement('p');msg.textContent=m.message;const when=document.createElement('time');const d=new Date(m.created_at);when.textContent=isNaN(d.getTime())?'':d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});row.append(who,msg,when);root.appendChild(row)});
-  if(nearBottom)root.scrollTop=root.scrollHeight;
- }
- async function mlLoadNews(){try{
-  const rows=await mlFetch('/rest/v1/game_news?select=title,body,category,created_at&is_published=eq.true&order=created_at.desc&limit=3');
-  const release=({
-   ru:{title:'v0.0.5.2 — Погода и сезоны',body:'На острове появились туман, дождь, грозы, ветер и снег. Следи за температурой, сушись у костра, собирай лечебные травы и готовься к зиме.'},
-   en:{title:'v0.0.5.2 — Weather and seasons',body:'The island now has fog, rain, thunderstorms, wind and snow. Watch your temperature, dry off by a campfire, gather healing herbs and prepare for winter.'},
-   es:{title:'v0.0.5.2 — Clima y estaciones',body:'La isla ahora tiene niebla, lluvia, tormentas, viento y nieve. Vigila tu temperatura, sécate junto a una hoguera, recoge hierbas medicinales y prepárate para el invierno.'}
-  })[ML_LANG()];
-  const list=[release].concat(Array.isArray(rows)?rows:[]).slice(0,3);mlRenderNews(list);
-  const top=Array.isArray(rows)&&rows.length?rows[0]:null;
-  ML_CURRENT_NEWS=top?String(top.title||'')+': '+String(top.body||'').slice(0,220):release.title+': '+release.body;
-  if(!ML_LAST_NEWS_AT){ML_LAST_NEWS_AT=top&&top.created_at||'release-v0.0.5.2';mlNewsWave()}
-  else if(top&&top.created_at&&top.created_at!==ML_LAST_NEWS_AT){ML_LAST_NEWS_AT=top.created_at;mlNewsWave();if(ML_OPEN)mlGenerate()}
-  ML_NEWS_LOADED=true;
- }catch(_){ML_NEWS_LOADED=false}}
- async function mlLoadChat(){try{const until=encodeURIComponent(new Date().toISOString());const rows=await mlFetch('/rest/v1/live_chat?select=id,created_at,persona,message,is_ai,is_dev,language&created_at=lte.'+until+'&order=id.desc&limit=30');const remote=Array.isArray(rows)?rows.reverse():[];ML_ROWS=remote.concat(ML_LOCAL_ROWS).sort((a,b)=>new Date(a.created_at)-new Date(b.created_at)).slice(-30);mlRenderChat();mlStatus(mlText('ready'))}catch(_){mlStatus(mlText('ready'))}}
- function mlFallback(){mlStatus(mlText('aiMissing'))}
- async function mlGenerate(force=false,devMessage=''){
-  if(!ML_OPEN)return;if(ML_BUSY){if(devMessage)ML_PENDING_DEV=devMessage;return}ML_BUSY=true;let controller=null,timer=0;
-  try{
-   const hr=(6+time*24)%24,clothes=typeof CH!=='undefined'?JSON.stringify({top:CH.top,bottom:CH.bottom,head:CH.head}):'';
-   const context={base_lang:ML_LANG(),world_name:typeof WP!=='undefined'&&WP.name?String(WP.name).slice(0,48):'',day:typeof day!=='undefined'?day:1,game_version:'0.0.5.2',activity:'clothing '+clothes,recent_actions:(window.ML_GAME_ACTIONS||[]).slice(-6),weather:typeof weatherName==='function'?weatherName():'clear',time_of_day:String(Math.floor(hr)).padStart(2,'0')+':'+String(Math.floor(hr%1*60)).padStart(2,'0'),latest_news:ML_CURRENT_NEWS,online_count:Math.round(ML_ONLINE)};
-   const last=ML_ROWS.slice(-6).map(m=>({persona:m.persona,message:m.message}));
-   controller=new AbortController();timer=setTimeout(()=>controller.abort(),12000);
-   const result=await mlFetch('/functions/v1/live-chat-gen',{method:'POST',signal:controller.signal,headers:Object.assign({},ML_HEADERS,{'Content-Type':'application/json','Authorization':'Bearer '+ML_ANON_JWT}),body:JSON.stringify({ctx:context,last,session_id:ML_SESSION,dev_message:devMessage||''})});
-   if(result&&Array.isArray(result.messages)&&result.messages.length){ML_AI_MISSING=false;setTimeout(mlLoadChat,1100);mlScheduleGeneration(devMessage?7500:mlBatchDelay(result.messages.length))}
-   else{mlStatus(mlText('aiMissing'));mlScheduleGeneration(ML_ONLINE>=1000?14000:ML_ONLINE>=100?30000:65000)}
-  }catch(e){if(e&&e.status===503)mlStatus(mlText('aiMissing'));else if(e&&e.status===429)mlStatus(mlText('ready'));else mlStatus(mlText('offline'))}
-  finally{if(timer)clearTimeout(timer);ML_BUSY=false;if(ML_PENDING_DEV){const pending=ML_PENDING_DEV;ML_PENDING_DEV='';clearTimeout(ML_BOT_TIMER);ML_BOT_TIMER=setTimeout(()=>mlGenerate(true,pending),900)}}
- }
- async function mlSend(){
-  const input=document.getElementById('ml-community-input');if(!input)return;let message=input.value.trim();if(!message)return;if(message.length>240){mlStatus(mlText('tooLong'));return}
-  const isDev=/^(\[DEV\]|DEV:)\s*/i.test(message);if(isDev)message='[DEV] '+message.replace(/^(\[DEV\]|DEV:)\s*/i,'');
-  const send=document.getElementById('ml-community-send');send.disabled=true;
-  try{await mlFetch('/rest/v1/live_chat',{method:'POST',headers:Object.assign({},ML_HEADERS,{'Content-Type':'application/json','Prefer':'return=minimal'}),body:JSON.stringify({session_id:ML_SESSION,persona:isDev?'Разработчик':'Игрок',message,is_ai:false,is_dev:isDev,language:ML_LANG()})});input.value='';mlLog('chat_message',{length:message.length,developer:isDev});await mlLoadChat();if(isDev)mlGenerate(true,message);else mlGenerate()}
-  catch(_){mlStatus(mlText('failed'))}finally{send.disabled=false}
- }
- function mlOpen(){
-  mlEnsurePanel();ML_OPEN=true;const overlay=document.getElementById('ml-community-overlay');overlay.hidden=false;mlStatus(mlText('ready'));mlLog('community_open',{version:'0.0.5.2'});
-  mlUpdateOnline();mlLoadNews().then(()=>mlGenerate());mlLoadChat();clearInterval(ML_POLL);clearTimeout(ML_BOT_TIMER);clearInterval(ML_ONLINE_TIMER);clearInterval(ML_NEWS_TIMER);ML_POLL=setInterval(mlLoadChat,1100);ML_ONLINE_TIMER=setInterval(mlUpdateOnline,4000);ML_NEWS_TIMER=setInterval(mlLoadNews,20000);
- }
- function mlClose(){ML_OPEN=false;clearInterval(ML_POLL);clearTimeout(ML_BOT_TIMER);clearInterval(ML_ONLINE_TIMER);clearInterval(ML_NEWS_TIMER);const overlay=document.getElementById('ml-community-overlay');if(overlay)overlay.hidden=true}
- const mlOldPgMain=pgMain;
- pgMain=function(){return mlOldPgMain()+'<button class="mb" data-a="community">🌐 <span>'+mlText('title')+'</span></button>'};
- $('menu').addEventListener('click',e=>{const b=e.target.closest('[data-a="community"]');if(b){e.preventDefault();mlOpen()}});
- if(MENU)render();
- window.addEventListener('keydown',e=>{if(e.key==='Escape'&&ML_OPEN)mlClose()});
-})();
+
