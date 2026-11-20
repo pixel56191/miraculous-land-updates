@@ -82,6 +82,30 @@ function put(n,tilt=0){if(n.t=='campfire')return;
  else if(RKT.includes(n.t)){VV.set(n.x,n.y+k*.3,n.z);SS.set(k*n.a*1.2,k*.8,k*n.a);M4.compose(VV,QQ,SS);RK.setMatrixAt(n.i,M4);RK.instanceMatrix.needsUpdate=true}
  else{VV.set(n.x,n.y+.3*k,n.z);SS.set(k,k*.75,k);M4.compose(VV,QQ,SS);BS.setMatrixAt(n.i,M4);BS.instanceMatrix.needsUpdate=true;
   const kb=n.dead?.0001:1;for(let j=0;j<4;j++){const a=j*1.7+n.r;VV.set(n.x+Math.cos(a)*.5*k,n.y+.5*k+j*.05,n.z+Math.sin(a)*.5*k);SS.set(kb,kb,kb);M4.compose(VV,IDQ,SS);BR.setMatrixAt(n.i*4+j,M4)}BR.instanceMatrix.needsUpdate=true}}
+let BIRDS=[];
+function createBirds(){
+ BIRDS=[];
+ const mat=new THREE.MeshStandardMaterial({color:0x30343a,roughness:1,flatShading:true,side:THREE.DoubleSide});
+ const bodyGeo=new THREE.IcosahedronGeometry(.12,0),wingGeo=new THREE.BufferGeometry();
+ wingGeo.setAttribute('position',new THREE.Float32BufferAttribute([0,0,0,-.78,0,.03,-.16,.015,.2],3));wingGeo.computeVertexNormals();
+ for(let i=0;i<8;i++){
+  const g=new THREE.Group(),body=new THREE.Mesh(bodyGeo,mat),left=new THREE.Group(),right=new THREE.Group();
+  body.scale.set(1.45,.65,.7);g.add(body);
+  const lm=new THREE.Mesh(wingGeo,mat),rm=new THREE.Mesh(wingGeo,mat);
+  left.position.set(-.08,0,0);right.position.set(.08,0,0);rm.rotation.y=Math.PI;
+  left.add(lm);right.add(rm);g.add(left,right);world.add(g);
+  BIRDS.push({g,left,right,phase:i*Math.PI*2/8,radius:18+(i%4)*4,height:15+(i%3)*2,speed:.055+(i%3)*.009});
+ }
+}
+function animateBirds(dt){
+ for(const b of BIRDS){
+  const a=tm*b.speed+b.phase;
+  b.g.position.set(Math.cos(a)*b.radius,b.height+Math.sin(tm*.55+b.phase)*.65,Math.sin(a)*b.radius);
+  b.g.rotation.y=-a+Math.PI/2;
+  const flap=Math.sin(tm*7+b.phase)*.62;
+  b.left.rotation.z=flap;b.right.rotation.z=-flap;
+ }
+}
 function buildWorld(){
  if(world)scene.remove(world);world=new THREE.Group();scene.add(world);nodes=[];grid=new Map();F=[];
  const g=new THREE.PlaneGeometry(200,200,160,160);g.rotateX(-Math.PI/2);
@@ -116,7 +140,7 @@ function buildWorld(){
  const gc=7000,gr=mk(new THREE.ConeGeometry(.07,.55,3).translate(0,.27,0),new THREE.MeshStandardMaterial({color:0x5aa84a,roughness:1}),gc,false);gr.castShadow=false;
  let gi=0;for(let t=0;t<30000&&gi<gc;t++){const x=(R()-.5)*190,z=(R()-.5)*190,y=hgt(x,z);if(y<1||y>8)continue;
   const s=.6+R()*1.1;VV.set(x,y,z);EE.set((R()-.5)*.3,R()*6.28,(R()-.5)*.3);QQ.setFromEuler(EE);SS.set(s,s*(.7+R()*.8),s);M4.compose(VV,QQ,SS);gr.setMatrixAt(gi,M4);cl.setScalar(.6+R()*.5);gr.setColorAt(gi,cl);gi++}
- GRN=gi;GR=gr;gr.count=Math.floor(gi*GQ());gr.instanceColor.needsUpdate=true;PC=[];openC=null;TR.forEach((m,i)=>sway(m.material,i?1.2:.12));sway(BS.material,.5);sway(gr.material,3);spawnAnimals()}
+ GRN=gi;GR=gr;gr.count=Math.floor(gi*GQ());gr.instanceColor.needsUpdate=true;PC=[];openC=null;TR.forEach((m,i)=>sway(m.material,i?1.2:.12));sway(BS.material,.5);sway(gr.material,3);spawnAnimals();createBirds()}
 function mkFire(x,z){
  const y=hgt(x,z),g=new THREE.Group();g.position.set(x,y,z);
  const st=mt(0x777777),lg=new THREE.MeshStandardMaterial({color:0x4a2f1a,roughness:1});
@@ -640,7 +664,7 @@ const KEYS={};let yaw=0,pit=.45,dist=9,joy=null,look=null,autoTest=null;
 function startAutoTest(){if(autoTest&&autoTest.active)return;save();const now=performance.now();autoTest={active:true,startedAt:now,lastSample:now,frameCount:0,fpsSamples:[],errors:[],position:P?{x:P.x,y:P.y,z:P.z,f:P.f}:null,stats:S?{hp:S.hp,food:S.food,water:S.water,warm:S.warm}:null,time,day,yaw,pit,dist};autoTest.previousOnError=window.onerror;autoTest.errorHandler=function(message,source,line,column,error){if(autoTest&&autoTest.active)autoTest.errors.push(String(error&&error.stack||message)+' '+String(source||'')+':'+String(line||0)+':'+String(column||0));if(typeof autoTest.previousOnError==='function')return autoTest.previousOnError.apply(this,arguments);return false};autoTest.rejectionHandler=function(event){if(autoTest&&autoTest.active)autoTest.errors.push('Promise: '+String(event.reason&&event.reason.stack||event.reason))};window.onerror=autoTest.errorHandler;window.addEventListener('unhandledrejection',autoTest.rejectionHandler);hideMenu()}
 function finishAutoTest(){const t=autoTest;if(!t||!t.active)return;t.active=false;Object.keys(KEYS).forEach(k=>KEYS[k]=0);if(window.onerror===t.errorHandler)window.onerror=t.previousOnError;window.removeEventListener('unhandledrejection',t.rejectionHandler);if(t.position&&P)Object.assign(P,t.position);if(t.stats&&S)Object.assign(S,t.stats);time=t.time;day=t.day;yaw=t.yaw;pit=t.pit;dist=t.dist;if(HAVEWORLD)save();MENU=true;document.body.classList.add('menu');UI.page='set';render();const samples=t.fpsSamples,min=samples.length?Math.min(...samples):0,max=samples.length?Math.max(...samples):0,avg=samples.length?Math.round(samples.reduce((a,b)=>a+b,0)/samples.length):0;const errors=t.errors.length?t.errors.map((e,i)=>(i+1)+'. '+e).join('\n'):L('Ошибок не обнаружено');const report=$('autotest-report');report.innerHTML='<div class="test-card"><h2>'+L('Автотест завершён')+'</h2><p>'+L('Длительность: {n} сек',{n:'20'})+'</p><p>'+L('FPS — мин: {min} · сред: {avg} · макс: {max}',{min,avg,max})+'</p><h3>'+L('Ошибки JavaScript')+'</h3><pre>'+esc(errors)+'</pre><button id="autotest-close">'+L('Закрыть')+'</button></div>';report.hidden=false;report.querySelector('#autotest-close').onclick=()=>{report.hidden=true}}
 function step(dt){if(autoTest&&autoTest.active){const directions=[['KeyW'],['KeyD'],['KeyS'],['KeyA'],['KeyW','KeyD'],['KeyS','KeyD'],['KeyS','KeyA'],['KeyW','KeyA']];const phase=Math.min(7,Math.floor((performance.now()-autoTest.startedAt)/2500));Object.keys(KEYS).forEach(k=>delete KEYS[k]);directions[phase].forEach(k=>KEYS[k]=1)}
- tm+=dt;cool=Math.max(0,cool-dt);swing=Math.max(0,swing-dt);
+ tm+=dt;animateBirds(dt);cool=Math.max(0,cool-dt);swing=Math.max(0,swing-dt);
  if(!dead&&!MENU){
   let ix=(KEYS.KeyD||KEYS.ArrowRight?1:0)-(KEYS.KeyA||KEYS.ArrowLeft?1:0),iy=(KEYS.KeyW||KEYS.ArrowUp?1:0)-(KEYS.KeyS||KEYS.ArrowDown?1:0);
   if(joy){const l=Math.hypot(joy.dx,joy.dy);if(l>8){const k=Math.min(1,l/50);ix=joy.dx/l*k;iy=-joy.dy/l*k}}
