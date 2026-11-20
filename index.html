@@ -32,6 +32,13 @@ button:disabled{opacity:.4}
 #hurt{position:fixed;inset:0;pointer-events:none;box-shadow:inset 0 0 140px 50px rgba(200,20,20,.85);opacity:0}
 #menu{position:fixed;left:0;top:0;bottom:0;width:min(430px,100%);padding:calc(env(safe-area-inset-top,0px) + 18px) 18px calc(env(safe-area-inset-bottom,0px) + 18px);overflow:auto;touch-action:pan-y;background:linear-gradient(90deg,rgba(7,11,7,.94),rgba(7,11,7,.78));display:none;z-index:20}
 #menu[data-page="main"]{padding-bottom:calc(54px + env(safe-area-inset-bottom,0px))}
+#menu[data-page="pause"]{top:0;bottom:0;height:100%;width:min(430px,100%);background:linear-gradient(90deg,rgba(7,11,7,.97),rgba(7,11,7,.9))}
+.mb.danger,.danger{background:#702626;border-color:#c75b52;color:#fff}
+.confirm{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:20px;background:#000b}
+.confirm-card{width:min(360px,100%);padding:18px;border:1px solid #79504a;border-radius:16px;background:#151a15;box-shadow:0 12px 40px #000b}
+.confirm-card h3{margin:0 0 10px}.confirm-card p{line-height:1.45;opacity:.85}.save-notice{color:#a9ed91;font-weight:700}
+@media(max-width:760px){#menu[data-page="pause"]{top:0;bottom:0;height:100%;width:100%}}
+
 body.menu #menu{display:block}
 body.menu #dock,body.menu #hud,body.menu #hint,body.menu #top,body.menu #toast{display:none}
 #menu.busy::after{content:attr(data-busy);position:fixed;inset:0;background:#000b;display:flex;align-items:center;justify-content:center;font-size:20px}
