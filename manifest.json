@@ -1,23 +1,4 @@
 {
-  "version": "0.0.4.3",
-  "files": {
-    "index.html": {
-      "sha256": "2c52bb009a977e297c6601710938eb5129223e9fbb243945015bafd156f25f23",
-      "size": 5766,
-      "url": "index.html"
-    },
-    "game.js": {
-      "sha256": "639b260f421b4496e1ba4651683db67fa28ee1ce9fc2e73b9ca1ef4ecaeb6212",
-      "size": 97460,
-      "url": "game.js",
-      "patch": {
-        "url": "patches/game.js.bsdiff",
-        "from_sha256": "a650604eed251ba1b91e5eb9ea9675504da583831c4d23fcac3d2918e7382a0e",
-        "sha256": "f979b1bcb7b1d67a6a748765a1f7d10624b9da6a18770b1fbae1f8de997233cd",
-        "size": 1745
-      }
-    }
-  },
   "name": "Miraculous Land",
   "short_name": "Miraculous Land",
   "description": "Survival adventure in Miraculous Land",
@@ -44,5 +25,24 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "version": "0.0.4.3",
+  "files": {
+    "index.html": {
+      "sha256": "0360d6f2927af3f63318409570ea879a5df29fd4cc8b18d48e09e5ddeee33b16",
+      "size": 6490,
+      "url": "index.html",
+      "patch": {
+        "url": "patches/index.html.bsdiff",
+        "from_sha256": "2c52bb009a977e297c6601710938eb5129223e9fbb243945015bafd156f25f23",
+        "sha256": "7b981adcfd5998037f53664e0e6015a981e7c4091548375ba1ea803020144ed6",
+        "size": 645
+      }
+    },
+    "game.js": {
+      "sha256": "639b260f421b4496e1ba4651683db67fa28ee1ce9fc2e73b9ca1ef4ecaeb6212",
+      "size": 97460,
+      "url": "game.js"
+    }
+  }
 }
