@@ -522,11 +522,12 @@ const PRESETS=[
  {n:'Раздолье',s:'99467',d:'Открытые равнины и много дичи',o:{relief:0,animals:3}},
  {n:'Рудный край',s:'21949',d:'Много железа и угля, лесистые холмы',o:{res:2}}];
 function seedFrom(t){if(/^-?\d+$/.test(t))return((parseInt(t,10)%1000000)+1000000)%1000000;let h=5381;for(let i=0;i<t.length;i++)h=((h<<5)+h+t.charCodeAt(i))|0;return Math.abs(h)%1000000}
-function newGame(txt,wp,nosave){WP=Object.assign({},WPD,wp||{});const st=String(txt||'').trim();SEEDTXT=st||String(Math.floor(Math.random()*1e6));seed=seedFrom(SEEDTXT);
+function newGame(txt,wp,nosave,newSlot){WP=Object.assign({},WPD,wp||{});const st=String(txt||'').trim();SEEDTXT=st||String(Math.floor(Math.random()*1e6));seed=seedFrom(SEEDTXT);
+ if(newSlot||(!activeWorldId&&!nosave))activeWorldId='world-'+Date.now()+'-'+Math.floor(Math.random()*1e6);
  buildWorld();P={x:0,y:hgt(0,0),z:0,f:0};S={hp:100,food:90,water:90,warm:80};inv=new Array(16).fill(null);time=WP.start;day=1;dead=false;$('dead').hidden=true;openC=null;PA={n:'',t:0,d:1};lastHp=100;hurtT=0;deadT=0;refresh();if(!nosave)save()}
-function createWorld(){if(HAVEWORLD&&!confirm(L('Текущий мир будет заменён новым. Продолжить?')))return;
+function createWorld(){if(HAVEWORLD)save();
  const w={name:(WF.name||'').trim()||L('Новый мир')};WOPT.forEach(r=>r.f(WF[r.k],w));const m=$('menu');m.classList.add('busy');
- setTimeout(()=>{newGame(WF.seed,w);HAVEWORLD=true;m.classList.remove('busy');hideMenu();log(L('Сид мира: {s}',{s:esc(SEEDTXT)}))},40)}
+ setTimeout(()=>{newGame(WF.seed,w,0,1);HAVEWORLD=true;m.classList.remove('busy');hideMenu();log(L('Сид мира: {s}',{s:esc(SEEDTXT)}))},40)}
 // ----- Экраны меню -----
 const chips=(a,k,list,cur)=>'<div class="chips">'+list.map((t,i)=>'<button class="ch'+(i==cur?' on':'')+'" data-a="'+a+'" data-k="'+k+'" data-v="'+i+'">'+L(t)+'</button>').join('')+'</div>';
 const sws=(k,cols,cur)=>'<div class="sws">'+cols.map((c,i)=>'<button class="swc'+(i==cur?' on':'')+'" data-a="c" data-k="'+k+'" data-v="'+i+'" style="background:#'+c.toString(16).padStart(6,'0')+'"></button>').join('')+'</div>';
@@ -534,8 +535,10 @@ const row=(t,x)=>'<div class="mr"><div class="ml">'+L(t)+'</div>'+x+'</div>';
 const icb=(id,t,a,v)=>'<button class="mb" data-a="'+a+'"'+(v!==undefined?' data-v="'+v+'"':'')+'>'+ico(id,22)+(t?'<span>'+L(t)+'</span>':'')+'</button>';
 const langRow=()=>'<div class="mr"><div class="ml">'+ico('ui_lang',16)+' '+L('Язык')+'</div><div class="chips">'+LANGS.map(([c,n])=>'<button class="ch'+(ST.lang==c?' on':'')+'" data-a="lang" data-v="'+c+'">'+n+'</button>').join('')+'</div></div>';
 function pgMain(){const w=HAVEWORLD?L('Мир: {w} · сид {s} · день {d}',{w:'<b>'+esc(L(WP.name))+'</b>',s:'<b>'+esc(SEEDTXT)+'</b>',d:day}):L('Мира пока нет — создай новый');
+ const saved=Object.values(SAVE_DB.worlds||{}).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+ const worlds=saved.length?'<div class="mr"><b>'+L('Мои миры')+'</b>'+saved.map(q=>'<button class="pr" data-a="worldload" data-v="'+esc(q.id)+'"><b>'+esc(L(q.name||'Мир'))+'</b><small>'+L('Сид мира: {s}',{s:esc(q.seed||'')})+' · '+L('День')+' '+(q.day||1)+'</small><i>'+(q.id===activeWorldId?L('Текущий мир'):L('Открыть'))+'</i></button>').join('')+'</div>':'<div class="info">'+L('Нет сохранённых миров')+'</div>';
  return '<div class="logo">'+ico('logo',72)+'<h1>'+GN()+'</h1><div class="sub">v0.0.4.3 '+L('Альфа')+' 3D</div></div><div class="info">'+w+'</div>'+
- (HAVEWORLD?icb('ui_play','Продолжить','resume'):'')+icb('ui_world','Новый мир','go','world')+icb('ui_char','Персонаж','go','char')+icb('ui_gear','Настройки','go','set')+langRow()}
+ (HAVEWORLD?icb('ui_play','Продолжить','resume'):'')+icb('ui_world','Новый мир','go','world')+worlds+icb('ui_char','Персонаж','go','char')+icb('ui_gear','Настройки','go','set')+langRow()}
 function pgWorld(){return '<h2>'+L('Новый мир')+'</h2>'+row('Название','<input type="text" id="wname" maxlength="24" value="'+esc(WF.name)+'">')+
  row('Сид (пусто — случайный мир)','<div class="sd"><input type="text" id="wseed" maxlength="24" placeholder="'+L('случайный')+'" value="'+esc(WF.seed)+'">'+icb('ui_dice','','dice')+'</div>')+
  '<div class="ml">'+L('Готовые миры')+'</div><div class="presets">'+PRESETS.map((p,i)=>'<button class="pr" data-a="preset" data-v="'+i+'"><b>'+L(p.n)+'</b><small>'+L(p.d)+'</small><i>'+L('сид {s}',{s:p.s})+'</i></button>').join('')+'</div>'+
@@ -557,7 +560,7 @@ function hideMenu(){MENU=false;document.body.classList.remove('menu');dist=9;pit
 function toggleMenu(){if(MENU){if(HAVEWORLD)hideMenu()}else{save();showMenu('main')}}
 function menuCam(dt){mvAmt=0;SPR=0;if(!look){yaw+=dt*.3;pit+=(MP-pit)*Math.min(1,dt*3)}dist+=(MD-dist)*Math.min(1,dt*4);time+=dt/300;if(time>=1)time-=1}
 $('menu').addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,k=b.dataset.k,v=b.dataset.v;
- if(a=='go')showMenu(v);else if(a=='resume')hideMenu();else if(a=='dice'){WF.seed=String(Math.floor(Math.random()*1e6));render()}
+ if(a=='go')showMenu(v);else if(a=='resume')hideMenu();else if(a=='worldload'){save();if(loadSavedWorld(v)){HAVEWORLD=true;showMenu('main')}}else if(a=='dice'){WF.seed=String(Math.floor(Math.random()*1e6));render()}
  else if(a=='preset'){const p=PRESETS[+v];WF=Object.assign({},WF0,{name:WF.name},p.o,{seed:p.s});render()}
  else if(a=='o'){WF[k]=+v;render()}else if(a=='c'){CH[k]=+v;applyChar();saveChar();render()}
  else if(a=='s'){setSet(k,+v);render()}else if(a=='tab'){UI.tab=v;render()}else if(a=='rand')randChar();else if(a=='create')createWorld();else if(a=='lang')setLang(v)});
@@ -590,7 +593,7 @@ const TRL=[
 ['Рельеф','Terrain','Relieve'],['Равнины','Plains','Llanuras'],['Холмы','Hills','Colinas'],['Горы','Mountains','Montañas'],['Вода','Water','Agua'],['Мало','Low','Poco'],['Средне','Medium','Medio'],['Много','Lots','Mucho'],['Острова','Islands','Islas'],
 ['Лес','Forest','Bosque'],['Редкий','Sparse','Escaso'],['Обычный','Normal','Normal'],['Густой','Dense','Denso'],['Ресурсы','Resources','Recursos'],['Обычно','Normal','Normal'],['Животные','Animals','Animales'],['Волки','Wolves','Lobos'],
 ['Выкл','Off','Apagado'],['Вкл','On','Activado'],['Сложность','Difficulty','Dificultad'],['Лёгкая','Easy','Fácil'],['Обычная','Normal','Normal'],['Сложная','Hard','Difícil'],['Длина суток','Day length','Duración del día'],
-['Короткие','Short','Cortos'],['Обычные','Normal','Normales'],['Долгие','Long','Largos'],['Начало игры','Start time','Hora de inicio'],['Утро','Morning','Mañana'],['Вечер','Evening','Tarde'],['Ночь','Night','Noche'],['Новый мир','New world','Nuevo mundo'],
+['Короткие','Short','Cortos'],['Обычные','Normal','Normales'],['Долгие','Long','Largos'],['Начало игры','Start time','Hora de inicio'],['Утро','Morning','Mañana'],['Вечер','Evening','Tarde'],['Ночь','Night','Noche'],['Новый мир','New world','Nuevo mundo'],['Мои миры','My worlds','Mis mundos'],['Нет сохранённых миров','No saved worlds','No hay mundos guardados'],['Открыть','Open','Abrir'],['Текущий мир','Current world','Mundo actual'],
 ['Озёрный край','Lake District','Tierra de lagos'],['Озеро у самого старта, железо и уголь рядом','A lake right at the start, iron and coal nearby','Un lago junto al inicio, hierro y carbón cerca'],
 ['Горная долина','Mountain valley','Valle de montaña'],['Высокие горы, руда в двух шагах','Tall mountains, ore a few steps away','Montañas altas, mineral a pocos pasos'],
 ['Дремучий лес','Deep forest','Bosque profundo'],['Густой лес вокруг, ресурсы под боком','Dense forest all around, resources close by','Bosque denso alrededor, recursos cerca'],
@@ -659,12 +662,51 @@ function step(dt){
  const tf=ST.fov+SPR*mvAmt*10;fovC+=(tf-fovC)*Math.min(1,dt*5);if(Math.abs(cam.fov-fovC)>.05){cam.fov=fovC;cam.updateProjectionMatrix()}
  const tg=TG=target(),ht=tg?(tg.p?L('Открыть сундук'):tg.k?L(AN[tg.k].hint):G.nodes[tg.t].hint):waterAhead()?L('Пить воду'):'';$('hint').hidden=!ht||dead||MENU;$('hint').textContent='E — '+ht;
 }
-// ===== Сохранение =====
-function save(){try{const gone=[],dd=[];nodes.forEach((n,i)=>{if(n.t=='campfire')return;if(n.gone)gone.push(i);if(n.dead)dd.push([i,n.rt])});
- localStorage.setItem('vse3d4',JSON.stringify({seed,P,S,inv,time,day,gone,dd,fires:F.map(f=>[f.x,f.z]),pcs:PC.map(p=>({k:p.pk,x:p.x,z:p.z,y:p.y,r:p.rot,i:p.inv})),wp:WP,st:SEEDTXT}))}catch(e){}}
-function load(){try{const s=JSON.parse(localStorage.getItem('vse3d4'));if(!s)return false;
- WP=Object.assign({},WPD,s.wp||{});SEEDTXT=s.st||String(s.seed);seed=s.seed;buildWorld();s.gone.forEach(i=>{nodes[i].gone=true;put(nodes[i])});s.dd.forEach(([i,rt])=>{nodes[i].dead=true;nodes[i].rt=rt;put(nodes[i])});s.fires.forEach(([x,z])=>mkFire(x,z));(s.pcs||[]).forEach(q=>mkPiece(q.k,q.x,q.z,q.y,q.r,q.i));
- P=s.P;S=s.S;inv=s.inv;time=s.time;day=s.day;refresh();return true}catch(e){return false}}
+// ===== Версионируемое сохранение миров =====
+const SAVE_KEY='miraculous-land-worlds-v1';
+let SAVE_DB={version:1,active:null,worlds:{}},activeWorldId=null;
+function readSaveDB(){
+ try{
+  const d=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');
+  if(d&&d.version===1&&d.worlds&&typeof d.worlds==='object'){SAVE_DB=d;return}
+  const old=JSON.parse(localStorage.getItem('vse3d4')||'null');
+  if(old&&old.P){
+   const id='legacy-'+String(old.seed||Date.now());
+   SAVE_DB={version:1,active:id,worlds:{[id]:{id,name:(old.wp&&old.wp.name)||'Мир',seed:old.st||String(old.seed||''),day:old.day||1,updatedAt:Date.now(),state:old}}};
+   activeWorldId=id;localStorage.setItem(SAVE_KEY,JSON.stringify(SAVE_DB));
+  }
+ }catch(e){SAVE_DB={version:1,active:null,worlds:{}}}
+}
+function save(){
+ try{
+  if(!activeWorldId||!P||!S||!nodes)return;
+  const gone=[],dd=[];nodes.forEach((n,i)=>{if(n.t=='campfire')return;if(n.gone)gone.push(i);if(n.dead)dd.push([i,n.rt])});
+  const state={seed,P,S,inv,time,day,gone,dd,fires:F.map(f=>[f.x,f.z]),pcs:PC.map(p=>({k:p.pk,x:p.x,z:p.z,y:p.y,r:p.rot,i:p.inv})),wp:WP,st:SEEDTXT};
+  SAVE_DB.worlds[activeWorldId]={id:activeWorldId,name:WP.name||'Мир',seed:SEEDTXT,day,updatedAt:Date.now(),state};
+  SAVE_DB.active=activeWorldId;SAVE_DB.version=1;
+  localStorage.setItem(SAVE_KEY,JSON.stringify(SAVE_DB));saveChar();
+ }catch(e){console.warn('Не удалось сохранить мир',e)}
+}
+function restoreWorld(slot){
+ const s=slot&&slot.state;if(!s||!s.P||!s.S)return false;
+ WP=Object.assign({},WPD,s.wp||{});SEEDTXT=s.st||String(s.seed);seed=s.seed;buildWorld();
+ (s.gone||[]).forEach(i=>{if(nodes[i]){nodes[i].gone=true;put(nodes[i])}});
+ (s.dd||[]).forEach(([i,rt])=>{if(nodes[i]){nodes[i].dead=true;nodes[i].rt=rt;put(nodes[i])}});
+ (s.fires||[]).forEach(([x,z])=>mkFire(x,z));(s.pcs||[]).forEach(q=>mkPiece(q.k,q.x,q.z,q.y,q.r,q.i));
+ P=s.P;S=s.S;inv=s.inv||new Array(16).fill(null);time=s.time||0;day=s.day||1;dead=false;$('dead').hidden=true;refresh();return true;
+}
+function loadSavedWorld(id){
+ const slot=SAVE_DB.worlds[id];if(!slot)return false;
+ if(!restoreWorld(slot))return false;
+ activeWorldId=id;SAVE_DB.active=id;HAVEWORLD=true;save();return true;
+}
+function load(){
+ readSaveDB();
+ const id=SAVE_DB.active||activeWorldId,slot=id&&SAVE_DB.worlds[id];if(!slot)return false;
+ activeWorldId=id;if(!restoreWorld(slot))return false;return true;
+}
+document.addEventListener('visibilitychange',()=>{if(document.hidden){save();saveChar()}});
+addEventListener('pagehide',()=>{save();saveChar()});
 // ===== Интерфейс и ввод =====
 const bars=[['hp','ui_hp','#d64545'],['food','ui_food','#d98b2b'],['water','ui_water','#3b9be0'],['warm','ui_warm','#c9a82a']];
 $('hud').innerHTML=bars.map(b=>'<div class="bar"><i id="i-'+b[0]+'" style="background:'+b[2]+'"></i><span>'+ico(b[1],14)+'</span></div>').join('');
