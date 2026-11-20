@@ -932,7 +932,9 @@ let last=performance.now();
  const ML_SESSION=mlSession();
  function mlStatus(s){const n=document.getElementById('ml-community-status');if(n)n.textContent=s;const o=document.getElementById('ml-community-online');if(o)o.textContent=mlText('online').replace('{n}',String(Math.round(ML_ONLINE)))}
  function mlUpdateOnline(){const now=Date.now(),hour=new Date().getHours();if(now>ML_PEAK_UNTIL&&Math.random()<.025)ML_PEAK_UNTIL=now+45000+Math.random()*75000;const peak=now<ML_PEAK_UNTIL;const base=hour>=19&&hour<24?175:hour>=8&&hour<19?145:70;const target=peak?1800+Math.random()*700:base+(Math.random()-.5)*(base<100?20:55);ML_ONLINE+=(target-ML_ONLINE)*.32;mlStatus(mlText('ready'))}
- function mlNewsWave(){ML_PEAK_UNTIL=Date.now()+90000+Math.random()*90000;ML_ONLINE=Math.max(ML_ONLINE,1900+Math.random()*500);mlStatus(mlText('ready'))}
+ function mlNewsWave(){ML_PEAK_UNTIL=Date.now()+90000+Math.random()*90000;ML_ONLINE=Math.max(ML_ONLINE,1900+Math.random()*500);mlStatus(mlText('ready'));if(ML_OPEN){clearTimeout(ML_BOT_TIMER);ML_BOT_TIMER=setTimeout(()=>mlGenerate(true),850)}}
+ function mlBatchDelay(count){const mean=ML_ONLINE>=1000?1.85:ML_ONLINE>=100?5:13;return Math.max(6500,Math.round(mean*Math.max(6,count)*.72*1000*(.82+Math.random()*.36)))}
+ function mlScheduleGeneration(delay){clearTimeout(ML_BOT_TIMER);ML_BOT_TIMER=setTimeout(()=>mlGenerate(),Math.max(1500,delay))}
  async function mlFetch(path,options){
   const res=await fetch(ML_PROJECT_URL+path,Object.assign({headers:Object.assign({},ML_HEADERS)},options||{}));
   let data=null;try{data=await res.json()}catch(_){}
@@ -1013,23 +1015,23 @@ let last=performance.now();
    const last=ML_ROWS.slice(-6).map(m=>({persona:m.persona,message:m.message}));
    controller=new AbortController();timer=setTimeout(()=>controller.abort(),12000);
    const result=await mlFetch('/functions/v1/live-chat-gen',{method:'POST',signal:controller.signal,headers:Object.assign({},ML_HEADERS,{'Content-Type':'application/json','Authorization':'Bearer '+ML_ANON_JWT}),body:JSON.stringify({ctx:context,last,session_id:ML_SESSION,dev_message:devMessage||''})});
-   if(result&&Array.isArray(result.messages)&&result.messages.length){ML_AI_MISSING=false;setTimeout(mlLoadChat,1100)}
-   else mlStatus(mlText('aiMissing'));
+   if(result&&Array.isArray(result.messages)&&result.messages.length){ML_AI_MISSING=false;setTimeout(mlLoadChat,1100);mlScheduleGeneration(devMessage?7500:mlBatchDelay(result.messages.length))}
+   else{mlStatus(mlText('aiMissing'));mlScheduleGeneration(ML_ONLINE>=1000?14000:ML_ONLINE>=100?30000:65000)}
   }catch(e){if(e&&e.status===503)mlStatus(mlText('aiMissing'));else if(e&&e.status===429)mlStatus(mlText('ready'));else mlStatus(mlText('offline'))}
-  finally{if(timer)clearTimeout(timer);ML_BUSY=false;if(ML_PENDING_DEV){const pending=ML_PENDING_DEV;ML_PENDING_DEV='';setTimeout(()=>mlGenerate(true,pending),8500)}}
+  finally{if(timer)clearTimeout(timer);ML_BUSY=false;if(ML_PENDING_DEV){const pending=ML_PENDING_DEV;ML_PENDING_DEV='';clearTimeout(ML_BOT_TIMER);ML_BOT_TIMER=setTimeout(()=>mlGenerate(true,pending),900)}}
  }
  async function mlSend(){
   const input=document.getElementById('ml-community-input');if(!input)return;let message=input.value.trim();if(!message)return;if(message.length>240){mlStatus(mlText('tooLong'));return}
   const isDev=/^(\[DEV\]|DEV:)\s*/i.test(message);if(isDev)message='[DEV] '+message.replace(/^(\[DEV\]|DEV:)\s*/i,'');
   const send=document.getElementById('ml-community-send');send.disabled=true;
-  try{await mlFetch('/rest/v1/live_chat',{method:'POST',headers:Object.assign({},ML_HEADERS,{'Content-Type':'application/json','Prefer':'return=minimal'}),body:JSON.stringify({session_id:ML_SESSION,persona:'Игрок',message,is_ai:false,is_dev:false,language:ML_LANG()})});input.value='';mlLog('chat_message',{length:message.length,developer:isDev});await mlLoadChat();if(isDev)mlGenerate(true,message);else mlGenerate()}
+  try{await mlFetch('/rest/v1/live_chat',{method:'POST',headers:Object.assign({},ML_HEADERS,{'Content-Type':'application/json','Prefer':'return=minimal'}),body:JSON.stringify({session_id:ML_SESSION,persona:isDev?'Разработчик':'Игрок',message,is_ai:false,is_dev:isDev,language:ML_LANG()})});input.value='';mlLog('chat_message',{length:message.length,developer:isDev});await mlLoadChat();if(isDev)mlGenerate(true,message);else mlGenerate()}
   catch(_){mlStatus(mlText('failed'))}finally{send.disabled=false}
  }
  function mlOpen(){
   mlEnsurePanel();ML_OPEN=true;const overlay=document.getElementById('ml-community-overlay');overlay.hidden=false;mlStatus(mlText('ready'));mlLog('community_open',{version:'0.0.5.2'});
-  mlUpdateOnline();mlLoadNews().then(()=>mlGenerate());mlLoadChat();clearInterval(ML_POLL);clearInterval(ML_BOT_TIMER);clearInterval(ML_ONLINE_TIMER);clearInterval(ML_NEWS_TIMER);ML_POLL=setInterval(mlLoadChat,1100);ML_BOT_TIMER=setInterval(()=>mlGenerate(),9000);ML_ONLINE_TIMER=setInterval(mlUpdateOnline,4000);ML_NEWS_TIMER=setInterval(mlLoadNews,20000);
+  mlUpdateOnline();mlLoadNews().then(()=>mlGenerate());mlLoadChat();clearInterval(ML_POLL);clearTimeout(ML_BOT_TIMER);clearInterval(ML_ONLINE_TIMER);clearInterval(ML_NEWS_TIMER);ML_POLL=setInterval(mlLoadChat,1100);ML_ONLINE_TIMER=setInterval(mlUpdateOnline,4000);ML_NEWS_TIMER=setInterval(mlLoadNews,20000);
  }
- function mlClose(){ML_OPEN=false;clearInterval(ML_POLL);clearInterval(ML_BOT_TIMER);clearInterval(ML_ONLINE_TIMER);clearInterval(ML_NEWS_TIMER);const overlay=document.getElementById('ml-community-overlay');if(overlay)overlay.hidden=true}
+ function mlClose(){ML_OPEN=false;clearInterval(ML_POLL);clearTimeout(ML_BOT_TIMER);clearInterval(ML_ONLINE_TIMER);clearInterval(ML_NEWS_TIMER);const overlay=document.getElementById('ml-community-overlay');if(overlay)overlay.hidden=true}
  const mlOldPgMain=pgMain;
  pgMain=function(){return mlOldPgMain()+'<button class="mb" data-a="community">🌐 <span>'+mlText('title')+'</span></button>'};
  $('menu').addEventListener('click',e=>{const b=e.target.closest('[data-a="community"]');if(b){e.preventDefault();mlOpen()}});
