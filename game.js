@@ -1,7 +1,7 @@
 const $=id=>document.getElementById(id);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // ===== Ядро: реестры (новый контент добавляется здесь или через Game.use) =====
-const G=window.Game={version:'0.0.4.7 Альфа 3D',items:{},nodes:{},recipes:[],mods:[],
+const G=window.Game={version:'0.0.4.8 Альфа 3D',items:{},nodes:{},recipes:[],mods:[],
  registerItem(id,o){o.ru=o.n;Object.defineProperty(o,'n',{get(){return L(this.ru)},enumerable:true});this.items[id]=o},registerNode(id,o){if(o.hint){o.hru=o.hint;Object.defineProperty(o,'hint',{get(){return L(this.hru)},enumerable:true})}this.nodes[id]=o},registerRecipe(r){this.recipes.push(r)},
  use(f){this.mods.push(f);f(this)}};
 G.use(g=>{
@@ -615,7 +615,7 @@ const langRow=()=>'<div class="mr"><div class="ml">'+ico('ui_lang',16)+' '+L('Я
 function pgMain(){const w=HAVEWORLD?L('Мир: {w} · сид {s} · день {d}',{w:'<b>'+esc(L(WP.name))+'</b>',s:'<b>'+esc(SEEDTXT)+'</b>',d:day}):L('Мира пока нет — создай новый');
  const saved=Object.values(SAVE_DB.worlds||{}).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
  const worlds=saved.length?'<div class="mr"><b>'+L('Мои миры')+'</b>'+saved.map(q=>'<button class="pr" data-a="worldload" data-v="'+esc(q.id)+'"><b>'+esc(L(q.name||'Мир'))+'</b><small>'+L('Сид мира: {s}',{s:esc(q.seed||'')})+' · '+L('День')+' '+(q.day||1)+'</small><i>'+(q.id===activeWorldId?L('Текущий мир'):L('Открыть'))+'</i></button>').join('')+'</div>':'<div class="info">'+L('Нет сохранённых миров')+'</div>';
- return '<div class="logo">'+ico('logo',72)+'<h1>'+GN()+'</h1><div class="sub">v0.0.4.7 '+L('Альфа')+' 3D</div></div><div class="info">'+w+'</div>'+
+ return '<div class="logo">'+ico('logo',72)+'<h1>'+GN()+'</h1><div class="sub">v0.0.4.8 '+L('Альфа')+' 3D</div></div><div class="info">'+w+'</div>'+
  (HAVEWORLD?icb('ui_play','Продолжить','resume'):'')+icb('ui_world','Новый мир','go','world')+worlds+icb('ui_char','Персонаж','go','char')+icb('ui_gear','Настройки','go','set')+langRow()}
 function pgWorld(){return '<h2>'+L('Новый мир')+'</h2>'+row('Название','<input type="text" id="wname" maxlength="24" value="'+esc(WF.name)+'">')+
  row('Сид (пусто — случайный мир)','<div class="sd"><input type="text" id="wseed" maxlength="24" placeholder="'+L('случайный')+'" value="'+esc(WF.seed)+'">'+icb('ui_dice','','dice')+'</div>')+
@@ -702,7 +702,7 @@ function applyLang(){const sb=(id,ic,t)=>$(id).innerHTML='<span class="cb">'+ico
  sb('bAct','ui_act','Действие (E)');sb('bCraft','ui_craft','Крафт (C)');sb('bNew','ui_redo','');
  $('bNew').title=L('Новая игра');$('bMenu').title=L('Меню (Esc)');$('bDel').title=L('Разобрать постройку (X)');
  $('dtxt').textContent=L('Вы погибли');$('bRe').textContent=L('Начать заново');$('menu').dataset.busy=L('Генерация мира...');
- $('gname').textContent=GN();$('gver').textContent='v0.0.4.7 '+L('Альфа')+' 3D';document.title=GN();document.documentElement.lang=ST.lang;$('pname').textContent=CH.name;
+ $('gname').textContent=GN();$('gver').textContent='v0.0.4.8 '+L('Альфа')+' 3D';document.title=GN();document.documentElement.lang=ST.lang;$('pname').textContent=CH.name;
  if(inv)refresh()}
 // ===== Симуляция =====
 const dark=()=>clamp(.35-Math.sin(time*6.2832)*.6,0,.8);
@@ -826,3 +826,110 @@ HAVEWORLD=load();if(!HAVEWORLD)newGame('',{},1);
 showMenu('main');
 let last=performance.now();
 (function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;FPS.n++;if(now-FPS.t>500){if(ST.fps)$('fps').textContent=Math.round(FPS.n*1000/(now-FPS.t))+' FPS';FPS.n=0;FPS.t=now}if(autoTest&&autoTest.active){autoTest.frameCount++;if(now-autoTest.lastSample>=500){autoTest.fpsSamples.push(Math.round(autoTest.frameCount*1000/(now-autoTest.lastSample)));autoTest.frameCount=0;autoTest.lastSample=now}if(now-autoTest.startedAt>=20000)finishAutoTest()}step(dt);if(MENU)menuCam(dt);else env();hud();ren.render(MENU&&menuScene?menuScene:scene,MENU&&menuCamera?menuCamera:cam);requestAnimationFrame(loop)})(last);
+
+/* ===== Miraculous Land live AI community (0.0.4.8) ===== */
+(function initMLCommunity(){
+ const ML_PROJECT_URL='https://ushatjbtzjqagwclomkc.supabase.co';
+ const ML_PUBLISHABLE_KEY='sb_publishable_UtsJ7QYWPN41hTI9UE_eCw_OYfcou6Q';
+ const ML_ANON_JWT='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzaGF0amJ0empxYWd3Y2xvbWtjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUxOTc2OTUsImV4cCI6MjExMDc3MzY5NX0.HDKpA_Y4ldx_6ufQVInSE2oqKqe-AcJEZiX_4Bn9UxQ';
+ const ML_HEADERS={'apikey':ML_PUBLISHABLE_KEY,'Authorization':'Bearer '+ML_ANON_JWT};
+ const ML_LANG=()=>ST&&['ru','en','es'].includes(ST.lang)?ST.lang:'ru';
+ const ML_COPY={
+  ru:{title:'Живое сообщество',loading:'Подключение...',ready:'Сообщество подключено',offline:'Нет соединения с сообществом',placeholder:'Написать сообщение...',send:'Отправить',close:'Закрыть',empty:'Пока тихо. Первые игроки скоро заговорят!',news:'Новости игры',dev:'Разработчик',player:'Игрок',tooLong:'Максимум 240 символов.',failed:'Не удалось отправить сообщение.',aiMissing:'ИИ ждёт настройки ключа Anthropic в Supabase.'},
+  en:{title:'Live community',loading:'Connecting...',ready:'Community connected',offline:'Community connection unavailable',placeholder:'Write a message...',send:'Send',close:'Close',empty:'Quiet for now. The players will speak soon!',news:'Game news',dev:'Developer',player:'Player',tooLong:'Maximum 240 characters.',failed:'Could not send the message.',aiMissing:'AI is waiting for the Anthropic key to be configured in Supabase.'},
+  es:{title:'Comunidad en vivo',loading:'Conectando...',ready:'Comunidad conectada',offline:'Comunidad no disponible',placeholder:'Escribe un mensaje...',send:'Enviar',close:'Cerrar',empty:'Todo está tranquilo. ¡Pronto hablarán los jugadores!',news:'Noticias del juego',dev:'Desarrollador',player:'Jugador',tooLong:'Máximo 240 caracteres.',failed:'No se pudo enviar el mensaje.',aiMissing:'La IA espera que se configure la clave de Anthropic en Supabase.'}
+ };
+ const mlText=k=>(ML_COPY[ML_LANG()]||ML_COPY.ru)[k]||k;
+ let ML_ROWS=[],ML_POLL=0,ML_BOT_TIMER=0,ML_BUSY=false,ML_OPEN=false,ML_NEWS_LOADED=false;
+ function mlSession(){
+  const key='miraculous-land-live-session-v1';
+  try{let id=localStorage.getItem(key);if(!/^[a-zA-Z0-9_-]{8,64}$/.test(id||'')){const part=()=>Math.random().toString(36).slice(2);id='ml-'+(crypto&&crypto.randomUUID?crypto.randomUUID().replace(/-/g,''):part()+part());localStorage.setItem(key,id)}return id}
+  catch(_){return 'ml-'+Math.random().toString(36).slice(2)+Date.now().toString(36)}
+ }
+ const ML_SESSION=mlSession();
+ function mlStatus(s){const n=document.getElementById('ml-community-status');if(n)n.textContent=s}
+ async function mlFetch(path,options){
+  const res=await fetch(ML_PROJECT_URL+path,Object.assign({headers:Object.assign({},ML_HEADERS)},options||{}));
+  let data=null;try{data=await res.json()}catch(_){}
+  if(!res.ok)throw Object.assign(new Error(data&&data.message||data&&data.error||('HTTP '+res.status)),{status:res.status,data});
+  return data;
+ }
+ function mlLog(type,payload){mlFetch('/rest/v1/game_events',{method:'POST',headers:Object.assign({},ML_HEADERS,{'Content-Type':'application/json','Prefer':'return=minimal'}),body:JSON.stringify({session_id:ML_SESSION,event_type:type,payload:payload||{}})}).catch(()=>{})}
+ function mlEnsurePanel(){
+  if(document.getElementById('ml-community-overlay'))return;
+  const style=document.createElement('style');
+  style.textContent=[
+   '#ml-community-overlay{position:fixed;inset:0;z-index:90;background:#000b;display:flex;align-items:center;justify-content:center;padding:12px;touch-action:auto}',
+   '#ml-community-overlay[hidden]{display:none!important}',
+   '#ml-community-panel{width:min(680px,100%);height:min(820px,88vh);display:flex;flex-direction:column;overflow:hidden;border:1px solid #526b49;border-radius:18px;background:#101910;color:#e8efe0;box-shadow:0 18px 60px #000c;font:14px system-ui,sans-serif;touch-action:auto}',
+   '#ml-community-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 15px;background:#1a2819;border-bottom:1px solid #3a4a36}',
+   '#ml-community-head strong{display:block;font-size:17px}#ml-community-status{display:block;font-size:11px;opacity:.7;margin-top:3px}',
+   '#ml-community-close{width:38px;height:38px;padding:0;font-size:20px}',
+   '#ml-community-news{padding:0 13px;max-height:24%;overflow:auto}',
+   '.ml-news-card{margin-top:10px;padding:9px 11px;border-radius:10px;background:#263522;border:1px solid #43583b}',
+   '.ml-news-card b{display:block;margin-bottom:3px}.ml-news-card p{margin:0;line-height:1.4;opacity:.85;white-space:pre-wrap}',
+   '#ml-community-list{flex:1;overflow:auto;padding:12px 13px;display:flex;flex-direction:column;gap:8px;overscroll-behavior:contain}',
+   '.ml-chat-row{padding:8px 10px;border:1px solid #33432f;border-radius:11px;background:#172217;max-width:96%;align-self:flex-start}',
+   '.ml-chat-row.ml-self{align-self:flex-end;background:#22331f;border-color:#4b6c3e}',
+   '.ml-chat-row.ml-dev{border-color:#b38b42;background:#2a2517}',
+   '.ml-chat-row b{font-size:12px;color:#b9df9d}.ml-chat-row.ml-dev b{color:#f1ca76}',
+   '.ml-chat-row p{margin:3px 0 0;line-height:1.4;white-space:pre-wrap;overflow-wrap:anywhere}',
+   '.ml-chat-row time{display:block;margin-top:4px;font-size:10px;opacity:.48;text-align:right}',
+   '#ml-community-empty{margin:auto;text-align:center;opacity:.62;padding:24px;line-height:1.5}',
+   '#ml-community-form{display:flex;gap:7px;padding:10px;border-top:1px solid #3a4a36;background:#151f14}',
+   '#ml-community-input{flex:1;min-width:0;min-height:42px;max-height:100px;resize:none;padding:10px 12px;border:1px solid #4a6040;border-radius:10px;background:#0b120b;color:#e8efe0;font:14px system-ui,sans-serif;user-select:text;touch-action:pan-y}',
+   '#ml-community-send{min-width:88px}',
+   '@media(max-width:600px){#ml-community-overlay{padding:0}#ml-community-panel{width:100%;height:100%;max-height:100%;border-radius:0}#ml-community-news{max-height:20%}#ml-community-send{min-width:72px}}'
+  ].join('');
+  document.head.appendChild(style);
+  const overlay=document.createElement('div');overlay.id='ml-community-overlay';overlay.hidden=true;
+  overlay.innerHTML='<section id="ml-community-panel" role="dialog" aria-modal="true"><header id="ml-community-head"><div><strong id="ml-community-title"></strong><small id="ml-community-status"></small></div><button id="ml-community-close" type="button" aria-label="Close">×</button></header><div id="ml-community-news"></div><div id="ml-community-list" aria-live="polite"></div><form id="ml-community-form"><textarea id="ml-community-input" maxlength="240" rows="1"></textarea><button id="ml-community-send" type="submit"></button></form></section>';
+  document.body.appendChild(overlay);
+  document.getElementById('ml-community-title').textContent=mlText('title');
+  document.getElementById('ml-community-input').placeholder=mlText('placeholder');
+  document.getElementById('ml-community-send').textContent=mlText('send');
+  document.getElementById('ml-community-close').title=mlText('close');
+  overlay.addEventListener('click',e=>{if(e.target===overlay||e.target.id==='ml-community-close')mlClose()});
+  document.getElementById('ml-community-form').addEventListener('submit',e=>{e.preventDefault();mlSend()});
+  document.getElementById('ml-community-input').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();mlSend()}});
+ }
+ function mlRenderNews(items){
+  const root=document.getElementById('ml-community-news');if(!root)return;root.replaceChildren();if(!items||!items.length)return;
+  const heading=document.createElement('div');heading.style.cssText='font-size:12px;opacity:.65;margin-top:10px';heading.textContent=mlText('news');root.appendChild(heading);
+  items.forEach(item=>{const card=document.createElement('article');card.className='ml-news-card';const title=document.createElement('b');title.textContent=item.title;const body=document.createElement('p');body.textContent=item.body;card.append(title,body);root.appendChild(card)});
+ }
+ function mlRenderChat(){
+  const root=document.getElementById('ml-community-list');if(!root)return;const nearBottom=root.scrollHeight-root.scrollTop-root.clientHeight<70;root.replaceChildren();
+  if(!ML_ROWS.length){const empty=document.createElement('div');empty.id='ml-community-empty';empty.textContent=mlText('empty');root.appendChild(empty);return}
+  ML_ROWS.forEach(m=>{const row=document.createElement('article');row.className='ml-chat-row'+(m.persona==='Игрок'?' ml-self':'')+(m.is_dev?' ml-dev':'');const who=document.createElement('b');who.textContent=m.is_dev?mlText('dev'):m.persona==='Игрок'?mlText('player'):m.persona;const msg=document.createElement('p');msg.textContent=m.message;const when=document.createElement('time');const d=new Date(m.created_at);when.textContent=isNaN(d.getTime())?'':d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});row.append(who,msg,when);root.appendChild(row)});
+  if(nearBottom)root.scrollTop=root.scrollHeight;
+ }
+ async function mlLoadNews(){if(ML_NEWS_LOADED)return;ML_NEWS_LOADED=true;try{const rows=await mlFetch('/rest/v1/game_news?select=title,body,category,created_at&is_published=eq.true&order=created_at.desc&limit=3');mlRenderNews(rows)}catch(_){ML_NEWS_LOADED=false}}
+ async function mlLoadChat(){try{const rows=await mlFetch('/rest/v1/live_chat?select=id,created_at,persona,message,is_ai,is_dev,language&order=id.desc&limit=60');ML_ROWS=Array.isArray(rows)?rows.reverse():[];mlRenderChat();mlStatus(mlText('ready'))}catch(_){mlStatus(mlText('offline'))}}
+ async function mlGenerate(){
+  if(!ML_OPEN||ML_BUSY)return;ML_BUSY=true;
+  try{
+   const context={base_lang:ML_LANG(),world_name:typeof WP!=='undefined'&&WP.name?String(WP.name).slice(0,48):'',day:typeof day!=='undefined'?day:1,game_version:'0.0.4.8',activity:'community chat'};
+   const last=ML_ROWS.slice(-12).map(m=>({persona:m.persona,message:m.message}));
+   const result=await mlFetch('/functions/v1/live-chat-gen',{method:'POST',headers:Object.assign({},ML_HEADERS,{'Content-Type':'application/json','Authorization':'Bearer '+ML_ANON_JWT}),body:JSON.stringify({ctx:context,last,session_id:ML_SESSION})});
+   if(result&&result.error==='ANTHROPIC_API_KEY is not configured')mlStatus(mlText('aiMissing'));setTimeout(mlLoadChat,700);
+  }catch(err){if(err&&err.status===503&&err.data&&err.data.error==='ANTHROPIC_API_KEY is not configured')mlStatus(mlText('aiMissing'))}
+  finally{ML_BUSY=false}
+ }
+ async function mlSend(){
+  const input=document.getElementById('ml-community-input');if(!input)return;const message=input.value.trim();if(!message)return;if(message.length>240){mlStatus(mlText('tooLong'));return}
+  const send=document.getElementById('ml-community-send');send.disabled=true;
+  try{await mlFetch('/rest/v1/live_chat',{method:'POST',headers:Object.assign({},ML_HEADERS,{'Content-Type':'application/json','Prefer':'return=minimal'}),body:JSON.stringify({session_id:ML_SESSION,persona:'Игрок',message,is_ai:false,is_dev:false,language:ML_LANG()})});input.value='';mlLog('chat_message',{length:message.length});await mlLoadChat();mlGenerate()}
+  catch(_){mlStatus(mlText('failed'))}finally{send.disabled=false}
+ }
+ async function mlOpen(){
+  mlEnsurePanel();ML_OPEN=true;const overlay=document.getElementById('ml-community-overlay');overlay.hidden=false;mlStatus(mlText('loading'));mlLog('community_open',{version:'0.0.4.8'});
+  await Promise.all([mlLoadNews(),mlLoadChat()]);mlGenerate();clearInterval(ML_POLL);clearInterval(ML_BOT_TIMER);ML_POLL=setInterval(mlLoadChat,5000);ML_BOT_TIMER=setInterval(mlGenerate,18000);
+ }
+ function mlClose(){ML_OPEN=false;clearInterval(ML_POLL);clearInterval(ML_BOT_TIMER);const overlay=document.getElementById('ml-community-overlay');if(overlay)overlay.hidden=true}
+ const mlOldPgMain=pgMain;
+ pgMain=function(){return mlOldPgMain()+'<button class="mb" data-a="community">🌐 <span>'+mlText('title')+'</span></button>'};
+ $('menu').addEventListener('click',e=>{const b=e.target.closest('[data-a="community"]');if(b){e.preventDefault();mlOpen()}});
+ if(MENU)render();
+ window.addEventListener('keydown',e=>{if(e.key==='Escape'&&ML_OPEN)mlClose()});
+})();
