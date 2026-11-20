@@ -1,7 +1,7 @@
 const $=id=>document.getElementById(id);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // ===== Ядро: реестры (новый контент добавляется здесь или через Game.use) =====
-const G=window.Game={version:'0.0.4.3 Альфа 3D',items:{},nodes:{},recipes:[],mods:[],
+const G=window.Game={version:'0.0.4.4 Альфа 3D',items:{},nodes:{},recipes:[],mods:[],
  registerItem(id,o){o.ru=o.n;Object.defineProperty(o,'n',{get(){return L(this.ru)},enumerable:true});this.items[id]=o},registerNode(id,o){if(o.hint){o.hru=o.hint;Object.defineProperty(o,'hint',{get(){return L(this.hru)},enumerable:true})}this.nodes[id]=o},registerRecipe(r){this.recipes.push(r)},
  use(f){this.mods.push(f);f(this)}};
 G.use(g=>{
@@ -34,6 +34,7 @@ G.use(g=>{
  g.registerRecipe({out:'chest',n:1,in:{plank:8},at:'bench'});
 });
 // ===== Шум и рельеф =====
+const WATER_LEVEL=0;
 let seed=1337,P,S,inv,time,day,dead=false,cool=0,acc=0,saveT=0;
 const rng=a=>()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
 const h=(x,y)=>{const n=Math.sin(x*127.1+y*311.7+seed)*43758.5453;return n-Math.floor(n)};
@@ -209,7 +210,7 @@ function refresh(){
   b.disabled=!canCraft(r);CB.push([b,r]);b.onclick=()=>craft(r);$('craft').appendChild(b)});
  axeG.visible=hasTool('axe');pkG.visible=hasTool('pick')&&!hasTool('axe');drawChest();LASTN=inv.map(s=>s&&{id:s.id,n:s.n})}
 let tt;function log(m){const t=$('toast');t.innerHTML=m;t.style.opacity=1;clearTimeout(tt);tt=setTimeout(()=>t.style.opacity=0,1800)}
-function target(){let best=null,bd=3.2;for(const n of near(P.x,P.z)){const d=G.nodes[n.t];if(n.gone||n.dead||d.fixed||n.fall>0)continue;const q=Math.hypot(n.x-P.x,n.z-P.z)-(d.r||.4)*n.s;if(q<bd){bd=q;best=n}}for(const a of AL){if(a.dying>0)continue;const q=Math.hypot(a.x-P.x,a.z-P.z)-.4;if(q<bd){bd=q;best=a}}for(const c of PC){if(c.pk!='chest')continue;const q=Math.hypot(c.x-P.x,c.z-P.z)-.5;if(q<bd){bd=q;best=c}}return best}
+function target(){let animal=null,ad=3.2;for(const a of AL){if(a.dying>0||!['rabbit','deer','wolf'].includes(a.k))continue;const q=Math.hypot(a.x-P.x,a.z-P.z)-.4;if(q<ad){ad=q;animal=a}}if(animal)return animal;let best=null,bd=3.2;for(const n of near(P.x,P.z)){const d=G.nodes[n.t];if(n.gone||n.dead||d.fixed||n.fall>0)continue;const q=Math.hypot(n.x-P.x,n.z-P.z)-(d.r||.4)*n.s;if(q<bd){bd=q;best=n}}for(const a of AL){if(a.dying>0)continue;const q=Math.hypot(a.x-P.x,a.z-P.z)-.4;if(q<bd){bd=q;best=a}}for(const c of PC){if(c.pk!='chest')continue;const q=Math.hypot(c.x-P.x,c.z-P.z)-.5;if(q<bd){bd=q;best=c}}return best}
 function waterAhead(){if(hgt(P.x,P.z)<-.05)return true;for(const d of[.8,1.8,2.8])if(hgt(P.x+Math.sin(P.f)*d,P.z+Math.cos(P.f)*d)<-.05)return true;return false}
 const shk=new Set();let swing=0,walkT=0,mvAmt=0,tm=0;
 function act(){if(cool>0||dead||MENU)return;const n=target();cool=.5;swing=.35;playA(n?(n.p?'pick':n.k?'hit':RKT.includes(n.t)?'mine':n.t=='bush'?'pick':'chop'):waterAhead()?'drink':'hit');if(n&&n.p)return openChest(n);if(n&&n.k)return hitAn(n);
@@ -289,11 +290,11 @@ function updAnimals(dt){
   let df=a.dir-a.g.rotation.y;df=Math.atan2(Math.sin(df),Math.cos(df));a.g.rotation.y+=df*Math.min(1,dt*8);
   animAn(a,sp,dt,i)}}
 // ===== Строительство (0.0.4) =====
-const RKT=['rock','clay','iron','coal'],EK=['wall','window','door'],TINT={iron:new THREE.Color(1,.62,.5),coal:new THREE.Color(.35,.35,.4),clay:new THREE.Color(1,.78,.55)};
+const RKT=['rock','clay','iron','coal'],EK=['wall','window','door'],TINT={iron:new THREE.Color(1,.62,.5),coal:new THREE.Color(.35,.35,.4),clay:new THREE.Color(1.15,.96,.78)};
 let PC=[],openC=null,cbT=0,CB=[];
 Object.assign(ICON,{
 plank:`<rect x="5" y="28" width="38" height="8" rx="1.500" fill="#b98852"/><rect x="7" y="19" width="38" height="8" rx="1.500" fill="#a8743f"/><rect x="5" y="10" width="38" height="8" rx="1.500" fill="#c99a62"/><path d="M12 14h8M24 23h9M14 32h10" stroke="#7a4e24" fill="none"/>`,
-clay:`<path d="M6 36c0-9 6-18 14-20 8-2 18 2 22 12 1 6-4 10-12 10H14c-5 0-8-1-8-2z" fill="#c4783f"/><path d="M14 24c3-5 9-7 14-5" fill="none" stroke="#e29a63" stroke-width="3"/><circle cx="30" cy="31" r="1.400" fill="#8a4e24" stroke="none"/><circle cx="20" cy="33" r="1.100" fill="#8a4e24" stroke="none"/>`,
+clay:`<path d="M6 36c0-9 6-18 14-20 8-2 18 2 22 12 1 6-4 10-12 10H14c-5 0-8-1-8-2z" fill="#d69a6b"/><path d="M14 24c3-5 9-7 14-5" fill="none" stroke="#f0bd91" stroke-width="3"/><circle cx="30" cy="31" r="1.400" fill="#9d6542" stroke="none"/><circle cx="20" cy="33" r="1.100" fill="#9d6542" stroke="none"/>`,
 brick:`<rect x="5" y="24" width="26" height="13" rx="1.500" fill="#b5523a"/><rect x="17" y="10" width="26" height="13" rx="1.500" fill="#c4624a"/><path d="M10 28h6M22 30h6M23 14h6M34 16h6" stroke="#8a3a28" fill="none"/>`,
 iron_ore:`<path d="M7 35l5-15 10-8 12 3 6 12-3 10z" fill="#7a7068"/><path d="M12 20l10-8 12 3-8 8z" fill="#a49a90" stroke="none"/><circle cx="17" cy="30" r="3" fill="#d2792e" stroke="none"/><circle cx="29" cy="25" r="2.600" fill="#e08a3a" stroke="none"/><circle cx="33" cy="33" r="2.200" fill="#c76a26" stroke="none"/><circle cx="22" cy="20" r="1.800" fill="#e08a3a" stroke="none"/>`,
 coal:`<path d="M8 33l4-14 9-8 12 2 7 12-4 11z" fill="#2c2e33"/><path d="M12 19l9-8 12 2-8 7z" fill="#4a4d55" stroke="none"/><path d="M26 22l6 10" stroke="#6a6e78" fill="none"/><path d="M16 27l3-2" stroke="#6a6e78" stroke-width="2" fill="none"/>`,
@@ -364,7 +365,7 @@ const FL=new Set(),TV=new THREE.Vector3(),WT={value:0};
 function playA(n){PA={n,t:0,d:{chop:.55,mine:.7,hit:.4,drink:1.2,eat:.9,build:1,pick:.6,hurt:.4}[n]||.5}}
 function poseP(dt){
  const t=tm,mv=dead?0:mvAmt,spr=dead?0:SPR,w=walkT;
- swimK+=((!dead&&hgt(P.x,P.z)<-.5?1:0)-swimK)*Math.min(1,dt*6);const sw=swimK;
+ swimK+=((!dead&&gy(P.x,P.z)<WATER_LEVEL-.05?1:0)-swimK)*Math.min(1,dt*6);const sw=swimK;
  if(dead)deadT+=dt;else deadT=0;
  if(PA.n){PA.t+=dt;if(PA.t>=PA.d)PA.n=''}
  const A=PA.n,u=A?PA.t/PA.d:0,bell=Math.sin(Math.min(1,u)*Math.PI),sg=Math.sin(w),amp=(.7+.3*spr)*mv,sa=(.6+.35*spr)*mv,idle=1-mv,br=Math.sin(t*1.8);
@@ -537,7 +538,7 @@ const langRow=()=>'<div class="mr"><div class="ml">'+ico('ui_lang',16)+' '+L('Я
 function pgMain(){const w=HAVEWORLD?L('Мир: {w} · сид {s} · день {d}',{w:'<b>'+esc(L(WP.name))+'</b>',s:'<b>'+esc(SEEDTXT)+'</b>',d:day}):L('Мира пока нет — создай новый');
  const saved=Object.values(SAVE_DB.worlds||{}).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
  const worlds=saved.length?'<div class="mr"><b>'+L('Мои миры')+'</b>'+saved.map(q=>'<button class="pr" data-a="worldload" data-v="'+esc(q.id)+'"><b>'+esc(L(q.name||'Мир'))+'</b><small>'+L('Сид мира: {s}',{s:esc(q.seed||'')})+' · '+L('День')+' '+(q.day||1)+'</small><i>'+(q.id===activeWorldId?L('Текущий мир'):L('Открыть'))+'</i></button>').join('')+'</div>':'<div class="info">'+L('Нет сохранённых миров')+'</div>';
- return '<div class="logo">'+ico('logo',72)+'<h1>'+GN()+'</h1><div class="sub">v0.0.4.3 '+L('Альфа')+' 3D</div></div><div class="info">'+w+'</div>'+
+ return '<div class="logo">'+ico('logo',72)+'<h1>'+GN()+'</h1><div class="sub">v0.0.4.4 '+L('Альфа')+' 3D</div></div><div class="info">'+w+'</div>'+
  (HAVEWORLD?icb('ui_play','Продолжить','resume'):'')+icb('ui_world','Новый мир','go','world')+worlds+icb('ui_char','Персонаж','go','char')+icb('ui_gear','Настройки','go','set')+langRow()}
 function pgWorld(){return '<h2>'+L('Новый мир')+'</h2>'+row('Название','<input type="text" id="wname" maxlength="24" value="'+esc(WF.name)+'">')+
  row('Сид (пусто — случайный мир)','<div class="sd"><input type="text" id="wseed" maxlength="24" placeholder="'+L('случайный')+'" value="'+esc(WF.seed)+'">'+icb('ui_dice','','dice')+'</div>')+
@@ -552,15 +553,15 @@ function pgChar(){const T=UI.tab,C=CH;let b='';
  '<div class="acts">'+icb('ui_dice','Случайный','rand')+icb('ui_back','Готово','go','main')+'</div>'}
 function pgSet(){return '<h2>'+L('Настройки')+'</h2>'+langRow()+row('Качество графики',chips('s','q',['Низкое','Среднее','Высокое'],ST.q))+row('Громкость','<input type="range" id="svol" min="0" max="1" step=".05" value="'+ST.vol+'">')+
  row('Чувствительность камеры','<input type="range" id="ssens" min=".4" max="2.5" step=".1" value="'+ST.sens+'">')+row('Поле зрения','<input type="range" id="sfov" min="50" max="90" step="1" value="'+ST.fov+'">')+
- row('Показывать FPS',chips('s','fps',['Выкл','Вкл'],ST.fps?1:0))+'<div class="acts">'+icb('ui_back','Назад','go','main')+'</div>'}
-function render(){const m=$('menu'),st=m.scrollTop,pg=UI.page;m.innerHTML=pg=='main'?pgMain():pg=='world'?pgWorld():pg=='char'?pgChar():pgSet();m.scrollTop=st}
+ row('Показывать FPS',chips('s','fps',['Выкл','Вкл'],ST.fps?1:0))+icb('ui_gear','Запустить автотест (20 сек)','autotest')+'<div class="acts">'+icb('ui_back','Назад','go','main')+'</div>'}
+function render(){const m=$('menu'),st=m.scrollTop,pg=UI.page;m.dataset.page=pg;m.innerHTML=pg=='main'?pgMain():pg=='world'?pgWorld():pg=='char'?pgChar():pgSet();m.scrollTop=st}
 const MPAGE={main:[7.5,.25],char:[3.5,.12],world:[11,.5],set:[7.5,.25]};
 function showMenu(p){UI.page=p;MENU=true;document.body.classList.add('menu');MD=MPAGE[p][0];MP=MPAGE[p][1];render();$('menu').scrollTop=0}
 function hideMenu(){MENU=false;document.body.classList.remove('menu');dist=9;pit=.45;lookY=0;refresh()}
 function toggleMenu(){if(MENU){if(HAVEWORLD)hideMenu()}else{save();showMenu('main')}}
 function menuCam(dt){mvAmt=0;SPR=0;if(!look){yaw+=dt*.3;pit+=(MP-pit)*Math.min(1,dt*3)}dist+=(MD-dist)*Math.min(1,dt*4);time+=dt/300;if(time>=1)time-=1}
 $('menu').addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,k=b.dataset.k,v=b.dataset.v;
- if(a=='go')showMenu(v);else if(a=='resume')hideMenu();else if(a=='worldload'){save();if(loadSavedWorld(v)){HAVEWORLD=true;showMenu('main')}}else if(a=='dice'){WF.seed=String(Math.floor(Math.random()*1e6));render()}
+ if(a=='go')showMenu(v);else if(a=='resume')hideMenu();else if(a=='autotest')startAutoTest();else if(a=='worldload'){save();if(loadSavedWorld(v)){HAVEWORLD=true;showMenu('main')}}else if(a=='dice'){WF.seed=String(Math.floor(Math.random()*1e6));render()}
  else if(a=='preset'){const p=PRESETS[+v];WF=Object.assign({},WF0,{name:WF.name},p.o,{seed:p.s});render()}
  else if(a=='o'){WF[k]=+v;render()}else if(a=='c'){CH[k]=+v;applyChar();saveChar();render()}
  else if(a=='s'){setSet(k,+v);render()}else if(a=='tab'){UI.tab=v;render()}else if(a=='rand')randChar();else if(a=='create')createWorld();else if(a=='lang')setLang(v)});
@@ -568,7 +569,7 @@ $('menu').addEventListener('input',e=>{const t=e.target;
  if(t.id=='wname')WF.name=t.value;else if(t.id=='wseed')WF.seed=t.value;
  else if(t.id=='cname'){CH.name=t.value.slice(0,16);saveChar();$('pname').textContent=CH.name}
  else if(t.id=='svol'){ST.vol=+t.value;saveSet()}else if(t.id=='ssens'){ST.sens=+t.value;saveSet()}else if(t.id=='sfov'){ST.fov=+t.value;fovC=ST.fov;saveSet()}});
-// ===== Локализация (0.0.4.3) =====
+// ===== Локализация (0.0.4.4) =====
 const GAME={ru:'Чудоземье',en:'Miraculous Land',es:'Tierra Milagrosa'},GN=()=>GAME[ST.lang]||GAME.en;
 const TRL=[
 ['Дерево','Wood','Madera'],['Камень','Stone','Piedra'],['Волокно','Fiber','Fibra'],['Ягоды','Berries','Bayas'],['Топор','Axe','Hacha'],['Кирка','Pickaxe','Pico'],['Костёр','Campfire','Hoguera'],['Бинт','Bandage','Venda'],
@@ -607,7 +608,7 @@ const TRL=[
 ['Низ','Bottom','Parte inferior'],['Цвет низа','Bottom color','Color de la parte inferior'],['Обувь','Footwear','Calzado'],['Цвет обуви','Footwear color','Color del calzado'],['Головной убор','Headwear','Tocado'],
 ['Очки','Glasses','Gafas'],['Рюкзак','Backpack','Mochila'],['Цвет аксессуаров','Accessory color','Color de accesorios'],['Имя','Name','Nombre'],['Внешность','Appearance','Aspecto'],['Одежда','Clothes','Ropa'],
 ['Аксессуары','Accessories','Accesorios'],['Случайный','Random','Aleatorio'],['Готово','Done','Hecho'],['Качество графики','Graphics quality','Calidad gráfica'],['Низкое','Low','Baja'],['Среднее','Medium','Media'],['Высокое','High','Alta'],
-['Громкость','Volume','Volumen'],['Чувствительность камеры','Camera sensitivity','Sensibilidad de la cámara'],['Поле зрения','Field of view','Campo de visión'],['Показывать FPS','Show FPS','Mostrar FPS'],['Язык','Language','Idioma'],['Мир','World','Mundo']];
+['Громкость','Volume','Volumen'],['Чувствительность камеры','Camera sensitivity','Sensibilidad de la cámara'],['Поле зрения','Field of view','Campo de visión'],['Показывать FPS','Show FPS','Mostrar FPS'],['Запустить автотест (20 сек)','Run auto test (20 sec)','Iniciar prueba automática (20 s)'],['Автотест завершён','Auto test complete','Prueba automática completada'],['Длительность: {n} сек','Duration: {n} sec','Duración: {n} s'],['FPS — мин: {min} · сред: {avg} · макс: {max}','FPS — min: {min} · avg: {avg} · max: {max}','FPS — mín: {min} · prom: {avg} · máx: {max}'],['Ошибки JavaScript','JavaScript errors','Errores de JavaScript'],['Ошибок не обнаружено','No errors detected','No se detectaron errores'],['Закрыть','Close','Cerrar'],['Язык','Language','Idioma'],['Мир','World','Mundo']];
 const DICT={en:{},es:{}};TRL.forEach(([k,e,s])=>{DICT.en[k]=e;DICT.es[k]=s});
 function L(s,v){let r=s;if(ST.lang&&ST.lang!='ru'){const d=DICT[ST.lang];if(d&&d[s]!==undefined)r=d[s]}if(v)for(const k in v)r=r.split('{'+k+'}').join(v[k]);return r}
 Object.assign(ICON,{ui_lang:`<path d="M5 6h24a3 3 0 0 1 3 3v14a3 3 0 0 1-3 3H17l-7 6v-6H5a3 3 0 0 1-3-3V9a3 3 0 0 1 3-3z" fill="#3b8fd0"/><path d="M20 20h20a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3h-3v5l-6-5H23a3 3 0 0 1-3-3z" fill="#f2efe6"/><path d="M10 20l4-10 4 10M11.500 17h5" stroke="#f2efe6" fill="none"/>`});
@@ -620,7 +621,7 @@ function applyLang(){const sb=(id,ic,t)=>$(id).innerHTML='<span class="cb">'+ico
  sb('bAct','ui_act','Действие (E)');sb('bCraft','ui_craft','Крафт (C)');sb('bNew','ui_redo','');
  $('bNew').title=L('Новая игра');$('bMenu').title=L('Меню (Esc)');$('bDel').title=L('Разобрать постройку (X)');
  $('dtxt').textContent=L('Вы погибли');$('bRe').textContent=L('Начать заново');$('menu').dataset.busy=L('Генерация мира...');
- $('gname').textContent=GN();$('gver').textContent='v0.0.4.3 '+L('Альфа')+' 3D';document.title=GN();document.documentElement.lang=ST.lang;$('pname').textContent=CH.name;
+ $('gname').textContent=GN();$('gver').textContent='v0.0.4.4 '+L('Альфа')+' 3D';document.title=GN();document.documentElement.lang=ST.lang;$('pname').textContent=CH.name;
  if(inv)refresh()}
 // ===== Симуляция =====
 const dark=()=>clamp(.35-Math.sin(time*6.2832)*.6,0,.8);
@@ -628,19 +629,21 @@ function move(dx,dz){let nx=clamp(P.x+dx,-95,95),nz=clamp(P.z+dz,-95,95);
  for(const n of near(nx,nz)){const d=G.nodes[n.t];if(!d.solid||n.gone||n.fall>0)continue;const rr=d.r*n.s+.4,ex=nx-n.x,ez=nz-n.z,dd=Math.hypot(ex,ez);if(dd<rr&&dd>0){nx=n.x+ex/dd*rr;nz=n.z+ez/dd*rr}}
  for(const p of PC){const b=pcBox(p);if(!b)continue;const hx=b[0]+.35,hz=b[1]+.35,ex=nx-p.x,ez=nz-p.z;
   if(Math.abs(ex)<hx&&Math.abs(ez)<hz){if(hx-Math.abs(ex)<hz-Math.abs(ez))nx=p.x+(ex<0?-1:1)*hx;else nz=p.z+(ez<0?-1:1)*hz}}
- if(hgt(nx,nz)<-1.3)return;P.x=nx;P.z=nz}
-const KEYS={};let yaw=0,pit=.45,dist=9,joy=null,look=null;
-function step(dt){
+ P.x=nx;P.z=nz}
+const KEYS={};let yaw=0,pit=.45,dist=9,joy=null,look=null,autoTest=null;
+function startAutoTest(){if(autoTest&&autoTest.active)return;save();const now=performance.now();autoTest={active:true,startedAt:now,lastSample:now,frameCount:0,fpsSamples:[],errors:[],position:P?{x:P.x,y:P.y,z:P.z,f:P.f}:null,stats:S?{hp:S.hp,food:S.food,water:S.water,warm:S.warm}:null,time,day,yaw,pit,dist};autoTest.previousOnError=window.onerror;autoTest.errorHandler=function(message,source,line,column,error){if(autoTest&&autoTest.active)autoTest.errors.push(String(error&&error.stack||message)+' '+String(source||'')+':'+String(line||0)+':'+String(column||0));if(typeof autoTest.previousOnError==='function')return autoTest.previousOnError.apply(this,arguments);return false};autoTest.rejectionHandler=function(event){if(autoTest&&autoTest.active)autoTest.errors.push('Promise: '+String(event.reason&&event.reason.stack||event.reason))};window.onerror=autoTest.errorHandler;window.addEventListener('unhandledrejection',autoTest.rejectionHandler);hideMenu()}
+function finishAutoTest(){const t=autoTest;if(!t||!t.active)return;t.active=false;Object.keys(KEYS).forEach(k=>KEYS[k]=0);if(window.onerror===t.errorHandler)window.onerror=t.previousOnError;window.removeEventListener('unhandledrejection',t.rejectionHandler);if(t.position&&P)Object.assign(P,t.position);if(t.stats&&S)Object.assign(S,t.stats);time=t.time;day=t.day;yaw=t.yaw;pit=t.pit;dist=t.dist;if(HAVEWORLD)save();MENU=true;document.body.classList.add('menu');UI.page='set';render();const samples=t.fpsSamples,min=samples.length?Math.min(...samples):0,max=samples.length?Math.max(...samples):0,avg=samples.length?Math.round(samples.reduce((a,b)=>a+b,0)/samples.length):0;const errors=t.errors.length?t.errors.map((e,i)=>(i+1)+'. '+e).join('\n'):L('Ошибок не обнаружено');const report=$('autotest-report');report.innerHTML='<div class="test-card"><h2>'+L('Автотест завершён')+'</h2><p>'+L('Длительность: {n} сек',{n:'20'})+'</p><p>'+L('FPS — мин: {min} · сред: {avg} · макс: {max}',{min,avg,max})+'</p><h3>'+L('Ошибки JavaScript')+'</h3><pre>'+esc(errors)+'</pre><button id="autotest-close">'+L('Закрыть')+'</button></div>';report.hidden=false;report.querySelector('#autotest-close').onclick=()=>{report.hidden=true}}
+function step(dt){if(autoTest&&autoTest.active){const directions=[['KeyW'],['KeyD'],['KeyS'],['KeyA'],['KeyW','KeyD'],['KeyS','KeyD'],['KeyS','KeyA'],['KeyW','KeyA']];const phase=Math.min(7,Math.floor((performance.now()-autoTest.startedAt)/2500));Object.keys(KEYS).forEach(k=>delete KEYS[k]);directions[phase].forEach(k=>KEYS[k]=1)}
  tm+=dt;cool=Math.max(0,cool-dt);swing=Math.max(0,swing-dt);
  if(!dead&&!MENU){
   let ix=(KEYS.KeyD||KEYS.ArrowRight?1:0)-(KEYS.KeyA||KEYS.ArrowLeft?1:0),iy=(KEYS.KeyW||KEYS.ArrowUp?1:0)-(KEYS.KeyS||KEYS.ArrowDown?1:0);
   if(joy){const l=Math.hypot(joy.dx,joy.dy);if(l>8){const k=Math.min(1,l/50);ix=joy.dx/l*k;iy=-joy.dy/l*k}}
   const l=Math.hypot(ix,iy);mvAmt=Math.min(1,l);SPR=((KEYS.ShiftLeft||KEYS.ShiftRight||(joy&&Math.hypot(joy.dx,joy.dy)>70))&&l>.5)?1:0;
   if(l>.01){if(l>1){ix/=l;iy/=l}
-   const mx=ix*Math.cos(yaw)-iy*Math.sin(yaw),mz=-ix*Math.sin(yaw)-iy*Math.cos(yaw),spd=(hgt(P.x,P.z)<-.1?2.6:5.2)*mvAmt*(SPR?1.6:1);
+   const mx=ix*Math.cos(yaw)-iy*Math.sin(yaw),mz=-ix*Math.sin(yaw)-iy*Math.cos(yaw),spd=(gy(P.x,P.z)<-.1?2.6:5.2)*mvAmt*(SPR?1.6:1);
    move(mx/Math.max(.01,mvAmt)*spd*dt,mz/Math.max(.01,mvAmt)*spd*dt);
    let d=Math.atan2(mx,mz)-P.f;d=Math.atan2(Math.sin(d),Math.cos(d));P.f+=d*Math.min(1,dt*12);walkT+=dt*spd*1.7;const st=Math.floor(walkT/Math.PI);if(st!=lastSt){lastSt=st;snd(70+Math.random()*40,.06,'triangle',.04)}}
-  time+=dt/WP.day;if(time>=1){time-=1;day++}
+  if(!autoTest||!autoTest.active){time+=dt/WP.day;if(time>=1){time-=1;day++}
   acc+=dt;if(acc>=1){acc-=1;nodes.forEach(n=>{if(n.dead&&--n.rt<=0){n.dead=false;put(n)}})}
   const dk=dark(),fire=F.some(f=>Math.hypot(f.x-P.x,f.z-P.z)<9),shel=PC.some(p=>p.pk=='roof'&&Math.abs(p.x-P.x)<=1.1&&Math.abs(p.z-P.z)<=1.1);
   S.food-=(.25+SPR*.25)*dt*WP.diff;S.water-=(.35+SPR*.35)*dt*WP.diff;S.warm+=fire?10*dt:shel?(dk>.45?.4:1.5)*dt:dk>.45?-1.2*dt:1.5*dt;
@@ -649,8 +652,9 @@ function step(dt){
   if(dm)S.hp-=dm*dt;else if(S.food>30&&S.water>30&&S.warm>30)S.hp=Math.min(100,S.hp+.6*dt);
   if(lastHp-S.hp>3){playA('hurt');hurtT=1;shake=.3}lastHp=S.hp;
   if(S.hp<=0){dead=true;$('dead').hidden=false}
-  saveT+=dt;if(saveT>8){saveT=0;save()}}
- P.y+=(Math.max(gy(P.x,P.z),-.6)-P.y)*Math.min(1,dt*15);
+  saveT+=dt;if(saveT>8){saveT=0;save()}}}
+ const ground=gy(P.x,P.z),surfaceY=ground<WATER_LEVEL-.05?WATER_LEVEL:Math.max(ground,-.6);
+ P.y+=(surfaceY-P.y)*Math.min(1,dt*15);
  poseP(dt);
  shk.forEach(n=>{n.sh-=dt;if(n.sh<=0){n.sh=0;shk.delete(n);put(n)}else put(n,Math.sin(n.sh*50)*n.sh*.5)});
  FL.forEach(n=>{n.fall-=dt;if(n.fall<=0){n.fall=0;n.gone=true;FL.delete(n);put(n);snd(70,.35,'sine',.12)}else{const u=1-n.fall/1.1;put(n,n.fs*u*u*1.5)}});
@@ -660,7 +664,7 @@ function step(dt){
  if(MENU)menuCam(dt);const mo=MENU&&innerWidth>760?1.3:0,tx=P.x-Math.cos(yaw)*mo,ty=P.y+(MENU?(innerWidth>760?1.25:.5):1.5),tz=P.z+Math.sin(yaw)*mo,cp=Math.cos(pit);let cx=tx+Math.sin(yaw)*cp*dist,cz=tz+Math.cos(yaw)*cp*dist,cy=ty+Math.sin(pit)*dist;
  cy=Math.max(cy,hgt(cx,cz)+.9);shake=Math.max(0,shake-dt);const sk=shake*(Math.random()-.5)*.5;cam.position.set(cx+sk,cy+sk*.6,cz+sk);cam.lookAt(tx,ty,tz);
  const tf=ST.fov+SPR*mvAmt*10;fovC+=(tf-fovC)*Math.min(1,dt*5);if(Math.abs(cam.fov-fovC)>.05){cam.fov=fovC;cam.updateProjectionMatrix()}
- const tg=TG=target(),ht=tg?(tg.p?L('Открыть сундук'):tg.k?L(AN[tg.k].hint):G.nodes[tg.t].hint):waterAhead()?L('Пить воду'):'';$('hint').hidden=!ht||dead||MENU;$('hint').textContent='E — '+ht;
+ const tg=TG=target(),ht=tg?(tg.p?L('Открыть сундук'):tg.k?L(AN[tg.k].hint):G.nodes[tg.t].hint):waterAhead()?L('Пить воду'):'';$('hint').hidden=!ht||dead||MENU||!$('craft').hidden||!$('chest').hidden||!$('dead').hidden;$('hint').textContent='E — '+ht;
 }
 // ===== Версионируемое сохранение миров =====
 const SAVE_KEY='miraculous-land-worlds-v1';
@@ -732,4 +736,4 @@ loadSet();loadChar();initLang();applyChar();applySet();applyLang();
 HAVEWORLD=load();if(!HAVEWORLD)newGame('',{},1);
 showMenu('main');
 let last=performance.now();
-(function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;FPS.n++;if(now-FPS.t>500){if(ST.fps)$('fps').textContent=Math.round(FPS.n*1000/(now-FPS.t))+' FPS';FPS.n=0;FPS.t=now}step(dt);env();hud();ren.render(scene,cam);requestAnimationFrame(loop)})(last);
+(function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;FPS.n++;if(now-FPS.t>500){if(ST.fps)$('fps').textContent=Math.round(FPS.n*1000/(now-FPS.t))+' FPS';FPS.n=0;FPS.t=now}if(autoTest&&autoTest.active){autoTest.frameCount++;if(now-autoTest.lastSample>=500){autoTest.fpsSamples.push(Math.round(autoTest.frameCount*1000/(now-autoTest.lastSample)));autoTest.frameCount=0;autoTest.lastSample=now}if(now-autoTest.startedAt>=20000)finishAutoTest()}step(dt);env();hud();ren.render(scene,cam);requestAnimationFrame(loop)})(last);

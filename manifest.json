@@ -26,17 +26,29 @@
       "purpose": "any maskable"
     }
   ],
-  "version": "0.0.4.3",
+  "version": "0.0.4.4",
   "files": {
     "index.html": {
-      "sha256": "b978de14b171718cf8694441a1f84895a914af0942763785b73a5576fb0dcf66",
-      "size": 8295,
-      "url": "index.html"
+      "sha256": "bd57212f09dc2f265dd20d37a3361c891bc7ddc7733723a95312748b2671603b",
+      "size": 9252,
+      "url": "index.html",
+      "patch": {
+        "url": "patches/index.html.bsdiff",
+        "from_sha256": "b978de14b171718cf8694441a1f84895a914af0942763785b73a5576fb0dcf66",
+        "sha256": "265f8e508f0140be68d0f9547a48465771093b206c99d7d63e2419646250e4ce",
+        "size": 702
+      }
     },
     "game.js": {
-      "sha256": "639b260f421b4496e1ba4651683db67fa28ee1ce9fc2e73b9ca1ef4ecaeb6212",
-      "size": 97460,
-      "url": "game.js"
+      "sha256": "b26632567f424b4fbd999e0875eb612aca6a78731da36be313e7cf0c2c4efa01",
+      "size": 101466,
+      "url": "game.js",
+      "patch": {
+        "url": "patches/game.js.bsdiff",
+        "from_sha256": "639b260f421b4496e1ba4651683db67fa28ee1ce9fc2e73b9ca1ef4ecaeb6212",
+        "sha256": "7d93db58cb1d7654d2130c7a88eacd1613004131d15d395357488b15c8a5cf35",
+        "size": 2332
+      }
     }
   }
 }
