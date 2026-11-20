@@ -69,7 +69,7 @@ const cNT=new THREE.Color(0x02050f),cDT=new THREE.Color(0x3f86d6),cNB=new THREE.
 
 // ===== Погода и сезонный цикл v0.0.5.2 =====
 let weatherType='clear',weatherTimer=32,weatherWind=0,weatherFlash=0,weatherThunderAt=0,lastWetState=false;
-let rainPoints=null,snowPoints=null,rainSource=null,rainGain=null,coldSneezeTimer=18+Math.random()*10;
+let rainPoints=null,snowPoints=null,windPoints=null,rainSource=null,rainGain=null,coldSneezeTimer=18+Math.random()*10;
 function winterMode(){return new Date().getMonth()>=11}
 function applyWinterGround(){
  const winter=winterMode();if(!terrainGeo||!terrainBaseColors||terrainWinter===winter)return;
@@ -80,7 +80,8 @@ function initWeatherParticles(){
  const make=(count,mat)=>{const geo=new THREE.BufferGeometry(),arr=new Float32Array(count*3);for(let i=0;i<count;i++){arr[i*3]=(Math.random()-.5)*46;arr[i*3+1]=Math.random()*24;arr[i*3+2]=(Math.random()-.5)*46}geo.setAttribute('position',new THREE.BufferAttribute(arr,3));const pts=new THREE.Points(geo,mat);pts.frustumCulled=false;scene.add(pts);return pts};
  rainPoints=make(520,new THREE.PointsMaterial({color:0xb9d8ef,size:.11,transparent:true,opacity:.68,depthWrite:false}));
  snowPoints=make(300,new THREE.PointsMaterial({color:0xffffff,size:.16,transparent:true,opacity:.86,depthWrite:false}));
- rainPoints.visible=false;snowPoints.visible=false;
+ windPoints=make(150,new THREE.PointsMaterial({color:0xd7d8bd,size:.09,transparent:true,opacity:.38,depthWrite:false}));
+ rainPoints.visible=false;snowPoints.visible=false;windPoints.visible=false;
 }
 initWeatherParticles();
 function setRainAudio(active){
@@ -104,7 +105,8 @@ function updateWeather(dt){
  weatherTimer-=dt;if(weatherTimer<=0)chooseWeather();
  applyWinterGround();
  const rain=weatherType==='rain'||weatherType==='storm',snow=weatherType==='snow';
- rainPoints.visible=rain;snowPoints.visible=snow;
+ const windy=weatherType==='wind'||weatherType==='storm'||weatherType==='rain';
+ rainPoints.visible=rain;snowPoints.visible=snow;windPoints.visible=windy;
  const windX=Math.sin(tm*.21)*weatherWind,windZ=Math.cos(tm*.17)*weatherWind;
  if(rain||snow){
   const pts=rain?rainPoints:snowPoints,arr=pts.geometry.attributes.position.array;
@@ -115,6 +117,7 @@ function updateWeather(dt){
   }
   pts.geometry.attributes.position.needsUpdate=true;pts.position.set(P.x,0,P.z);
  }
+ if(windy){const arr=windPoints.geometry.attributes.position.array;for(let i=0;i<arr.length;i+=3){arr[i]+=dt*(weatherWind*3+windX*2);arr[i+1]+=Math.sin(tm*2+i)*dt*.12;arr[i+2]+=dt*(weatherWind*1.4+windZ*2);if(Math.abs(arr[i])>25)arr[i]*=-.8;if(Math.abs(arr[i+2])>25)arr[i+2]*=-.8}windPoints.geometry.attributes.position.needsUpdate=true;windPoints.position.set(P.x,0,P.z)}
  if(GRASS_MESH){const sway=weatherType==='wind'||weatherType==='storm'||rain?weatherWind:0;GRASS_MESH.rotation.z=Math.sin(tm*1.7)*sway*.008}
  if(weatherType==='storm'){
   weatherThunderAt-=dt;if(weatherThunderAt<=0){weatherFlash=.18;weatherThunderAt=15+Math.random()*27;snd(48,1.15,'sawtooth',.045)}
@@ -666,7 +669,7 @@ const PRESETS=[
 function seedFrom(t){if(/^-?\d+$/.test(t))return((parseInt(t,10)%1000000)+1000000)%1000000;let h=5381;for(let i=0;i<t.length;i++)h=((h<<5)+h+t.charCodeAt(i))|0;return Math.abs(h)%1000000}
 function newGame(txt,wp,nosave,newSlot){WP=Object.assign({},WPD,wp||{});const st=String(txt||'').trim();SEEDTXT=st||String(Math.floor(Math.random()*1e6));seed=seedFrom(SEEDTXT);
  if(newSlot||(!activeWorldId&&!nosave))activeWorldId='world-'+Date.now()+'-'+Math.floor(Math.random()*1e6);
- buildWorld();P={x:0,y:hgt(0,0),z:0,f:0};S={hp:100,food:90,water:90,warm:80,wet:0,cold:0,coldTimer:0,poison:0,heat:0,heatTimer:0,insulation:0};inv=new Array(16).fill(null);time=WP.start;day=1;dead=false;$('dead').hidden=true;openC=null;PA={n:'',t:0,d:1};lastHp=100;hurtT=0;deadT=0;refresh();if(!nosave)save()}
+ buildWorld();P={x:0,y:hgt(0,0),z:0,f:0};S={hp:100,food:90,water:90,warm:80,wet:0,cold:0,coldTimer:0,poison:0,heat:0,heatTimer:0,insulation:0};lastWetState=false;inv=new Array(16).fill(null);time=WP.start;day=1;dead=false;$('dead').hidden=true;openC=null;PA={n:'',t:0,d:1};lastHp=100;hurtT=0;deadT=0;refresh();if(!nosave)save()}
 function createWorld(){if(HAVEWORLD)save();
  const w={name:(WF.name||'').trim()||L('Новый мир')};WOPT.forEach(r=>r.f(WF[r.k],w));const m=$('menu');m.classList.add('busy');
  setTimeout(()=>{newGame(WF.seed,w,0,1);HAVEWORLD=true;m.classList.remove('busy');hideMenu();log(L('Сид мира: {s}',{s:esc(SEEDTXT)}))},40)}
@@ -796,7 +799,7 @@ function step(dt){if(MENU)return;if(autoTest&&autoTest.active){const directions=
   acc+=dt;if(acc>=1){acc-=1;nodes.forEach(n=>{if(n.dead&&--n.rt<=0){n.dead=false;put(n)}})}
   const dk=dark(),fire=F.some(f=>Math.hypot(f.x-P.x,f.z-P.z)<9),shel=PC.some(p=>p.pk=='roof'&&Math.abs(p.x-P.x)<=1.1&&Math.abs(p.z-P.z)<=1.1);
   const swimming=!!IN_WATER,running=!!SPR&&!swimming,raining=weatherType==='rain'||weatherType==='storm';if(swimming){S.heat=0;S.heatTimer=0}
-  const exposedRain=raining&&!shel&&!fire;
+  const snowing=weatherType==='snow',exposedRain=raining&&!shel&&!fire,exposedSnow=snowing&&!shel&&!fire,exposedWind=weatherType==='wind'&&!shel&&!fire;
   if(swimming)S.wet=Math.max(S.wet,115);else if(exposedRain)S.wet=Math.max(S.wet,weatherType==='storm'?85:55);
   if(S.wet>0)S.wet=Math.max(0,S.wet-dt*(fire?3.2:shel?1.8:.12));if((S.wet>0)!==lastWetState){lastWetState=S.wet>0}
   S.insulation=Math.max(0,(S.insulation||0)-dt);
@@ -808,7 +811,7 @@ function step(dt){if(MENU)return;if(autoTest&&autoTest.active){const directions=
   if(swimming)S.warm-=1.2*(FAST_SWIM?2:1)*coldFactor*dt;
   else if(fire)S.warm+=4.5*dt;
   else if(shel)S.warm+=(dk>.45?.4:1.5)*dt;
-  else if(dk>.45||exposedRain)S.warm-=((dk>.45?1.2:.45)+(exposedRain?.9:0))*coldFactor*dt;
+  else if(dk>.45||exposedRain||exposedSnow||exposedWind){const weatherCooling=exposedRain?.9:exposedSnow?1.15:exposedWind?.45:0;S.warm-=((dk>.45?1.2:.45)+weatherCooling)*coldFactor*dt;}
   else S.warm+=1.5*dt;
   if(S.warm<10)S.coldTimer=(S.coldTimer||0)+dt;else S.coldTimer=Math.max(0,(S.coldTimer||0)-dt*.35);
   if(S.coldTimer>28)S.cold=1;
@@ -867,7 +870,7 @@ function restoreWorld(slot){
  (s.gone||[]).forEach(i=>{if(nodes[i]){nodes[i].gone=true;put(nodes[i])}});
  (s.dd||[]).forEach(([i,rt])=>{if(nodes[i]){nodes[i].dead=true;nodes[i].rt=rt;put(nodes[i])}});
  (s.fires||[]).forEach(([x,z])=>mkFire(x,z));(s.pcs||[]).forEach(q=>mkPiece(q.k,q.x,q.z,q.y,q.r,q.i));
- P=s.P;S=Object.assign({wet:0,cold:0,coldTimer:0,poison:0,heat:0,heatTimer:0,insulation:0},s.S||{});inv=s.inv||new Array(16).fill(null);time=s.time||0;day=s.day||1;dead=false;$('dead').hidden=true;refresh();return true;
+ P=s.P;S=Object.assign({wet:0,cold:0,coldTimer:0,poison:0,heat:0,heatTimer:0,insulation:0},s.S||{});lastWetState=S.wet>0;inv=s.inv||new Array(16).fill(null);time=s.time||0;day=s.day||1;dead=false;$('dead').hidden=true;refresh();return true;
 }
 function loadSavedWorld(id){
  const slot=SAVE_DB.worlds[id];if(!slot)return false;
@@ -886,7 +889,7 @@ const bars=[['hp','ui_hp','#d64545'],['food','ui_food','#d98b2b'],['water','ui_w
 $('hud').innerHTML=bars.map(b=>'<div class="bar"><i id="i-'+b[0]+'" style="background:'+b[2]+'"></i><span>'+ico(b[1],14)+'</span>'+(b[0]==='warm'?'<small id="wet-indicator" title="Мокрый" style="display:none;margin-left:3px">💧</small>':'')+'</div>').join('')+'<div id="survival-status" style="font:11px system-ui;color:#f1dba2;text-shadow:0 1px 3px #000;min-height:13px"></div>';
 function hud(){bars.forEach(b=>$('i-'+b[0]).style.width=Math.max(0,S[b[0]])+'%');
  const wet=$('wet-indicator');if(wet){wet.style.display=S.wet>0?'inline':'none';wet.title=L('Мокрый')}
- const statuses=[];if(S.cold)statuses.push(L('Простуда'));if(S.poison)statuses.push(L('Отравление'));if(S.heat)statuses.push(L('Перегрев'));if(S.insulation>0)statuses.push(L('Тёплая защита'));$('survival-status').textContent=statuses.join(' · ');
+ const statuses=[];if(S.wet>0)statuses.push(L('Мокрый'));if(S.cold)statuses.push(L('Простуда'));if(S.poison)statuses.push(L('Отравление'));if(S.heat)statuses.push(L('Перегрев'));if(S.insulation>0)statuses.push(L('Тёплая защита'));$('survival-status').textContent=statuses.join(' · ');
  const hr=(6+time*24)%24;$('clock').textContent=L('День')+' '+day+' · '+String(Math.floor(hr)).padStart(2,'0')+':'+String(Math.floor(hr%1*60)).padStart(2,'0')+' · '+weatherName()+(winterMode()?' ❄':'')}
 addEventListener('keydown',e=>{if(e.target.tagName=='INPUT'&&e.code!='Escape')return;KEYS[e.code]=1;if(e.code=='KeyE'||e.code=='Space'){act();e.preventDefault()}if(e.code=='KeyC')$('craft').hidden=!$('craft').hidden;if(e.code=='KeyX'&&!MENU)demolish();if(e.code=='Escape')toggleMenu()});
 addEventListener('keyup',e=>KEYS[e.code]=0);
