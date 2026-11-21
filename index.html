@@ -82,11 +82,12 @@ body.menu #dock,body.menu #hud,body.menu #hint,body.menu #top,body.menu #toast{d
   const updateStatus = document.getElementById('update-status');
   let updateReloading = false;
   let updateHideTimer = 0;
-  function showUpdateStatus(message) {
+  function showUpdateStatus(message, timeoutMs = 5000) {
     if (!updateStatus) return;
     clearTimeout(updateHideTimer);
     updateStatus.textContent = message;
     updateStatus.hidden = false;
+    if (timeoutMs > 0) updateHideTimer = setTimeout(hideUpdateStatus, timeoutMs);
   }
   function hideUpdateStatus() {
     if (!updateStatus) return;
@@ -96,7 +97,7 @@ body.menu #dock,body.menu #hud,body.menu #hint,body.menu #top,body.menu #toast{d
   function reloadForUpdate() {
     if (updateReloading) return;
     updateReloading = true;
-    showUpdateStatus('Обновление готово · запуск...');
+    showUpdateStatus('Обновление готово · запуск...', 0);
     try { if (typeof window.save === 'function') window.save(); } catch (_) {}
     setTimeout(() => window.location.reload(), 180);
   }
@@ -117,9 +118,7 @@ body.menu #dock,body.menu #hud,body.menu #hint,body.menu #top,body.menu #toast{d
     navigator.serviceWorker.register('./sw.js', {scope: './', updateViaCache: 'none'})
       .then(registration => registration.update())
       .catch(hideUpdateStatus);
-    updateHideTimer = setTimeout(() => {
-      if (updateStatus && updateStatus.textContent === 'Проверка обновлений...') hideUpdateStatus();
-    }, 5000);
+    if (updateStatus && updateStatus.textContent === 'Проверка обновлений...') showUpdateStatus('Проверка обновлений...');
   });
 } else {
   const status = document.getElementById('update-status');
