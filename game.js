@@ -5,7 +5,7 @@ window.addEventListener('unhandledrejection',e=>window.__ML_STARTUP_FALLBACK(e.r
 try{const $=id=>document.getElementById(id);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // ===== Ядро: реестры (новый контент добавляется здесь или через Game.use) =====
-const G=window.Game={version:'0.0.5.8 Альфа 3D',items:{},nodes:{},recipes:[],mods:[],
+const G=window.Game={version:'0.0.5.9 Альфа 3D',items:{},nodes:{},recipes:[],mods:[],
  registerItem(id,o){o.ru=o.n;Object.defineProperty(o,'n',{get(){return L(this.ru)},enumerable:true});this.items[id]=o},registerNode(id,o){if(o.hint){o.hru=o.hint;Object.defineProperty(o,'hint',{get(){return L(this.hru)},enumerable:true})}this.nodes[id]=o},registerRecipe(r){this.recipes.push(r)},
  use(f){this.mods.push(f);f(this)}};
 G.use(g=>{
@@ -355,13 +355,12 @@ function updAnimals(dt){
   else if(a.k==='fish'){if(a.t<=0){a.t=2+Math.random()*4;a.dir+=(Math.random()-.5)*1.8;a.w=Math.random()<.8}sp=a.w?D.spd*.65:0}
   else if(D.fear&&(d<D.fear||a.fl>0)&&!(a.fleeCooldown>0)){if(!a.fleeTime){a.fleeTime=4+Math.random()*2;a.fleeFrom={x:P.x,z:P.z}}if(a.fleeTime>0&&Math.hypot(a.x-a.fleeFrom.x,a.z-a.fleeFrom.z)<19){a.fleeTime-=dt;a.dir=Math.atan2(-dx,-dz);sp=D.spd}else{a.fleeTime=0;a.fleeFrom=null;a.fleeCooldown=6;a.fl=0;a.t=0;a.w=false}}
   else{a.fleeTime=0;a.fleeFrom=null;if(a.t<=0){a.t=2+Math.random()*4;a.dir=Math.random()*6.28;a.w=Math.random()<.55}sp=a.w?D.spd*.3:0}
-  const prevX=a.x,prevZ=a.z;let actualMoveDist=0;
   if(sp){if(a.k!=='fish'){let sx=0,sz=0;for(let j=0;j<AL.length;j++){const b=AL[j];if(b===a||b.k==='fish'||b.dying>0)continue;const ex=a.x-b.x,ez=a.z-b.z,dd=Math.hypot(ex,ez);if(dd>0&&dd<1.65){const f=(1.65-dd)/1.65;sx+=ex/dd*f;sz+=ez/dd*f}}if(Math.hypot(sx,sz)>.08)a.dir=Math.atan2(Math.sin(a.dir)+sx*.55,Math.cos(a.dir)+sz*.55)}
    const pathHit=blocked(a,a.dir);if(pathHit&&!pathHit.terrain&&a.obstacleCooldown<=0){let found=false;for(const off of[.72,-.72,1.12,-1.12]){const candidate=a.dir+off;if(!blocked(a,candidate)){a.dir=candidate;a.obstacleCooldown=1.2;found=true;break}}if(!found)turn(a)}
-   const nx=a.x+Math.sin(a.dir)*sp*dt,nz=a.z+Math.cos(a.dir)*sp*dt,ny=hgt(nx,nz),valid=a.k==='fish'?ny<-.6:(ny>.15&&ny<8.5&&ny-hgt(a.x,a.z)<=.62&&Math.abs(nx)<95&&Math.abs(nz)<95);
+   const prevX=a.x,prevZ=a.z,nx=a.x+Math.sin(a.dir)*sp*dt,nz=a.z+Math.cos(a.dir)*sp*dt,ny=hgt(nx,nz),valid=a.k==='fish'?ny<-.6:(ny>.15&&ny<8.5&&ny-hgt(a.x,a.z)<=.62&&Math.abs(nx)<95&&Math.abs(nz)<95);
    const hit=a.k==='fish'?null:obstacleAt(a,nx,nz);
    if(valid&&!hit){a.x=nx;a.z=nz}else if(valid&&hit){let ex=nx-hit.x,ez=nz-hit.z;if(hit.box){if(hit.hx-Math.abs(ex)<hit.hz-Math.abs(ez)){ex=Math.sign(ex)||1;ez=0}else{ez=Math.sign(ez)||1;ex=0}}else{const dd=Math.hypot(ex,ez)||1;ex/=dd;ez/=dd}let tx=-ez,tz=ex;if(tx*Math.sin(a.dir)+tz*Math.cos(a.dir)<0){tx=-tx;tz=-tz}const len=Math.hypot(nx-a.x,nz-a.z),sx=tx*len,sz=tz*len,qx=a.x+sx,qz=a.z+sz,qy=hgt(qx,qz);if(qy>.15&&qy<8.5&&qy-hgt(a.x,a.z)<=.62&&Math.abs(qx)<95&&Math.abs(qz)<95&&!obstacleAt(a,qx,qz)){a.x=qx;a.z=qz;if(a.obstacleCooldown<=0){a.dir=Math.atan2(sx,sz);a.obstacleCooldown=1.2}}else turn(a)}else turn(a)}
-  actualMoveDist=Math.hypot(a.x-prevX,a.z-prevZ);
+  let actualMoveDist=Math.hypot(a.x-prevX,a.z-prevZ);
   if(sp>0&&a.k!=='fish'&&actualMoveDist<.002){
    const probeDist=Math.max(.16,sp*dt*2),contact=obstacleAt(a,a.x+Math.sin(a.dir)*probeDist,a.z+Math.cos(a.dir)*probeDist)||blocked(a,a.dir);
    if(contact&&!contact.terrain){const base=a.dir,angle=(75+Math.random()*35)*Math.PI/180,step=Math.max(.12,sp*dt),sides=Math.random()<.5?[1,-1]:[-1,1];let diverted=false;
@@ -592,12 +591,12 @@ function applyChar(){
   else{bx(g,.27,.3,.3,0,-.66,0,so);bx(g,.27,.12,.38,0,-.75,.06,so);bx(g,.27,.04,.4,0,-.8,.06,chM(0x1d140d))}}
  $('pname').textContent=C.name;if(menuDioramaReady)refreshDioramaPlayer()}
 function saveChar(){try{localStorage.setItem('vse-char',JSON.stringify(CH))}catch(e){}}
-function loadChar(){try{Object.assign(CH,JSON.parse(localStorage.getItem('vse-char'))||{})}catch(e){}}
+function loadChar(){try{const raw=localStorage.getItem('vse-char');if(!raw)return;const data=JSON.parse(raw);if(data&&typeof data==='object'&&!Array.isArray(data))Object.assign(CH,data)}catch(e){console.warn('Не удалось загрузить персонажа',e)}}
 function randChar(){const r=n=>Math.floor(Math.random()*n),z=(n,p)=>Math.random()<p?0:r(n);
  Object.assign(CH,{skin:r(6),hair:r(7),hc:r(8),eye:r(6),beard:z(4,.6),shirt:r(3),sc:r(8),pants:r(2),pc:r(8),shoe:r(2),shc:r(6),hat:z(5,.55),gl:z(4,.6),scarf:z(2,.7),pack:r(3),ac:r(8)});applyChar();saveChar();render()}
 // ----- Настройки -----
 function saveSet(){try{localStorage.setItem('vse-set',JSON.stringify(ST))}catch(e){}}
-function loadSet(){try{Object.assign(ST,JSON.parse(localStorage.getItem('vse-set'))||{})}catch(e){}}
+function loadSet(){try{const raw=localStorage.getItem('vse-set');if(!raw)return;const data=JSON.parse(raw);if(data&&typeof data==='object'&&!Array.isArray(data))Object.assign(ST,data)}catch(e){console.warn('Не удалось загрузить настройки',e)}}
 function setSet(k,v){ST[k]=v;saveSet();applySet()}
 function applySet(){ren.setPixelRatio(ST.q==0?1:Math.min(devicePixelRatio,ST.q==1?1.5:2));ren.setSize(innerWidth,innerHeight);
  const ms=[512,1024,2048][ST.q];if(sun.shadow.mapSize.x!=ms){sun.shadow.mapSize.set(ms,ms);if(sun.shadow.map){sun.shadow.map.dispose();sun.shadow.map=null}}
@@ -638,7 +637,7 @@ const langRow=()=>'<div class="mr"><div class="ml">'+ico('ui_lang',16)+' '+L('Я
 function pgMain(){const w=HAVEWORLD?L('Мир: {w} · сид {s} · день {d}',{w:'<b>'+esc(L(WP.name))+'</b>',s:'<b>'+esc(SEEDTXT)+'</b>',d:day}):L('Мира пока нет — создай новый');
  const saved=Object.values(SAVE_DB.worlds||{}).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
  const worlds=saved.length?'<div class="mr"><b>'+L('Мои миры')+'</b>'+saved.map(q=>'<button class="pr" data-a="worldload" data-v="'+esc(q.id)+'"><b>'+esc(L(q.name||'Мир'))+'</b><small>'+L('Сид мира: {s}',{s:esc(q.seed||'')})+' · '+L('День')+' '+(q.day||1)+'</small><i>'+(q.id===activeWorldId?L('Текущий мир'):L('Открыть'))+'</i></button>').join('')+'</div>':'<div class="info">'+L('Нет сохранённых миров')+'</div>';
- return '<div class="logo">'+ico('logo',72)+'<h1>'+GN()+'</h1><div class="sub">v0.0.5.8 '+L('Альфа')+' 3D</div></div><div class="info">'+w+'</div>'+
+ return '<div class="logo">'+ico('logo',72)+'<h1>'+GN()+'</h1><div class="sub">v0.0.5.9 '+L('Альфа')+' 3D</div></div><div class="info">'+w+'</div>'+
  (HAVEWORLD?icb('ui_play','Продолжить','resume'):'')+icb('ui_world','Новый мир','go','world')+worlds+icb('ui_char','Персонаж','go','char')+icb('ui_gear','Настройки','go','set')+langRow()}
 function pgWorld(){return '<h2>'+L('Новый мир')+'</h2>'+row('Название','<input type="text" id="wname" maxlength="24" value="'+esc(WF.name)+'">')+
  row('Сид (пусто — случайный мир)','<div class="sd"><input type="text" id="wseed" maxlength="24" placeholder="'+L('случайный')+'" value="'+esc(WF.seed)+'">'+icb('ui_dice','','dice')+'</div>')+
@@ -725,7 +724,7 @@ function applyLang(){const sb=(id,ic,t)=>$(id).innerHTML='<span class="cb">'+ico
  sb('bAct','ui_act','Действие (E)');sb('bCraft','ui_craft','Крафт (C)');sb('bNew','ui_redo','');
  $('bNew').title=L('Новая игра');$('bMenu').title=L('Меню (Esc)');$('bDel').title=L('Разобрать постройку (X)');
  $('dtxt').textContent=L('Вы погибли');$('bRe').textContent=L('Начать заново');$('menu').dataset.busy=L('Генерация мира...');
- $('gname').textContent=GN();$('gver').textContent='v0.0.5.8 '+L('Альфа')+' 3D';document.title=GN();document.documentElement.lang=ST.lang;$('pname').textContent=CH.name;
+ $('gname').textContent=GN();$('gver').textContent='v0.0.5.9 '+L('Альфа')+' 3D';document.title=GN();document.documentElement.lang=ST.lang;$('pname').textContent=CH.name;
  if(inv)refresh()}
 // ===== Симуляция =====
 const dark=()=>clamp(.35-Math.sin(time*6.2832)*.6,0,.8);
@@ -784,15 +783,24 @@ const SAVE_KEY='miraculous-land-worlds-v1';
 let SAVE_DB={version:1,active:null,worlds:{}},activeWorldId=null;
 function readSaveDB(){
  try{
-  const d=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');
-  if(d&&d.version===1&&d.worlds&&typeof d.worlds==='object'){SAVE_DB=d;return}
-  const old=JSON.parse(localStorage.getItem('vse3d4')||'null');
-  if(old&&old.P){
-   const id='legacy-'+String(old.seed||Date.now());
-   SAVE_DB={version:1,active:id,worlds:{[id]:{id,name:(old.wp&&old.wp.name)||'Мир',seed:old.st||String(old.seed||''),day:old.day||1,updatedAt:Date.now(),state:old}}};
-   activeWorldId=id;localStorage.setItem(SAVE_KEY,JSON.stringify(SAVE_DB));
+  const raw=localStorage.getItem(SAVE_KEY);
+  if(raw){
+   const d=JSON.parse(raw);
+   if(d&&d.version===1&&d.worlds&&typeof d.worlds==='object'&&!Array.isArray(d.worlds)){SAVE_DB=d;return}
   }
- }catch(e){SAVE_DB={version:1,active:null,worlds:{}}}
+  const legacyRaw=localStorage.getItem('vse3d4');
+  if(legacyRaw){
+   const old=JSON.parse(legacyRaw);
+   if(old&&typeof old==='object'&&!Array.isArray(old)&&old.P&&old.S){
+    const id='legacy-'+String(old.seed||Date.now());
+    SAVE_DB={version:1,active:id,worlds:{[id]:{id,name:(old.wp&&old.wp.name)||'Мир',seed:old.st||String(old.seed||''),day:old.day||1,updatedAt:Date.now(),state:old}}};
+    activeWorldId=id;
+    try{localStorage.setItem(SAVE_KEY,JSON.stringify(SAVE_DB))}catch(writeError){console.warn('Не удалось перенести старое сохранение',writeError)}
+    return;
+   }
+  }
+ }catch(e){console.warn('Не удалось прочитать сохранения; исходные данные оставлены без изменений',e)}
+ SAVE_DB={version:1,active:null,worlds:{}};
 }
 function save(){
  try{
@@ -805,22 +813,35 @@ function save(){
  }catch(e){console.warn('Не удалось сохранить мир',e)}
 }
 function restoreWorld(slot){
- const s=slot&&slot.state;if(!s||!s.P||!s.S)return false;
- WP=Object.assign({},WPD,s.wp||{});SEEDTXT=s.st||String(s.seed);seed=s.seed;buildWorld();
- (s.gone||[]).forEach(i=>{if(nodes[i]){nodes[i].gone=true;put(nodes[i])}});
- (s.dd||[]).forEach(([i,rt])=>{if(nodes[i]){nodes[i].dead=true;nodes[i].rt=rt;put(nodes[i])}});
- (s.fires||[]).forEach(([x,z])=>mkFire(x,z));(s.pcs||[]).forEach(q=>mkPiece(q.k,q.x,q.z,q.y,q.r,q.i));
- P=s.P;S=s.S;inv=s.inv||new Array(16).fill(null);time=s.time||0;day=s.day||1;dead=false;$('dead').hidden=true;refresh();return true;
+ try{
+  const s=slot&&slot.state;
+  if(!s||typeof s!=='object'||!s.P||typeof s.P!=='object'||!s.S||typeof s.S!=='object'||!Number.isFinite(s.P.x)||!Number.isFinite(s.P.z))return false;
+  WP=Object.assign({},WPD,s.wp&&typeof s.wp==='object'&&!Array.isArray(s.wp)?s.wp:{});
+  SEEDTXT=s.st||String(s.seed||'');
+  seed=Number.isFinite(s.seed)?s.seed:seedFrom(SEEDTXT);
+  buildWorld();
+  (Array.isArray(s.gone)?s.gone:[]).forEach(i=>{if(Number.isInteger(i)&&nodes[i]){nodes[i].gone=true;put(nodes[i])}});
+  (Array.isArray(s.dd)?s.dd:[]).forEach(q=>{if(Array.isArray(q)&&Number.isInteger(q[0])&&nodes[q[0]]){nodes[q[0]].dead=true;nodes[q[0]].rt=q[1];put(nodes[q[0]])}});
+  (Array.isArray(s.fires)?s.fires:[]).forEach(q=>{if(Array.isArray(q)&&Number.isFinite(q[0])&&Number.isFinite(q[1]))mkFire(q[0],q[1])});
+  (Array.isArray(s.pcs)?s.pcs:[]).forEach(q=>{if(q&&typeof q==='object'&&typeof q.k==='string'&&Number.isFinite(q.x)&&Number.isFinite(q.z))mkPiece(q.k,q.x,q.z,q.y,q.r,q.i)});
+  P=s.P;S=s.S;inv=Array.isArray(s.inv)?s.inv:new Array(16).fill(null);
+  time=Number.isFinite(s.time)?s.time:0;day=Number.isFinite(s.day)?s.day:1;
+  dead=false;$('dead').hidden=true;refresh();return true;
+ }catch(e){console.warn('Не удалось восстановить сохранённый мир; сохранение не удалено',e);return false}
 }
 function loadSavedWorld(id){
- const slot=SAVE_DB.worlds[id];if(!slot)return false;
- if(!restoreWorld(slot))return false;
- activeWorldId=id;SAVE_DB.active=id;HAVEWORLD=true;save();return true;
+ try{
+  const slot=SAVE_DB.worlds&&SAVE_DB.worlds[id];if(!slot||!restoreWorld(slot))return false;
+  activeWorldId=id;SAVE_DB.active=id;HAVEWORLD=true;save();return true;
+ }catch(e){console.warn('Не удалось открыть сохранённый мир',e);return false}
 }
 function load(){
- readSaveDB();
- const id=SAVE_DB.active||activeWorldId,slot=id&&SAVE_DB.worlds[id];if(!slot)return false;
- activeWorldId=id;if(!restoreWorld(slot))return false;return true;
+ try{
+  readSaveDB();
+  const id=SAVE_DB.active||activeWorldId,slot=id&&SAVE_DB.worlds[id];if(!slot)return false;
+  if(!restoreWorld(slot))return false;
+  activeWorldId=id;return true;
+ }catch(e){console.warn('Не удалось загрузить мир; сохранение не удалено',e);return false}
 }
 document.addEventListener('visibilitychange',()=>{if(document.hidden){save();saveChar()}});
 addEventListener('pagehide',()=>{save();saveChar()});
