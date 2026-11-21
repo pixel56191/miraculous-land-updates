@@ -349,10 +349,10 @@ function updAnimals(dt){
  for(let i=AL.length-1;i>=0;i--){const a=AL[i],D=AN[a.k],dx=P.x-a.x,dz=P.z-a.z,d=Math.hypot(dx,dz);
   if(a.dying>0){a.dying-=dt;const q=1-a.dying/.8;a.g.rotation.z=Math.min(1.5,q*2.2)*(a.side||1);a.g.position.y=Math.max(a.g.position.y-dt*.1,-.5);if(a.dying<=0){world.remove(a.g);AL.splice(i,1)}continue}
   if(a.k==='wolf'&&((dk<.15&&d>20)||d>70)){world.remove(a.g);AL.splice(i,1);continue}
-  let sp=0;a.t-=dt;a.cd-=dt;a.fl=Math.max(0,a.fl-dt);
+  let sp=0;a.t-=dt;a.cd-=dt;a.fl=Math.max(0,a.fl-dt);if(a.fleeCooldown>0){a.fleeCooldown-=dt;if(d>(D.fear||0)+3)a.fleeCooldown=0}
   if(a.k==='wolf'){if(!dead&&d<40){a.dir=Math.atan2(dx,dz);if(fireNear&&d<9){a.dir+=Math.PI;sp=D.spd*.6}else if(d>1.3)sp=D.spd;if(d<1.5&&a.cd<=0&&!MENU){S.hp-=D.dmg*WP.diff;a.cd=1.3;a.lunge=.35;snd(90,.25,'sawtooth',.08);log(ico('ui_wolf',18)+' '+L('Волк кусает!'))}}}
   else if(a.k==='fish'){if(a.t<=0){a.t=2+Math.random()*4;a.dir+=(Math.random()-.5)*1.8;a.w=Math.random()<.8}sp=a.w?D.spd*.65:0}
-  else if(D.fear&&(d<D.fear||a.fl>0)){if(!a.fleeTime){a.fleeTime=4+Math.random()*2;a.fleeFrom={x:P.x,z:P.z}}if(a.fleeTime>0&&Math.hypot(a.x-a.fleeFrom.x,a.z-a.fleeFrom.z)<19){a.fleeTime-=dt;a.dir=Math.atan2(-dx,-dz);sp=D.spd}else{a.fleeTime=0;a.fleeFrom=null;a.fl=0;a.t=0;a.w=false}}
+  else if(D.fear&&(d<D.fear||a.fl>0)&&!(a.fleeCooldown>0)){if(!a.fleeTime){a.fleeTime=4+Math.random()*2;a.fleeFrom={x:P.x,z:P.z}}if(a.fleeTime>0&&Math.hypot(a.x-a.fleeFrom.x,a.z-a.fleeFrom.z)<19){a.fleeTime-=dt;a.dir=Math.atan2(-dx,-dz);sp=D.spd}else{a.fleeTime=0;a.fleeFrom=null;a.fleeCooldown=6;a.fl=0;a.t=0;a.w=false}}
   else{a.fleeTime=0;a.fleeFrom=null;if(a.t<=0){a.t=2+Math.random()*4;a.dir=Math.random()*6.28;a.w=Math.random()<.55}sp=a.w?D.spd*.3:0}
   if(sp){if(a.k!=='fish'){let sx=0,sz=0;for(let j=0;j<AL.length;j++){const b=AL[j];if(b===a||b.k==='fish'||b.dying>0)continue;const ex=a.x-b.x,ez=a.z-b.z,dd=Math.hypot(ex,ez);if(dd>0&&dd<1.65){const f=(1.65-dd)/1.65;sx+=ex/dd*f;sz+=ez/dd*f}}if(Math.hypot(sx,sz)>.08)a.dir=Math.atan2(Math.sin(a.dir)+sx*.55,Math.cos(a.dir)+sz*.55)}
    if(blocked(a,a.dir)){let found=false;for(const off of[Math.PI/2+Math.random()*Math.PI/4,-(Math.PI/2+Math.random()*Math.PI/4),Math.PI*.72,-Math.PI*.72]){const candidate=a.dir+off;if(!blocked(a,candidate)){a.dir=candidate;found=true;break}}if(!found)turn(a)}
@@ -825,7 +825,7 @@ cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);
  if(e.pointerType=='touch'&&e.clientX<innerWidth*.45&&!joy){joy={id:e.pointerId,x:e.clientX,y:e.clientY,dx:0,dy:0};updateJoyVisual(false)}
  else if(!look)look={id:e.pointerId,x:e.clientX,y:e.clientY}});
 cv.addEventListener('pointermove',e=>{
- if(joy&&joy.id==e.pointerId){joy.dx=e.clientX-joy.x;joy.dy=e.clientY-joy.y;updateJoyVisual(Math.hypot(joy.dx,joy.dy)>=38&&S.water>=15&&S.warm>=15&&(S.stamina===undefined||S.stamina>=15))}
+ if(joy&&joy.id==e.pointerId){joy.dx=e.clientX-joy.x;joy.dy=e.clientY-joy.y;updateJoyVisual(Math.hypot(joy.dx,joy.dy)>38&&S.water>=15&&S.warm>=15&&(S.stamina===undefined||S.stamina>=15))}
  else if(look&&look.id==e.pointerId){yaw-=(e.clientX-look.x)*.005*ST.sens;pit=clamp(pit+(e.clientY-look.y)*.004*ST.sens,.12,1.3);look.x=e.clientX;look.y=e.clientY}});
 const up=e=>{if(joy&&joy.id==e.pointerId){joy=null;joyVisual.style.display='none'}if(look&&look.id==e.pointerId)look=null};
 cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
