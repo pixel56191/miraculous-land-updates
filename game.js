@@ -5,7 +5,7 @@ window.addEventListener('unhandledrejection',e=>window.__ML_STARTUP_FALLBACK(e.r
 try{const $=id=>document.getElementById(id);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // ===== Ядро: реестры (новый контент добавляется здесь или через Game.use) =====
-const G=window.Game={version:'0.0.5.9 Альфа 3D',items:{},nodes:{},recipes:[],mods:[],
+const G=window.Game={version:'0.0.5.10 Альфа 3D',items:{},nodes:{},recipes:[],mods:[],
  registerItem(id,o){o.ru=o.n;Object.defineProperty(o,'n',{get(){return L(this.ru)},enumerable:true});this.items[id]=o},registerNode(id,o){if(o.hint){o.hru=o.hint;Object.defineProperty(o,'hint',{get(){return L(this.hru)},enumerable:true})}this.nodes[id]=o},registerRecipe(r){this.recipes.push(r)},
  use(f){this.mods.push(f);f(this)}};
 G.use(g=>{
@@ -344,38 +344,38 @@ function updAnimals(dt){
  updateAnimalPopulation(dt);updateWolfPopulation(dt);
  const dk=dark(),fireNear=F.some(f=>Math.hypot(f.x-P.x,f.z-P.z)<10),wolves=AL.filter(a=>a.k=='wolf'&&a.dying<=0).length;
  if(!dead&&!MENU&&WP.wolves&&dk>.5&&wolves<6&&Math.random()<dt*.08){const an=Math.random()*6.28,x=P.x+Math.cos(an)*34,z=P.z+Math.sin(an)*34;if(hgt(x,z)>.5)addAn('wolf',x,z)}
- const turn=a=>{if(a.obstacleCooldown>0)return false;a.dir+=((Math.random()<.5?-1:1)*(Math.PI/2+Math.random()*Math.PI/4));a.obstacleCooldown=1.2;a.t=1+Math.random()*2;a.w=true;return true};
- const animalRadiusOf=a=>AN[a.k]?.cr||.35;
+ const turn=a=>{if(a.obstacleCooldown>0)return false;if(a.k==='deer'||a.k==='rabbit'){a.dir+=(Math.random()<.5?-1:1)*65*Math.PI/180;a.obstacleCooldown=.9}else{a.dir+=(Math.random()<.5?-1:1)*(Math.PI/2+Math.random()*Math.PI/4);a.obstacleCooldown=1.2}a.t=1+Math.random()*2;a.w=true;return true};
+ const animalRadiusOf=a=>AN[a.k]?.cr||.35,maxSlopeOf=a=>(a.k==='deer'||a.k==='rabbit')?1.15:.62;
  const obstacleAt=(a,x,z)=>{const animalRadius=animalRadiusOf(a);for(const n of near(x,z)){const nd=G.nodes[n.t];if(!nd||!nd.solid||n.gone||n.dead||n.fall>0)continue;const obstacleRadius=n.colliderRadius!=null?Math.max(0,n.colliderRadius-.35):(nd.r||.4)*n.s,r=obstacleRadius+animalRadius,dx=x-n.x,dz=z-n.z;if(dx*dx+dz*dz<r*r)return{x:n.x,z:n.z,r}}for(const p of PC){const b=pcBox(p);if(!b)continue;const hx=b[0]+animalRadius,hz=b[1]+animalRadius;if(Math.abs(x-p.x)<hx&&Math.abs(z-p.z)<hz)return{x:p.x,z:p.z,hx,hz,box:true}}return null};
- const blocked=(a,dir)=>{const dist=a.k==='fish'?1.25:.6,nx=a.x+Math.sin(dir)*dist,nz=a.z+Math.cos(dir)*dist,y=hgt(nx,nz),here=hgt(a.x,a.z);if(a.k==='fish')return y>=-.6?{terrain:true}:null;if(y<.15||y>8.5||y-here>.62)return{terrain:true};return obstacleAt(a,nx,nz)};
+ const blocked=(a,dir)=>{const dist=a.k==='fish'?1.25:.6,nx=a.x+Math.sin(dir)*dist,nz=a.z+Math.cos(dir)*dist,y=hgt(nx,nz),here=hgt(a.x,a.z);if(a.k==='fish')return y>=-.6?{terrain:true}:null;if(y<.15||y>8.5||y-here>maxSlopeOf(a))return{terrain:true};return obstacleAt(a,nx,nz)};
  for(let i=AL.length-1;i>=0;i--){const a=AL[i],D=AN[a.k],dx=P.x-a.x,dz=P.z-a.z,d=Math.hypot(dx,dz);
   if(a.dying>0){a.dying-=dt;const q=1-a.dying/.8;a.g.rotation.z=Math.min(1.5,q*2.2)*(a.side||1);a.g.position.y=Math.max(a.g.position.y-dt*.1,-.5);if(a.dying<=0){world.remove(a.g);AL.splice(i,1)}continue}
   if(a.k==='wolf'&&((dk<.15&&d>20)||d>70)){world.remove(a.g);AL.splice(i,1);continue}
-  let sp=0;a.t-=dt;a.cd-=dt;a.obstacleCooldown=Math.max(0,(a.obstacleCooldown||0)-dt);a.unstuckTimer=Math.max(0,(a.unstuckTimer||0)-dt);a.fl=Math.max(0,a.fl-dt);if((a.k==='rabbit'||a.k==='deer')&&!dead&&!MENU&&d<(SPR?7:4)){a.state='FLEE';a.fleeTime=5}if(a.fleeCooldown>0){a.fleeCooldown-=dt;if(d>(D.fear||0)+3)a.fleeCooldown=0}
+  let sp=0;a.t-=dt;a.cd-=dt;a.obstacleCooldown=Math.max(0,(a.obstacleCooldown||0)-dt);a.unstuckTimer=Math.max(0,(a.unstuckTimer||0)-dt);a.fl=Math.max(0,a.fl-dt);if((a.k==='rabbit'||a.k==='deer')&&!dead&&!MENU&&d<(SPR?7:4)&&a.state!=='FLEE'){a.state='FLEE';a.fleeTime=5;a.dir=Math.atan2(a.x-P.x,a.z-P.z)}if(a.fleeCooldown>0){a.fleeCooldown-=dt;if(d>(D.fear||0)+3)a.fleeCooldown=0}
   if(a.k==='wolf'){if(!dead&&d<40){if(a.unstuckTimer<=0)a.dir=Math.atan2(dx,dz);if(fireNear&&d<9){a.dir+=Math.PI;sp=D.spd*.6}else if(d>1.3)sp=D.spd;if(d<1.5&&a.cd<=0&&!MENU){S.hp-=D.dmg*WP.diff*(typeof ML_CROWN!=='undefined'&&ML_CROWN?.75:1);a.cd=1.3;a.lunge=.35;snd(90,.25,'sawtooth',.08);log(ico('ui_wolf',18)+' '+L('Волк кусает!'))}}}
   else if(a.k==='fish'){if(!dead&&!MENU&&hgt(P.x,P.z)<WATER_LEVEL){if(d<5&&!a.fleeTarget){const away=Math.atan2(a.x-P.x,a.z-P.z);let best=null;for(const dist of[8,9,10])for(let step=0;step<16;step++){const ang=away+step*Math.PI/8,tx=P.x+Math.sin(ang)*dist,tz=P.z+Math.cos(ang)*dist;if(Math.abs(tx)>94||Math.abs(tz)>94||hgt(tx,tz)>=-.6)continue;const score=dist+Math.min(step,16-step)*.025;if(!best||score<best.score)best={x:tx,z:tz,score}}if(best)a.fleeTarget={x:best.x,z:best.z}}}if(a.fleeTarget){const tx=a.fleeTarget.x-a.x,tz=a.fleeTarget.z-a.z;if(Math.hypot(tx,tz)<.65){a.fleeTarget=null;a.t=0;a.w=false;sp=0}else{a.dir=Math.atan2(tx,tz);sp=D.spd*1.25}}else{if(a.t<=0){a.t=2+Math.random()*4;a.dir+=(Math.random()-.5)*1.8;a.w=Math.random()<.8}sp=a.w?D.spd*.65:0}}
-  else if((a.k==='rabbit'||a.k==='deer')&&a.state==='FLEE'&&a.fleeTime>0){a.fleeTime=Math.max(0,a.fleeTime-dt);a.dir=Math.atan2(a.x-P.x,a.z-P.z);sp=D.spd;if(a.fleeTime<=0)a.state='IDLE'}
+  else if((a.k==='rabbit'||a.k==='deer')&&a.state==='FLEE'&&a.fleeTime>0){a.fleeTime=Math.max(0,a.fleeTime-dt);sp=D.spd;if(a.fleeTime<=0)a.state='IDLE'}
   else if(D.fear&&a.k!=='rabbit'&&a.k!=='deer'&&(d<D.fear||a.fl>0)&&!(a.fleeCooldown>0)){if(!a.fleeTime){a.fleeTime=4+Math.random()*2;a.fleeFrom={x:P.x,z:P.z}}if(a.fleeTime>0&&Math.hypot(a.x-a.fleeFrom.x,a.z-a.fleeFrom.z)<19){a.fleeTime-=dt;a.dir=Math.atan2(-dx,-dz);sp=D.spd}else{a.fleeTime=0;a.fleeFrom=null;a.fleeCooldown=6;a.fl=0;a.t=0;a.w=false}}
   else{a.fleeTime=0;a.fleeFrom=null;if(a.t<=0){a.t=2+Math.random()*4;a.dir=Math.random()*6.28;a.w=Math.random()<.55}sp=a.w?D.spd*.3:0}
   if(a.k!=='fish'&&a.unstuckTimer>0)a.dir=a.unstuckDir;
   const prevX=a.x,prevZ=a.z;let actualMoveDist=0;
   if(sp){if(a.k!=='fish'&&a.unstuckTimer<=0){let sx=0,sz=0;for(let j=0;j<AL.length;j++){const b=AL[j];if(b===a||b.k==='fish'||b.dying>0)continue;const ex=a.x-b.x,ez=a.z-b.z,dd=Math.hypot(ex,ez);if(dd>0&&dd<1.65){const f=(1.65-dd)/1.65;sx+=ex/dd*f;sz+=ez/dd*f}}if(Math.hypot(sx,sz)>.08)a.dir=Math.atan2(Math.sin(a.dir)+sx*.55,Math.cos(a.dir)+sz*.55)}
-   const pathHit=a.k==='fish'||a.unstuckTimer>0?null:blocked(a,a.dir);if(pathHit&&!pathHit.terrain&&a.obstacleCooldown<=0){let found=false;for(const off of[.72,-.72,1.12,-1.12]){const candidate=a.dir+off;if(!blocked(a,candidate)){a.dir=candidate;a.obstacleCooldown=1.2;found=true;break}}if(!found)turn(a)}
-   const nx=a.x+Math.sin(a.dir)*sp*dt,nz=a.z+Math.cos(a.dir)*sp*dt,ny=hgt(nx,nz),valid=a.k==='fish'?ny<-.6:(ny>.15&&ny<8.5&&ny-hgt(a.x,a.z)<=.62&&Math.abs(nx)<95&&Math.abs(nz)<95);
+   const pathHit=a.k==='fish'||a.unstuckTimer>0?null:blocked(a,a.dir);if(pathHit&&!pathHit.terrain&&a.obstacleCooldown<=0){let found=false;const offsets=(a.k==='deer'||a.k==='rabbit')?[65*Math.PI/180,-65*Math.PI/180]:[.72,-.72,1.12,-1.12];for(const off of offsets){const candidate=a.dir+off;if(!blocked(a,candidate)){a.dir=candidate;a.obstacleCooldown=1.2;found=true;break}}if(!found)turn(a)}
+   const nx=a.x+Math.sin(a.dir)*sp*dt,nz=a.z+Math.cos(a.dir)*sp*dt,ny=hgt(nx,nz),valid=a.k==='fish'?ny<-.6:(ny>.15&&ny<8.5&&ny-hgt(a.x,a.z)<=maxSlopeOf(a)&&Math.abs(nx)<95&&Math.abs(nz)<95);
    const hit=a.k==='fish'?null:obstacleAt(a,nx,nz);
-   if(valid&&!hit){a.x=nx;a.z=nz}else if(valid&&hit){let ex=nx-hit.x,ez=nz-hit.z;if(hit.box){if(hit.hx-Math.abs(ex)<hit.hz-Math.abs(ez)){ex=Math.sign(ex)||1;ez=0}else{ez=Math.sign(ez)||1;ex=0}}else{const dd=Math.hypot(ex,ez)||1;ex/=dd;ez/=dd}let tx=-ez,tz=ex;if(tx*Math.sin(a.dir)+tz*Math.cos(a.dir)<0){tx=-tx;tz=-tz}const len=Math.hypot(nx-a.x,nz-a.z),sx=tx*len,sz=tz*len,qx=a.x+sx,qz=a.z+sz,qy=hgt(qx,qz);if(qy>.15&&qy<8.5&&qy-hgt(a.x,a.z)<=.62&&Math.abs(qx)<95&&Math.abs(qz)<95&&!obstacleAt(a,qx,qz)){a.x=qx;a.z=qz;if(a.obstacleCooldown<=0){a.dir=Math.atan2(sx,sz);a.obstacleCooldown=1.2}}else turn(a)}else turn(a)}
+   if(valid&&!hit){a.x=nx;a.z=nz}else if(valid&&hit){let ex=nx-hit.x,ez=nz-hit.z;if(hit.box){if(hit.hx-Math.abs(ex)<hit.hz-Math.abs(ez)){ex=Math.sign(ex)||1;ez=0}else{ez=Math.sign(ez)||1;ex=0}}else{const dd=Math.hypot(ex,ez)||1;ex/=dd;ez/=dd}let tx=-ez,tz=ex;if(tx*Math.sin(a.dir)+tz*Math.cos(a.dir)<0){tx=-tx;tz=-tz}const len=Math.hypot(nx-a.x,nz-a.z),sx=tx*len,sz=tz*len,qx=a.x+sx,qz=a.z+sz,qy=hgt(qx,qz);if(qy>.15&&qy<8.5&&qy-hgt(a.x,a.z)<=maxSlopeOf(a)&&Math.abs(qx)<95&&Math.abs(qz)<95&&!obstacleAt(a,qx,qz)){a.x=qx;a.z=qz;if(a.obstacleCooldown<=0){a.dir=Math.atan2(sx,sz);a.obstacleCooldown=1.2}}else turn(a)}else turn(a)}
   if(a.k!=='fish'&&a.unstuckTimer>0)a.unstuckDir=a.dir;
   actualMoveDist=Math.hypot(a.x-prevX,a.z-prevZ);
   if(sp>0&&a.k!=='fish'&&actualMoveDist<.002){
    const probeDist=Math.max(.16,sp*dt*2),contact=obstacleAt(a,a.x+Math.sin(a.dir)*probeDist,a.z+Math.cos(a.dir)*probeDist)||blocked(a,a.dir);
-   if(contact&&!contact.terrain){const base=a.dir,angle=(75+Math.random()*35)*Math.PI/180,step=Math.max(.12,sp*dt),sides=Math.random()<.5?[1,-1]:[-1,1];let diverted=false;
+   if(contact&&!contact.terrain&&a.obstacleCooldown<=0){const base=a.dir,angle=(75+Math.random()*35)*Math.PI/180,step=Math.max(.12,sp*dt),sides=Math.random()<.5?[1,-1]:[-1,1];let diverted=false;
     for(const side of sides){const candidate=base+side*angle,qx=a.x+Math.sin(candidate)*step,qz=a.z+Math.cos(candidate)*step,qy=hgt(qx,qz);
-     if(qy>.15&&qy<8.5&&qy-hgt(a.x,a.z)<=.62&&Math.abs(qx)<95&&Math.abs(qz)<95&&!obstacleAt(a,qx,qz)&&!blocked(a,candidate)){a.dir=candidate;a.x=qx;a.z=qz;a.obstacleCooldown=.35;diverted=true;break}}
+     if(qy>.15&&qy<8.5&&qy-hgt(a.x,a.z)<=maxSlopeOf(a)&&Math.abs(qx)<95&&Math.abs(qz)<95&&!obstacleAt(a,qx,qz)&&!blocked(a,candidate)){a.dir=candidate;a.x=qx;a.z=qz;a.obstacleCooldown=.35;diverted=true;break}}
     if(!diverted){a.dir=base+sides[0]*angle;a.obstacleCooldown=.35}
    }
    actualMoveDist=Math.hypot(a.x-prevX,a.z-prevZ);
   }
-  a.stuckClock=(a.stuckClock||0)+dt;if(a.stuckClock>=.5){const moved=Math.hypot(a.x-a.lastX,a.z-a.lastZ);if(a.k!=='fish'&&sp>0&&moved<.15&&a.unstuckTimer<=0){let nearest=null;for(const radius of[.55,.9,1.25])for(let j=0;j<16;j++){const ang=j*Math.PI/8,px=a.x+Math.sin(ang)*radius,pz=a.z+Math.cos(ang)*radius,hit=obstacleAt(a,px,pz);if(hit){const score=Math.hypot(px-hit.x,pz-hit.z);if(!nearest||score<nearest.score)nearest={hit,score}}}let away;if(nearest){const ax=a.x-nearest.hit.x,az=a.z-nearest.hit.z;away=Math.hypot(ax,az)>.001?Math.atan2(ax,az):a.dir+Math.PI}else away=a.dir+Math.PI;const angle=(120+Math.random()*30)*Math.PI/180,c1=a.dir+angle,c2=a.dir-angle,score1=Math.sin(c1)*Math.sin(away)+Math.cos(c1)*Math.cos(away),score2=Math.sin(c2)*Math.sin(away)+Math.cos(c2)*Math.cos(away);a.dir=score1>=score2?c1:c2;a.unstuckDir=a.dir;a.unstuckTimer=1.2;a.obstacleCooldown=0;if(a.state!=='FLEE'){a.fleeTime=0;a.fleeFrom=null}a.fl=0;a.t=0}a.lastX=a.x;a.lastZ=a.z;a.stuckClock=0}
+  a.stuckClock=(a.stuckClock||0)+dt;if(a.stuckClock>=.5){const moved=Math.hypot(a.x-a.lastX,a.z-a.lastZ);if(a.k!=='fish'&&sp>0&&moved<.15&&a.unstuckTimer<=0&&((a.k!=='deer'&&a.k!=='rabbit')||a.obstacleCooldown<=0)){let nearest=null;for(const radius of[.55,.9,1.25])for(let j=0;j<16;j++){const ang=j*Math.PI/8,px=a.x+Math.sin(ang)*radius,pz=a.z+Math.cos(ang)*radius,hit=obstacleAt(a,px,pz);if(hit){const score=Math.hypot(px-hit.x,pz-hit.z);if(!nearest||score<nearest.score)nearest={hit,score}}}let away;if(nearest){const ax=a.x-nearest.hit.x,az=a.z-nearest.hit.z;away=Math.hypot(ax,az)>.001?Math.atan2(ax,az):a.dir+Math.PI}else away=a.dir+Math.PI;const angle=((a.k==='deer'||a.k==='rabbit')?65:(120+Math.random()*30))*Math.PI/180,c1=a.dir+angle,c2=a.dir-angle,score1=Math.sin(c1)*Math.sin(away)+Math.cos(c1)*Math.cos(away),score2=Math.sin(c2)*Math.sin(away)+Math.cos(c2)*Math.cos(away);a.dir=score1>=score2?c1:c2;a.unstuckDir=a.dir;a.unstuckTimer=1.2;a.obstacleCooldown=(a.k==='deer'||a.k==='rabbit')?.9:0;if(a.state!=='FLEE'){a.fleeTime=0;a.fleeFrom=null}a.fl=0;a.t=0}a.lastX=a.x;a.lastZ=a.z;a.stuckClock=0}
   const y=hgt(a.x,a.z);a.g.position.set(a.x,a.k==='fish'?-.35+Math.sin(tm*2+i)*.04:Math.max(y,-.6),a.z);let df=a.dir-a.g.rotation.y;df=Math.atan2(Math.sin(df),Math.cos(df));a.g.rotation.y+=df*Math.min(1,dt*8);animAn(a,actualMoveDist>=.002?sp:0,dt,i)
  }
 }
@@ -729,17 +729,35 @@ function applyLang(){const sb=(id,ic,t)=>$(id).innerHTML='<span class="cb">'+ico
  sb('bAct','ui_act','Действие (E)');sb('bCraft','ui_craft','Крафт (C)');sb('bNew','ui_redo','');
  $('bNew').title=L('Новая игра');$('bMenu').title=L('Меню (Esc)');$('bDel').title=L('Разобрать постройку (X)');
  $('dtxt').textContent=L('Вы погибли');$('bRe').textContent=L('Начать заново');$('menu').dataset.busy=L('Генерация мира...');
- $('gname').textContent=GN();$('gver').textContent='v0.0.5.9 '+L('Альфа')+' 3D';document.title=GN();document.documentElement.lang=ST.lang;$('pname').textContent=CH.name;
+ $('gname').textContent=GN();$('gver').textContent='v0.0.5.10 '+L('Альфа')+' 3D';document.title=GN();document.documentElement.lang=ST.lang;$('pname').textContent=CH.name;
  if(inv)refresh()}
 // ===== Симуляция =====
 const dark=()=>clamp(.35-Math.sin(time*6.2832)*.6,0,.8);
-function move(dx,dz){let nx=clamp(P.x+dx,-95,95),nz=clamp(P.z+dz,-95,95);
+function move(dx,dz){
+ let nx=clamp(P.x+dx,-95,95),nz=clamp(P.z+dz,-95,95);
  for(const n of near(nx,nz)){const d=G.nodes[n.t];if(!d||!d.solid||n.gone||n.fall>0)continue;const rr=n.colliderRadius||(d.r*n.s+.35),ex=nx-n.x,ez=nz-n.z,dd=Math.hypot(ex,ez);if(dd<rr){const q=dd||1,ux=dd?ex/q:Math.cos(P.f),uz=dd?ez/q:-Math.sin(P.f);nx=n.x+ux*rr;nz=n.z+uz*rr}}
  for(const p of PC){const b=pcBox(p);if(!b)continue;const hx=b[0]+.35,hz=b[1]+.35,ex=nx-p.x,ez=nz-p.z;
   if(Math.abs(ex)<hx&&Math.abs(ez)<hz){if(hx-Math.abs(ex)<hz-Math.abs(ez))nx=p.x+(ex<0?-1:1)*hx;else nz=p.z+(ez<0?-1:1)*hz}}
- P.x=nx;P.z=nz}
+ const pyramidPos={x:nx,z:nz};resolvePyramidWalls(pyramidPos,.35,Array.from(ML_PYRAMIDS.values()));
+ P.x=clamp(pyramidPos.x,-95,95);P.z=clamp(pyramidPos.z,-95,95);
+}
 const KEYS={};let yaw=0,pit=.45,dist=9,joy=null,look=null,autoTest=null;
-const camGoal=new THREE.Vector3(),cameraLook=new THREE.Vector3(),lookGoal=new THREE.Vector3();let cameraFollowReady=false;
+const camGoal=new THREE.Vector3(),cameraLook=new THREE.Vector3(),lookGoal=new THREE.Vector3();let cameraFollowReady=false,FIRST_PERSON=false,cameraToggleButton=null;
+function initCameraToggleBtn() {
+ if(cameraToggleButton)return;
+ const btn=document.createElement('button');btn.id='bCamView';btn.textContent='👁 3-е лицо';
+ btn.style.cssText='position:fixed;right:14px;bottom:158px;z-index:50;padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:rgba(28,36,24,.82);color:#e8efe0;font-size:13px;font-weight:600;';
+ btn.onclick=()=>{FIRST_PERSON=!FIRST_PERSON;btn.textContent=FIRST_PERSON?'👁 1-е лицо':'👁 3-е лицо';pl.visible=!FIRST_PERSON;cameraFollowReady=false};
+ document.body.appendChild(btn);cameraToggleButton=btn;
+}
+function updateGameCamera(camera, playerPos, playerYaw, camPitch, camDist, pyramidsList) {
+ if(cameraToggleButton)cameraToggleButton.hidden=MENU;
+ if(FIRST_PERSON){camGoal.set(playerPos.x,playerPos.y+1.62,playerPos.z);lookGoal.set(playerPos.x+Math.sin(playerYaw)*Math.cos(camPitch),playerPos.y+1.62+Math.sin(camPitch),playerPos.z+Math.cos(playerYaw)*Math.cos(camPitch));return}
+ let targetDist=camDist;
+ for(const pyr of pyramidsList){if(Math.abs(playerPos.x-pyr.x)<7.8&&Math.abs(playerPos.z-pyr.z)<7.8){targetDist=Math.min(camDist,2.6);break}}
+ const cx=playerPos.x-Math.sin(playerYaw)*Math.cos(camPitch)*targetDist,cy=playerPos.y+1.5+Math.sin(camPitch)*targetDist,cz=playerPos.z-Math.cos(playerYaw)*Math.cos(camPitch)*targetDist;
+ camGoal.set(cx,Math.max(cy,playerPos.y+.6),cz);lookGoal.set(playerPos.x,playerPos.y+1.35,playerPos.z);
+}
 function startAutoTest(){if(autoTest&&autoTest.active)return;save();const now=performance.now();autoTest={active:true,startedAt:now,lastSample:now,frameCount:0,fpsSamples:[],errors:[],position:P?{x:P.x,y:P.y,z:P.z,f:P.f}:null,stats:S?{hp:S.hp,food:S.food,water:S.water,warm:S.warm}:null,time,day,yaw,pit,dist};autoTest.previousOnError=window.onerror;autoTest.errorHandler=function(message,source,line,column,error){if(autoTest&&autoTest.active)autoTest.errors.push(String(error&&error.stack||message)+' '+String(source||'')+':'+String(line||0)+':'+String(column||0));if(typeof autoTest.previousOnError==='function')return autoTest.previousOnError.apply(this,arguments);return false};autoTest.rejectionHandler=function(event){if(autoTest&&autoTest.active)autoTest.errors.push('Promise: '+String(event.reason&&event.reason.stack||event.reason))};window.onerror=autoTest.errorHandler;window.addEventListener('unhandledrejection',autoTest.rejectionHandler);hideMenu()}
 function finishAutoTest(){const t=autoTest;if(!t||!t.active)return;t.active=false;Object.keys(KEYS).forEach(k=>KEYS[k]=0);if(window.onerror===t.errorHandler)window.onerror=t.previousOnError;window.removeEventListener('unhandledrejection',t.rejectionHandler);if(t.position&&P)Object.assign(P,t.position);if(t.stats&&S)Object.assign(S,t.stats);time=t.time;day=t.day;yaw=t.yaw;pit=t.pit;dist=t.dist;if(HAVEWORLD)save();MENU=true;document.body.classList.add('menu');UI.page='set';render();const samples=t.fpsSamples,min=samples.length?Math.min(...samples):0,max=samples.length?Math.max(...samples):0,avg=samples.length?Math.round(samples.reduce((a,b)=>a+b,0)/samples.length):0;const errors=t.errors.length?t.errors.map((e,i)=>(i+1)+'. '+e).join('\n'):L('Ошибок не обнаружено');const report=$('autotest-report');report.innerHTML='<div class="test-card"><h2>'+L('Автотест завершён')+'</h2><p>'+L('Длительность: {n} сек',{n:'20'})+'</p><p>'+L('FPS — мин: {min} · сред: {avg} · макс: {max}',{min,avg,max})+'</p><h3>'+L('Ошибки JavaScript')+'</h3><pre>'+esc(errors)+'</pre><button id="autotest-close">'+L('Закрыть')+'</button></div>';report.hidden=false;report.querySelector('#autotest-close').onclick=()=>{report.hidden=true}}
 function step(dt){if(MENU)return;if(autoTest&&autoTest.active){const directions=[['KeyW'],['KeyD'],['KeyS'],['KeyA'],['KeyW','KeyD'],['KeyS','KeyD'],['KeyS','KeyA'],['KeyW','KeyA']];const phase=Math.min(7,Math.floor((performance.now()-autoTest.startedAt)/2500));Object.keys(KEYS).forEach(k=>delete KEYS[k]);directions[phase].forEach(k=>KEYS[k]=1)}
@@ -770,7 +788,7 @@ function step(dt){if(MENU)return;if(autoTest&&autoTest.active){const directions=
   if(lastHp-S.hp>3){playA('hurt');hurtT=1}lastHp=S.hp;
   if(S.hp<=0){dead=true;$('dead').hidden=false}
   saveT+=dt;if(saveT>8){saveT=0;save()}}}
- const ground=gy(P.x,P.z),surfaceY=ground<WATER_LEVEL-.05?WATER_LEVEL:Math.max(ground,-.6);
+ const baseGround=gy(P.x,P.z),ground=getPyramidFloorHeight(P.x,P.z,baseGround,Array.from(ML_PYRAMIDS.values())),surfaceY=ground<WATER_LEVEL-.05?WATER_LEVEL:Math.max(ground,-.6);
  P.y=Math.max(P.y,ground);P.y+=(surfaceY-P.y)*Math.min(1,dt*15);P.y=Math.max(P.y,ground);
  poseP(dt);updPts(swimSplash,dt,splashEmit);
  shk.forEach(n=>{n.sh-=dt;if(n.sh<=0){n.sh=0;shk.delete(n);put(n)}else put(n,Math.sin(n.sh*50)*n.sh*.5)});
@@ -778,8 +796,16 @@ function step(dt){if(MENU)return;if(autoTest&&autoTest.active){const directions=
  F.forEach(f=>{const q=1+Math.sin(tm*18+f.x)*.12+Math.random()*.08;f.f1.scale.set(q,q*1.1,q);f.f2.scale.set(q,q*1.2,q);f.L.intensity=1.4+Math.sin(tm*17+f.x)*.25+Math.random()*.2;if(Math.random()<dt*2&&Math.hypot(f.x-P.x,f.z-P.z)<12)snd(900+Math.random()*900,.03,'square',.012);updPts(f.sk,dt,spk);updPts(f.sm,dt,smk)});
  updAnimals(dt);animPC(dt);WT.value=tm;if(openC&&Math.hypot(openC.x-P.x,openC.z-P.z)>5){openC=null;refresh()}if((cbT-=dt)<0){cbT=.4;updCraft()}const wp=water.geometry.attributes.position,b=water.userData.b;
  for(let i=0;i<wp.count;i++)wp.setY(i,Math.sin(b[i*3]*.3+tm)*.07+Math.cos(b[i*3+2]*.25+tm*1.3)*.06);wp.needsUpdate=true;water.geometry.computeVertexNormals();
- if(MENU)menuCam(dt);const mo=MENU&&innerWidth>760?1.3:0,tx=P.x-Math.cos(yaw)*mo,ty=P.y+(MENU?(innerWidth>760?1.25:.5):1.5),tz=P.z+Math.sin(yaw)*mo,cp=Math.cos(pit);let cx=tx+Math.sin(yaw)*cp*dist,cz=tz+Math.cos(yaw)*cp*dist,cy=ty+Math.sin(pit)*dist;
- cy=Math.max(cy,hgt(cx,cz)+.9);camGoal.set(cx,cy,cz);lookGoal.set(tx,ty,tz);const camLerp=1-Math.exp(-dt*10);if(!cameraFollowReady){cam.position.copy(camGoal);cameraLook.copy(lookGoal);cameraFollowReady=true}else{cam.position.lerp(camGoal,camLerp);cameraLook.lerp(lookGoal,camLerp)}cam.lookAt(cameraLook);
+ if(MENU){
+  menuCam(dt);
+  const mo=innerWidth>760?1.3:0,tx=P.x-Math.cos(yaw)*mo,ty=P.y+(innerWidth>760?1.25:.5),tz=P.z+Math.sin(yaw)*mo,cp=Math.cos(pit);
+  let cx=tx+Math.sin(yaw)*cp*dist,cz=tz+Math.cos(yaw)*cp*dist,cy=ty+Math.sin(pit)*dist;
+  cy=Math.max(cy,hgt(cx,cz)+.9);camGoal.set(cx,cy,cz);lookGoal.set(tx,ty,tz);
+ }else updateGameCamera(cam,P,yaw,pit,dist,Array.from(ML_PYRAMIDS.values()));
+ const camLerp=1-Math.exp(-dt*10);
+ if(!cameraFollowReady){cam.position.copy(camGoal);cameraLook.copy(lookGoal);cameraFollowReady=true}
+ else{cam.position.lerp(camGoal,camLerp);cameraLook.lerp(lookGoal,camLerp)}
+ cam.lookAt(cameraLook);
  const tf=ST.fov;fovC+=(tf-fovC)*Math.min(1,dt*5);if(Math.abs(cam.fov-fovC)>.05){cam.fov=fovC;cam.updateProjectionMatrix()}
  const tg=TG=target(),ht=tg?(tg.p?L('Открыть сундук'):tg.k?L(AN[tg.k].hint):G.nodes[tg.t].hint):waterAhead()?L('Пить воду'):'';$('hint').hidden=!ht||dead||MENU||!$('craft').hidden||!$('chest').hidden||!$('dead').hidden;$('hint').textContent='E — '+ht;
 }
@@ -1030,6 +1056,15 @@ function mlEnemyModel(type,parent){
  parent.add(g);
  return g;
 }
+function getSolidPyramidColliders(px, pz) {
+  return [
+    { minX: px - 8.5, maxX: px + 8.5, minZ: pz - 8.5, maxZ: pz - 5.0 },
+    { minX: px - 8.5, maxX: px - 5.0, minZ: pz - 8.5, maxZ: pz + 8.5 },
+    { minX: px + 5.0, maxX: px + 8.5, minZ: pz - 8.5, maxZ: pz + 8.5 },
+    { minX: px - 8.5, maxX: px - 1.5, minZ: pz + 5.0, maxZ: pz + 8.5 },
+    { minX: px + 1.5, maxX: px + 8.5, minZ: pz + 5.0, maxZ: pz + 8.5 }
+  ];
+}
 function createPyramidStructure(px, pz) {
   const py = hgt(px, pz);
   const group = new THREE.Group();
@@ -1041,16 +1076,16 @@ function createPyramidStructure(px, pz) {
   foundation.receiveShadow = true;
   group.add(foundation);
   const wallH = 3.2;
-  const backWall = new THREE.Mesh(new THREE.BoxGeometry(16, wallH, 1.6), sandMat);
-  backWall.position.set(0, wallH / 2, -7.2);
-  const leftWall = new THREE.Mesh(new THREE.BoxGeometry(1.6, wallH, 16), sandMat);
-  leftWall.position.set(-7.2, wallH / 2, 0);
-  const rightWall = new THREE.Mesh(new THREE.BoxGeometry(1.6, wallH, 16), sandMat);
-  rightWall.position.set(7.2, wallH / 2, 0);
-  const frontLeft = new THREE.Mesh(new THREE.BoxGeometry(6.4, wallH, 1.6), sandMat);
-  frontLeft.position.set(-4.8, wallH / 2, 7.2);
-  const frontRight = new THREE.Mesh(new THREE.BoxGeometry(6.4, wallH, 1.6), sandMat);
-  frontRight.position.set(4.8, wallH / 2, 7.2);
+  const backWall = new THREE.Mesh(new THREE.BoxGeometry(17, wallH, 3.5), sandMat);
+  backWall.position.set(0, wallH / 2, -6.75);
+  const leftWall = new THREE.Mesh(new THREE.BoxGeometry(3.5, wallH, 17), sandMat);
+  leftWall.position.set(-6.75, wallH / 2, 0);
+  const rightWall = new THREE.Mesh(new THREE.BoxGeometry(3.5, wallH, 17), sandMat);
+  rightWall.position.set(6.75, wallH / 2, 0);
+  const frontLeft = new THREE.Mesh(new THREE.BoxGeometry(7, wallH, 3.5), sandMat);
+  frontLeft.position.set(-5, wallH / 2, 6.75);
+  const frontRight = new THREE.Mesh(new THREE.BoxGeometry(7, wallH, 3.5), sandMat);
+  frontRight.position.set(5, wallH / 2, 6.75);
   group.add(backWall, leftWall, rightWall, frontLeft, frontRight);
   const roofTiers = [
     { size: 13.5, h: 2.0, y: 4.2 },
@@ -1065,13 +1100,7 @@ function createPyramidStructure(px, pz) {
     tier.receiveShadow = true;
     group.add(tier);
   });
-  const colliders = [
-    { minX: px - 8.0, maxX: px + 8.0, minZ: pz - 8.0, maxZ: pz - 6.4 },
-    { minX: px - 8.0, maxX: px - 6.4, minZ: pz - 8.0, maxZ: pz + 8.0 },
-    { minX: px + 6.4, maxX: px + 8.0, minZ: pz - 8.0, maxZ: pz + 8.0 },
-    { minX: px - 8.0, maxX: px - 1.6, minZ: pz + 6.4, maxZ: pz + 8.0 },
-    { minX: px + 1.6, maxX: px + 8.0, minZ: pz + 6.4, maxZ: pz + 8.0 }
-  ];
+  const colliders = getSolidPyramidColliders(px, pz);
   return { mesh: group, x: px, y: py + 0.1, z: pz, colliders };
 }
 function buildPyramidWithColliders(px, py, pz, worldX = px, worldZ = pz) {
@@ -1094,6 +1123,12 @@ function resolvePyramidWalls(pos, radius, pyramidsList) {
       }
     }
   }
+}
+function getPyramidFloorHeight(x, z, baseTerrainY, pyramidsList) {
+  for (const pyr of pyramidsList) {
+    if (Math.abs(x - pyr.x) <= 5.2 && z >= pyr.z - 5.2 && z <= pyr.z + 8.6) return pyr.y;
+  }
+  return baseTerrainY;
 }
 function resolvePyramidCollision(pos, radius, colliders) {
   resolvePyramidWalls(pos, radius, [{ colliders }]);
@@ -1186,12 +1221,7 @@ function updateMummyOrPharaoh(mob, dt, time, pyramidsList) {
       resolvePyramidWalls(mob, 0.45, pyramidsList);
     }
   }
-  let floorY = hgt(mob.x, mob.z);
-  for (const pyr of pyramidsList) {
-    if (Math.abs(mob.x - pyr.x) < 7.8 && Math.abs(mob.z - pyr.z) < 7.8) {
-      floorY = Math.max(floorY, pyr.y);
-    }
-  }
+  const floorY = getPyramidFloorHeight(mob.x,mob.z,hgt(mob.x,mob.z),pyramidsList);
   mob.y = floorY;
   const pyr = pyramidsList.find(q => q && q.x !== undefined && q.z !== undefined);
   mesh.position.set(pyr ? mob.x - pyr.x : mob.x, pyr ? mob.y - pyr.y : mob.y, pyr ? mob.z - pyr.z : mob.z);
@@ -1246,6 +1276,7 @@ function mlUpdateDungeon(dt) {
 }
 function mlEnsureBossBar(){if(document.getElementById('ml-boss-bar'))return;const d=document.createElement('div');d.id='ml-boss-bar';d.hidden=true;d.style.cssText='position:fixed;z-index:50;top:12px;left:50%;transform:translateX(-50%);width:min(340px,72vw);text-align:center;color:#ffe2a0;font-weight:700;text-shadow:0 2px 4px #000;pointer-events:none';d.innerHTML='<b>Фараон</b><div style="height:12px;border:1px solid #d7b45b;background:#241b10;border-radius:8px;overflow:hidden"><i style="display:block;width:100%;height:100%;background:#b52e25"></i></div>';document.body.appendChild(d)}
 mlEnsureBossBar();
+initCameraToggleBtn();
 const mlAttackButton=$('bAct');
 mlAttackButton.addEventListener('pointerdown',e=>{if(Array.isArray(inv)&&hasTool('bow')&&ML_QUIVER&&ML_ARROWS>0){ML_BOW_DRAWING=true;ML_BOW_CHARGE=0;try{mlAttackButton.setPointerCapture(e.pointerId)}catch(_){}e.preventDefault()}});
 mlAttackButton.addEventListener('pointerup',e=>{if(ML_BOW_DRAWING){ML_BOW_DRAWING=false;ML_SKIP_BOW_CLICK=true;act();ML_BOW_CHARGE=0;const bow=armR&&armR.getObjectByName('ml-bow');if(bow&&bow.userData.string)bow.userData.string.position.z=-.02;e.preventDefault()}});
