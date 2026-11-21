@@ -58,8 +58,6 @@ body.menu #dock,body.menu #hud,body.menu #hint,body.menu #top,body.menu #toast{d
 #bMenu{padding:4px 8px;line-height:0}input{user-select:text}
 @media(max-width:760px){#menu{top:auto;height:60%;width:100%;background:rgba(7,11,7,.93)}}
 #dead{position:fixed;inset:0;background:#000a;display:flex;align-items:center;justify-content:center;text-align:center;font-size:22px;line-height:2}
-#update-status{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 44px);transform:translateX(-50%);z-index:1000;padding:7px 12px;border:1px solid #53654b;border-radius:10px;background:rgba(8,14,8,.94);color:#e8efe0;font-size:12px;pointer-events:none;box-shadow:0 4px 18px #0008;white-space:nowrap}
-#update-status[hidden]{display:none!important}
 #autotest-report{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;background:#000c;overflow:auto;touch-action:pan-y}
 #autotest-report[hidden]{display:none!important}
 #autotest-report .test-card{width:min(520px,100%);max-height:100%;overflow:auto;padding:20px;border:1px solid #53654b;border-radius:16px;background:#101910;box-shadow:0 12px 40px #000b}
@@ -69,7 +67,6 @@ body.menu #dock,body.menu #hud,body.menu #hint,body.menu #top,body.menu #toast{d
 #autotest-report button{width:100%;margin-top:12px;padding:11px}
 </style></head><body>
 <div id="top"><button id="bMenu"></button><b id="gname"></b><span id="gver"></span><span id="pname"></span><span id="top-right"><span id="clock"></span><span id="fps" hidden></span></span></div>
-<div id="update-status" role="status" aria-live="polite">Проверка обновлений...</div>
 <div id="hud"></div><div id="toast"></div><div id="hint" hidden></div>
 <div id="dock">
  <div id="craft" hidden></div><div id="chest" hidden></div><div id="inv"></div>
@@ -78,49 +75,21 @@ body.menu #dock,body.menu #hud,body.menu #hint,body.menu #top,body.menu #toast{d
 <div id="menu"></div><div id="autotest-report" hidden></div><div id="hurt"></div><div id="dead" hidden><div><span id="dtxt"></span><br><button id="bRe"></button></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="game.js"></script>
-<script>if ('serviceWorker' in navigator) {
-  const updateStatus = document.getElementById('update-status');
-  let updateReloading = false;
-  let updateHideTimer = 0;
-  function showUpdateStatus(message, timeoutMs = 5000) {
-    if (!updateStatus) return;
-    clearTimeout(updateHideTimer);
-    updateStatus.textContent = message;
-    updateStatus.hidden = false;
-    if (timeoutMs > 0) updateHideTimer = setTimeout(hideUpdateStatus, timeoutMs);
-  }
-  function hideUpdateStatus() {
-    if (!updateStatus) return;
-    clearTimeout(updateHideTimer);
-    updateStatus.hidden = true;
-  }
-  function reloadForUpdate() {
-    if (updateReloading) return;
-    updateReloading = true;
-    showUpdateStatus('Обновление готово · запуск...', 0);
-    try { if (typeof window.save === 'function') window.save(); } catch (_) {}
-    setTimeout(() => window.location.reload(), 180);
-  }
-  navigator.serviceWorker.addEventListener('message', event => {
-    const data = event.data || {};
-    if (data.type === 'ML_UPDATE_CHECKING') {
-      showUpdateStatus('Проверка обновлений...');
-    } else if (data.type === 'ML_UPDATE_DOWNLOADING') {
-      showUpdateStatus('Загрузка файлов...');
-    } else if (data.type === 'ML_UPDATE_READY' || data.type === 'ML_ASSETS_UPDATED') {
-      reloadForUpdate();
-    } else if (data.type === 'ML_UPDATE_DONE' || data.type === 'ML_UPDATE_OFFLINE' || data.type === 'ML_UPDATE_FAILED') {
-      updateHideTimer = setTimeout(hideUpdateStatus, 350);
+<script>
+(async function disableLegacyUpdater() {
+  if (!('serviceWorker' in navigator)) return;
+  try {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(registrations.map(registration => registration.unregister()));
+  } catch (_) {}
+  try {
+    if ('caches' in window) {
+      const names = await caches.keys();
+      await Promise.all(names.filter(name =>
+        name.startsWith('miraculous-land-pwa-') ||
+        name === 'miraculous-land-pwa-v1' || name === 'miraculous-land-pwa-meta-v2'
+      ).map(name => caches.delete(name)));
     }
-  });
-  window.addEventListener('load', () => {
-    if (!navigator.onLine) hideUpdateStatus();
-    navigator.serviceWorker.register('./sw.js', {scope: './', updateViaCache: 'none'})
-      .then(registration => registration.update())
-      .catch(hideUpdateStatus);
-    if (updateStatus && updateStatus.textContent === 'Проверка обновлений...') showUpdateStatus('Проверка обновлений...');
-  });
-} else {
-  const status = document.getElementById('update-status');
-  if (status) status.hidden = true;
-}
+  } catch (_) {}
+})();
+</script></body></html>
