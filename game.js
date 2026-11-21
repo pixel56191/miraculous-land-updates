@@ -5,7 +5,7 @@ window.addEventListener('unhandledrejection',e=>window.__ML_STARTUP_FALLBACK(e.r
 try{const $=id=>document.getElementById(id);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // ===== Ядро: реестры (новый контент добавляется здесь или через Game.use) =====
-const G=window.Game={version:'0.0.5.10 Альфа 3D',items:{},nodes:{},recipes:[],mods:[],
+const G=window.Game={version:'0.0.5.8 Альфа 3D',items:{},nodes:{},recipes:[],mods:[],
  registerItem(id,o){o.ru=o.n;Object.defineProperty(o,'n',{get(){return L(this.ru)},enumerable:true});this.items[id]=o},registerNode(id,o){if(o.hint){o.hru=o.hint;Object.defineProperty(o,'hint',{get(){return L(this.hru)},enumerable:true})}this.nodes[id]=o},registerRecipe(r){this.recipes.push(r)},
  use(f){this.mods.push(f);f(this)}};
 G.use(g=>{
@@ -144,7 +144,7 @@ function buildWorld(){
   else if(y<1.7&&r>.94-.04*WP.res&&r<.94)addN('clay',px,y,pz,.7+R()*.5);else if(y>4.5&&r>.93-.05*WP.res&&r<.93)addN(r<.93-.025*WP.res?'coal':'iron',px,y,pz,.7+R()*.6);else if(r<.03*WP.res)addN('rock',px,y,pz,.6+R()*1.1);else if(r>.975)addN('bush',px,y,pz,.8+R()*.4)}
  const mk=(geo,mat,n,cs=true)=>{const m=new THREE.InstancedMesh(geo,mat,Math.max(1,n));m.castShadow=cs;m.receiveShadow=true;world.add(m);return m};
  const cone=(r,hh,y)=>new THREE.ConeGeometry(r,hh,7).translate(0,y,0);
- TR=[mk(new THREE.CylinderGeometry(.18,.28,2.4,6).translate(0,1.2,0),mt(0x5b3d24),cnt.tree),mk(cone(1.9,2.2,3.05),mt(0x2f6b34),cnt.tree),mk(cone(1.5,2,3.7),mt(0x38803c),cnt.tree),mk(cone(1.05,1.8,4.8),mt(0x43953f),cnt.tree)];
+ TR=[mk(new THREE.CylinderGeometry(.18,.28,2.4,6).translate(0,1.2,0),mt(0x5b3d24),cnt.tree),mk(cone(1.9,2.2,2.6),mt(0x2f6b34),cnt.tree),mk(cone(1.5,2,3.7),mt(0x38803c),cnt.tree),mk(cone(1.05,1.8,4.8),mt(0x43953f),cnt.tree)];
  const ig=new THREE.IcosahedronGeometry(1,1),ip=ig.attributes.position;
  for(let i=0;i<ip.count;i++){const x=ip.getX(i),y=ip.getY(i),z=ip.getZ(i),k=.8+h(x*9,z*7+y*5)*.4;ip.setXYZ(i,x*k,y*k,z*k)}
  ig.computeVertexNormals();RK=mk(ig,mt(0x8a8a86),cnt.rock);
@@ -259,9 +259,9 @@ function act(){if(cool>0||dead||MENU)return;const n=target();cool=.5;swing=.35;p
  if(waterAhead()){S.water=Math.min(100,S.water+25);snd(420,.15,'sine');return log(ico('ui_water',18)+' '+L('Вы попили'))}log(L('Рядом ничего нет'))}
 // ===== Животные и звуки (0.0.3) =====
 const AN={
- rabbit:{hint:'Поймать кролика',c:0xb9a58b,w:.2,h:.18,l:.3,lh:.1,hs:.13,hp:2,spd:3.6,fear:8,drops:[['meat',1,1],['hide',0,1]]},
- deer:{hint:'Охотиться на оленя',c:0x9a6a3a,w:.3,h:.38,l:.65,lh:.65,hs:.19,hp:5,spd:6.2,fear:15,drops:[['meat',2,3],['hide',1,1],['bone',1,1]]},
- wolf:{hint:'Атаковать волка',c:0x5f646b,w:.26,h:.3,l:.55,lh:.45,hs:.17,hp:6,spd:5.4,dmg:8,drops:[['meat',1,2],['hide',1,1],['bone',1,1]]},
+ rabbit:{hint:'Поймать кролика',c:0xb9a58b,w:.2,h:.18,l:.3,lh:.1,hs:.13,hp:2,cr:.25,spd:3.6,fear:8,drops:[['meat',1,1],['hide',0,1]]},
+ deer:{hint:'Охотиться на оленя',c:0x9a6a3a,w:.3,h:.38,l:.65,lh:.65,hs:.19,hp:5,cr:.4,spd:6.2,fear:15,drops:[['meat',2,3],['hide',1,1],['bone',1,1]]},
+ wolf:{hint:'Атаковать волка',c:0x5f646b,w:.26,h:.3,l:.55,lh:.45,hs:.17,hp:6,cr:.35,spd:5.4,dmg:8,drops:[['meat',1,2],['hide',1,1],['bone',1,1]]},
  fish:{hint:'Ловить рыбу',c:0xe0803a,hp:1,spd:2,drops:[['fish',1,1]]}};
 let AL=[],lastSt=0,AC;
 function snd(f,d=.1,ty='square',v=.05){if(ST.vol<=0)return;v*=ST.vol*1.4;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain();o.type=ty;o.frequency.value=f;g.gain.setValueAtTime(v,AC.currentTime);g.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+d);o.connect(g);g.connect(AC.destination);o.start();o.stop(AC.currentTime+d)}catch(e){}}
@@ -306,7 +306,7 @@ function mkAn(k){const D=AN[k],g=new THREE.Group(),hd=new THREE.Group(),tl=new T
  for(const sx of[-1,1]){leg(sx*.14,.5,.32,.5,.055,f,dk);leg(sx*.14,.5,-.3,.5,.06,f,dk)}
  return out([0,.7,.35],[0,.62,-.36])}
 let ANIMAL_POP_TIMER=0,WOLF_POP_TIMER=0;
-function addAn(k,x,z){const o=mkAn(k),a={k,x,z,hp:AN[k].hp,dir:Math.random()*6.28,t:0,cd:0,fl:0,obstacleCooldown:0,targetAngle:Math.random()*6.28,targetLock:0,moveCheckTime:0,moveCheckX:x,moveCheckZ:z,animationFrozen:false,lastX:x,lastZ:z,stuckClock:0,fleeTime:0,fleeFrom:null,fleeTarget:null,fleeCooldown:0,g:o.g,legs:o.legs,hd:o.hd,hv:o.hp,tl:o.tl,tv:o.tp};world.add(o.g);AL.push(a);return a}
+function addAn(k,x,z){const o=mkAn(k),a={k,x,z,hp:AN[k].hp,dir:Math.random()*6.28,t:0,cd:0,fl:0,obstacleCooldown:0,lastX:x,lastZ:z,stuckClock:0,fleeTime:0,fleeFrom:null,g:o.g,legs:o.legs,hd:o.hd,hv:o.hp,tl:o.tl,tv:o.tp};world.add(o.g);AL.push(a);return a}
 function trySpawnAnimal(k,R=Math.random){
  for(let t=0;t<1800;t++){const x=(R()-.5)*180,z=(R()-.5)*180,y=hgt(x,z);
   if(Math.hypot(x,z)<14)continue;
@@ -344,46 +344,39 @@ function updAnimals(dt){
  updateAnimalPopulation(dt);updateWolfPopulation(dt);
  const dk=dark(),fireNear=F.some(f=>Math.hypot(f.x-P.x,f.z-P.z)<10),wolves=AL.filter(a=>a.k=='wolf'&&a.dying<=0).length;
  if(!dead&&!MENU&&WP.wolves&&dk>.5&&wolves<6&&Math.random()<dt*.08){const an=Math.random()*6.28,x=P.x+Math.cos(an)*34,z=P.z+Math.sin(an)*34;if(Math.abs(x)<92&&Math.abs(z)<92&&hgt(x,z)>.5)addAn('wolf',x,z)}
- let waterEdge=!!IN_WATER||hgt(P.x,P.z)<.35;if(!waterEdge){for(let q=0;q<8;q++){const an=q*Math.PI/4;if(hgt(P.x+Math.sin(an)*1.1,P.z+Math.cos(an)*1.1)<0){waterEdge=true;break}}}
- const fishPanic=!dead&&!MENU&&SPR>0&&mvAmt>.55&&waterEdge;
- const turn=a=>{if(a.obstacleCooldown>0||a.targetLock>0)return false;a.dir+=((Math.random()<.5?-1:1)*(Math.PI/2+Math.random()*Math.PI/4));a.obstacleCooldown=1.2;a.t=1+Math.random()*2;a.w=true;return true};
- const obstacleAt=(a,x,z)=>{for(const n of near(x,z)){const nd=G.nodes[n.t];if(!nd||!nd.solid||n.gone||n.dead||n.fall>0)continue;const r=(n.colliderRadius||(nd.r||.4)*n.s+.35)+.18,dx=x-n.x,dz=z-n.z;if(dx*dx+dz*dz<r*r)return{x:n.x,z:n.z,r}}for(const p of PC){const b=pcBox(p);if(!b)continue;const hx=b[0]+.35,hz=b[1]+.35;if(Math.abs(x-p.x)<hx&&Math.abs(z-p.z)<hz)return{x:p.x,z:p.z,hx,hz,box:true}}return null};
- const blocked=(a,dir)=>{const dist=a.k==='fish'?1.25:1.5,nx=a.x+Math.sin(dir)*dist,nz=a.z+Math.cos(dir)*dist,y=hgt(nx,nz),here=hgt(a.x,a.z);if(a.k==='fish')return y>=-.6?{terrain:true}:null;if(y<.15||y>8.5||Math.abs(nx)>94||Math.abs(nz)>94||y-here>.62)return{terrain:true};const sx=Math.cos(dir)*.24,sz=-Math.sin(dir)*.24;return obstacleAt(a,nx,nz)||obstacleAt(a,nx+sx,nz+sz)||obstacleAt(a,nx-sx,nz-sz)};
- for(let i=AL.length-1;i>=0;i--){
-  const a=AL[i],D=AN[a.k],dx=P.x-a.x,dz=P.z-a.z,d=Math.hypot(dx,dz);
+ const turn=a=>{if(a.obstacleCooldown>0)return false;a.dir+=((Math.random()<.5?-1:1)*(Math.PI/2+Math.random()*Math.PI/4));a.obstacleCooldown=1.2;a.t=1+Math.random()*2;a.w=true;return true};
+ const animalRadiusOf=a=>AN[a.k]?.cr||.35;
+ const obstacleAt=(a,x,z)=>{const animalRadius=animalRadiusOf(a);for(const n of near(x,z)){const nd=G.nodes[n.t];if(!nd||!nd.solid||n.gone||n.dead||n.fall>0)continue;const obstacleRadius=n.colliderRadius!=null?Math.max(0,n.colliderRadius-.35):(nd.r||.4)*n.s,r=obstacleRadius+animalRadius,dx=x-n.x,dz=z-n.z;if(dx*dx+dz*dz<r*r)return{x:n.x,z:n.z,r}}for(const p of PC){const b=pcBox(p);if(!b)continue;const hx=b[0]+animalRadius,hz=b[1]+animalRadius;if(Math.abs(x-p.x)<hx&&Math.abs(z-p.z)<hz)return{x:p.x,z:p.z,hx,hz,box:true}}return null};
+ const blocked=(a,dir)=>{const dist=a.k==='fish'?1.25:.6,nx=a.x+Math.sin(dir)*dist,nz=a.z+Math.cos(dir)*dist,y=hgt(nx,nz),here=hgt(a.x,a.z);if(a.k==='fish')return y>=-.6?{terrain:true}:null;if(y<.15||y>8.5||Math.abs(nx)>94||Math.abs(nz)>94||y-here>.62)return{terrain:true};return obstacleAt(a,nx,nz)};
+ for(let i=AL.length-1;i>=0;i--){const a=AL[i],D=AN[a.k],dx=P.x-a.x,dz=P.z-a.z,d=Math.hypot(dx,dz);
   if(a.dying>0){a.dying-=dt;const q=1-a.dying/.8;a.g.rotation.z=Math.min(1.5,q*2.2)*(a.side||1);a.g.position.y=Math.max(a.g.position.y-dt*.1,-.5);if(a.dying<=0){world.remove(a.g);AL.splice(i,1)}continue}
   if(a.k==='wolf'&&((dk<.15&&d>20)||d>70)){world.remove(a.g);AL.splice(i,1);continue}
-  let sp=0;a.t-=dt;a.cd-=dt;a.obstacleCooldown=Math.max(0,(a.obstacleCooldown||0)-dt);a.targetLock=Math.max(0,(a.targetLock||0)-dt);a.fl=Math.max(0,a.fl-dt);
-  if(a.fleeCooldown>0){a.fleeCooldown-=dt;if(a.k!=='fish'&&d>(D.fear||0)+3)a.fleeCooldown=0}
-  if(a.k==='wolf'){
-   if(!dead&&d<40){a.dir=Math.atan2(dx,dz);if(fireNear&&d<9){a.dir+=Math.PI;sp=D.spd*.6}else if(d>1.3)sp=D.spd;if(d<1.5&&a.cd<=0&&!MENU){S.hp-=D.dmg*WP.diff;a.cd=1.3;a.lunge=.35;snd(90,.25,'sawtooth',.08);log(ico('ui_wolf',18)+' '+L('Волк кусает!'))}}
-  }else if(a.k==='fish'){
-   if(fishPanic&&d<4.8&&a.fleeCooldown<=0){const away=Math.atan2(a.x-P.x,a.z-P.z);let bestScore=-Infinity,best=null;for(let j=0;j<36;j++){const an=away+(j-18)*Math.PI/18;for(const radius of[8,9,10]){const tx=P.x+Math.sin(an)*radius,tz=P.z+Math.cos(an)*radius,depth=hgt(tx,tz);if(depth<-.6){const align=Math.cos(an-away),score=align*5+Math.min(2,-.6-depth)*.25+(radius-8)*.01;if(score>bestScore){bestScore=score;best={x:tx,z:tz}}}}}if(best){a.fleeTarget=best;a.fleeTime=3.5;a.fleeCooldown=3;a.w=true}}
-   if(a.fleeTime>0&&a.fleeTarget){a.fleeTime-=dt;const fx=a.fleeTarget.x-a.x,fz=a.fleeTarget.z-a.z,fd=Math.hypot(fx,fz);if(fd<.7||a.fleeTime<=0){a.fleeTime=0;a.fleeTarget=null;a.w=false;sp=0}else{a.dir=Math.atan2(fx,fz);a.w=true;sp=Math.max(D.spd*1.8,4.8)}}
-   else{if(a.t<=0){a.t=2+Math.random()*4;a.dir+=(Math.random()-.5)*1.8;a.w=Math.random()<.8}sp=a.w?D.spd*.65:0}
-  }else if(D.fear&&(d<D.fear||a.fl>0)&&!(a.fleeCooldown>0)){
-   if(!a.fleeTime){a.fleeTime=4+Math.random()*2;a.fleeFrom={x:P.x,z:P.z}}
-   if(a.fleeTime>0&&Math.hypot(a.x-a.fleeFrom.x,a.z-a.fleeFrom.z)<19){a.fleeTime-=dt;a.dir=Math.atan2(-dx,-dz);sp=D.spd}
-   else{a.fleeTime=0;a.fleeFrom=null;a.fleeCooldown=6;a.fl=0;a.t=0;a.w=false}
-  }else{a.fleeTime=0;a.fleeFrom=null;if(a.t<=0){a.t=2+Math.random()*4;a.dir=Math.random()*6.28;a.w=Math.random()<.55}sp=a.w?D.spd*.3:0}
+  let sp=0;a.t-=dt;a.cd-=dt;a.obstacleCooldown=Math.max(0,(a.obstacleCooldown||0)-dt);a.fl=Math.max(0,a.fl-dt);if(a.fleeCooldown>0){a.fleeCooldown-=dt;if(d>(D.fear||0)+3)a.fleeCooldown=0}
+  if(a.k==='wolf'){if(!dead&&d<40){a.dir=Math.atan2(dx,dz);if(fireNear&&d<9){a.dir+=Math.PI;sp=D.spd*.6}else if(d>1.3)sp=D.spd;if(d<1.5&&a.cd<=0&&!MENU){S.hp-=D.dmg*WP.diff;a.cd=1.3;a.lunge=.35;snd(90,.25,'sawtooth',.08);log(ico('ui_wolf',18)+' '+L('Волк кусает!'))}}}
+  else if(a.k==='fish'){if(!dead&&!MENU&&hgt(P.x,P.z)<WATER_LEVEL){if(d<5&&!a.fleeTarget){const away=Math.atan2(a.x-P.x,a.z-P.z);let best=null;for(const dist of[8,9,10])for(let step=0;step<16;step++){const ang=away+step*Math.PI/8,tx=P.x+Math.sin(ang)*dist,tz=P.z+Math.cos(ang)*dist;if(Math.abs(tx)>94||Math.abs(tz)>94||hgt(tx,tz)>=-.6)continue;const score=dist+Math.min(step,16-step)*.025;if(!best||score<best.score)best={x:tx,z:tz,score}}if(best)a.fleeTarget={x:best.x,z:best.z}}}if(a.fleeTarget){const tx=a.fleeTarget.x-a.x,tz=a.fleeTarget.z-a.z;if(Math.hypot(tx,tz)<.65){a.fleeTarget=null;a.t=0;a.w=false;sp=0}else{a.dir=Math.atan2(tx,tz);sp=D.spd*1.25}}else{if(a.t<=0){a.t=2+Math.random()*4;a.dir+=(Math.random()-.5)*1.8;a.w=Math.random()<.8}sp=a.w?D.spd*.65:0}}
+  else if(D.fear&&(d<D.fear||a.fl>0)&&!(a.fleeCooldown>0)){if(!a.fleeTime){a.fleeTime=4+Math.random()*2;a.fleeFrom={x:P.x,z:P.z}}if(a.fleeTime>0&&Math.hypot(a.x-a.fleeFrom.x,a.z-a.fleeFrom.z)<19){a.fleeTime-=dt;a.dir=Math.atan2(-dx,-dz);sp=D.spd}else{a.fleeTime=0;a.fleeFrom=null;a.fleeCooldown=6;a.fl=0;a.t=0;a.w=false}}
+  else{a.fleeTime=0;a.fleeFrom=null;if(a.t<=0){a.t=2+Math.random()*4;a.dir=Math.random()*6.28;a.w=Math.random()<.55}sp=a.w?D.spd*.3:0}
   const prevX=a.x,prevZ=a.z;let actualMoveDist=0;
-  if(sp){
-   if(a.k!=='fish'){let sx=0,sz=0;for(let j=0;j<AL.length;j++){const b=AL[j];if(b===a||b.k==='fish'||b.dying>0)continue;const ex=a.x-b.x,ez=a.z-b.z,dd=Math.hypot(ex,ez);if(dd>0&&dd<1.65){const f=(1.65-dd)/1.65;sx+=ex/dd*f;sz+=ez/dd*f}}if(Math.hypot(sx,sz)>.08)a.dir=Math.atan2(Math.sin(a.dir)+sx*.55,Math.cos(a.dir)+sz*.55)}
-   if(a.targetLock>0&&a.targetAngle!==undefined)a.dir=a.targetAngle;
-   const pathHit=blocked(a,a.dir);if(pathHit&&!pathHit.terrain&&a.obstacleCooldown<=0&&a.targetLock<=0){let found=false;for(const off of[.72,-.72,1.12,-1.12]){const candidate=a.dir+off;if(!blocked(a,candidate)){a.dir=candidate;a.obstacleCooldown=1.2;found=true;break}}if(!found)turn(a)}
-   const nx=a.x+Math.sin(a.dir)*sp*dt,nz=a.z+Math.cos(a.dir)*sp*dt,ny=hgt(nx,nz),valid=a.k==='fish'?ny<-.6:(ny>.15&&ny<8.5&&ny-hgt(a.x,a.z)<=.62&&Math.abs(nx)<95&&Math.abs(nz)<95),hit=a.k==='fish'?null:obstacleAt(a,nx,nz);
-   if(valid&&!hit){a.x=nx;a.z=nz}
-   else if(valid&&hit){
-    if(hit.box){let ex=nx-hit.x,ez=nz-hit.z;if(hit.hx-Math.abs(ex)<hit.hz-Math.abs(ez)){ex=Math.sign(ex)||1;ez=0}else{ez=Math.sign(ez)||1;ex=0}const dd=Math.hypot(ex,ez)||1,step=Math.hypot(nx-a.x,nz-a.z),qx=a.x+ex/dd*step,qz=a.z+ez/dd*step,qy=hgt(qx,qz);if(qy>.15&&qy<8.5&&qy-hgt(a.x,a.z)<=.62&&Math.abs(qx)<95&&Math.abs(qz)<95&&!obstacleAt(a,qx,qz)){a.x=qx;a.z=qz}else turn(a)}
-    else{let ex=nx-hit.x,ez=nz-hit.z,dd=Math.hypot(ex,ez);if(dd<1e-6){ex=a.x-hit.x;ez=a.z-hit.z;dd=Math.hypot(ex,ez)}if(dd<1e-6){ex=-Math.sin(a.dir);ez=-Math.cos(a.dir);dd=1}const ux=ex/dd,uz=ez/dd,minColliderDist=hit.r||.5,pushDist=minColliderDist+.15,qx=hit.x+ux*pushDist,qz=hit.z+uz*pushDist,qy=hgt(qx,qz);if(qy>.15&&qy<8.5&&Math.abs(qx)<95&&Math.abs(qz)<95){a.x=qx;a.z=qz}if(a.targetLock<=0){a.targetAngle=Math.atan2(ux,uz);a.dir=a.targetAngle;a.targetLock=1}a.obstacleCooldown=1}
-   }else if(a.k==='fish'){let bestDir=null,bestScore=-Infinity;for(const off of[0,.22,-.22,.45,-.45,.7,-.7,1,-1,1.35,-1.35]){const cd=a.dir+off,px=a.x+Math.sin(cd)*.55,pz=a.z+Math.cos(cd)*.55,depth=hgt(px,pz);if(depth<-.6){const score=-Math.abs(off)*2-depth*.15;if(score>bestScore){bestScore=score;bestDir=cd}}}if(bestDir!==null)a.dir=bestDir}
-   else turn(a)
+  if(sp){if(a.k!=='fish'){let sx=0,sz=0;for(let j=0;j<AL.length;j++){const b=AL[j];if(b===a||b.k==='fish'||b.dying>0)continue;const ex=a.x-b.x,ez=a.z-b.z,dd=Math.hypot(ex,ez);if(dd>0&&dd<1.65){const f=(1.65-dd)/1.65;sx+=ex/dd*f;sz+=ez/dd*f}}if(Math.hypot(sx,sz)>.08)a.dir=Math.atan2(Math.sin(a.dir)+sx*.55,Math.cos(a.dir)+sz*.55)}
+   const pathHit=blocked(a,a.dir);if(pathHit&&!pathHit.terrain&&a.obstacleCooldown<=0){let found=false;for(const off of[.72,-.72,1.12,-1.12]){const candidate=a.dir+off;if(!blocked(a,candidate)){a.dir=candidate;a.obstacleCooldown=1.2;found=true;break}}if(!found)turn(a)}
+   const nx=a.x+Math.sin(a.dir)*sp*dt,nz=a.z+Math.cos(a.dir)*sp*dt,ny=hgt(nx,nz),valid=a.k==='fish'?ny<-.6:(ny>.15&&ny<8.5&&ny-hgt(a.x,a.z)<=.62&&Math.abs(nx)<95&&Math.abs(nz)<95);
+   const hit=a.k==='fish'?null:obstacleAt(a,nx,nz);
+   if(valid&&!hit){a.x=nx;a.z=nz}else if(valid&&hit){let ex=nx-hit.x,ez=nz-hit.z;if(hit.box){if(hit.hx-Math.abs(ex)<hit.hz-Math.abs(ez)){ex=Math.sign(ex)||1;ez=0}else{ez=Math.sign(ez)||1;ex=0}}else{const dd=Math.hypot(ex,ez)||1;ex/=dd;ez/=dd}let tx=-ez,tz=ex;if(tx*Math.sin(a.dir)+tz*Math.cos(a.dir)<0){tx=-tx;tz=-tz}const len=Math.hypot(nx-a.x,nz-a.z),sx=tx*len,sz=tz*len,qx=a.x+sx,qz=a.z+sz,qy=hgt(qx,qz);if(qy>.15&&qy<8.5&&qy-hgt(a.x,a.z)<=.62&&Math.abs(qx)<95&&Math.abs(qz)<95&&!obstacleAt(a,qx,qz)){a.x=qx;a.z=qz;if(a.obstacleCooldown<=0){a.dir=Math.atan2(sx,sz);a.obstacleCooldown=1.2}}else turn(a)}else turn(a)}
+  actualMoveDist=Math.hypot(a.x-prevX,a.z-prevZ);
+  if(sp>0&&a.k!=='fish'&&actualMoveDist<.002){
+   const probeDist=Math.max(.16,sp*dt*2),contact=obstacleAt(a,a.x+Math.sin(a.dir)*probeDist,a.z+Math.cos(a.dir)*probeDist)||blocked(a,a.dir);
+   if(contact&&!contact.terrain){const base=a.dir,angle=(75+Math.random()*35)*Math.PI/180,step=Math.max(.12,sp*dt),sides=Math.random()<.5?[1,-1]:[-1,1];let diverted=false;
+    for(const side of sides){const candidate=base+side*angle,qx=a.x+Math.sin(candidate)*step,qz=a.z+Math.cos(candidate)*step,qy=hgt(qx,qz);
+     if(qy>.15&&qy<8.5&&qy-hgt(a.x,a.z)<=.62&&Math.abs(qx)<95&&Math.abs(qz)<95&&!obstacleAt(a,qx,qz)&&!blocked(a,candidate)){a.dir=candidate;a.x=qx;a.z=qz;a.obstacleCooldown=.35;diverted=true;break}}
+    if(!diverted){a.dir=base+sides[0]*angle;a.obstacleCooldown=.35}
+   }
+   actualMoveDist=Math.hypot(a.x-prevX,a.z-prevZ);
   }
-  actualMoveDist=Math.hypot(a.x-prevX,a.z-prevZ);a.moveCheckTime=(a.moveCheckTime||0)+dt;
-  if(a.moveCheckTime>=1){const sx=a.moveCheckX===undefined?a.x:a.moveCheckX,sz=a.moveCheckZ===undefined?a.z:a.moveCheckZ,moved=Math.hypot(a.x-sx,a.z-sz);a.animationFrozen=moved<.3;a.moveCheckX=a.x;a.moveCheckZ=a.z;a.moveCheckTime=0}
-  const y=hgt(a.x,a.z);a.g.position.set(a.x,a.k==='fish'?-.35+Math.sin(tm*2+i)*.04:Math.max(y,-.6),a.z);let df=a.dir-a.g.rotation.y;df=Math.atan2(Math.sin(df),Math.cos(df));a.g.rotation.y+=df*Math.min(1,dt*8);animAn(a,a.animationFrozen||actualMoveDist<.002?0:sp,dt,i)
+  a.stuckClock=(a.stuckClock||0)+dt;if(a.stuckClock>=.8){const moved=Math.hypot(a.x-a.lastX,a.z-a.lastZ);if(sp>0&&moved<.2){turn(a);a.fleeTime=0;a.fleeFrom=null;a.fl=0;a.t=0}a.lastX=a.x;a.lastZ=a.z;a.stuckClock=0}
+  const y=hgt(a.x,a.z);a.g.position.set(a.x,a.k==='fish'?-.35+Math.sin(tm*2+i)*.04:Math.max(y,-.6),a.z);let df=a.dir-a.g.rotation.y;df=Math.atan2(Math.sin(df),Math.cos(df));a.g.rotation.y+=df*Math.min(1,dt*8);animAn(a,actualMoveDist>=.002?sp:0,dt,i)
  }
-}// ===== Строительство (0.0.4) =====
+}
+// ===== Строительство (0.0.4) =====
 const RKT=['rock','clay','iron','coal'],EK=['wall','window','door'],TINT={iron:new THREE.Color(1,.62,.5),coal:new THREE.Color(.35,.35,.4),clay:new THREE.Color(1.15,.96,.78)};
 let PC=[],openC=null,cbT=0,CB=[];
 Object.assign(ICON,{
@@ -600,12 +593,12 @@ function applyChar(){
   else{bx(g,.27,.3,.3,0,-.66,0,so);bx(g,.27,.12,.38,0,-.75,.06,so);bx(g,.27,.04,.4,0,-.8,.06,chM(0x1d140d))}}
  $('pname').textContent=C.name;if(menuDioramaReady)refreshDioramaPlayer()}
 function saveChar(){try{localStorage.setItem('vse-char',JSON.stringify(CH))}catch(e){}}
-function loadChar(){try{const raw=localStorage.getItem('vse-char');if(!raw)return;const data=JSON.parse(raw);if(data&&typeof data==='object'&&!Array.isArray(data))Object.assign(CH,data)}catch(e){console.warn('Не удалось загрузить персонажа',e)}}
+function loadChar(){try{Object.assign(CH,JSON.parse(localStorage.getItem('vse-char'))||{})}catch(e){}}
 function randChar(){const r=n=>Math.floor(Math.random()*n),z=(n,p)=>Math.random()<p?0:r(n);
  Object.assign(CH,{skin:r(6),hair:r(7),hc:r(8),eye:r(6),beard:z(4,.6),shirt:r(3),sc:r(8),pants:r(2),pc:r(8),shoe:r(2),shc:r(6),hat:z(5,.55),gl:z(4,.6),scarf:z(2,.7),pack:r(3),ac:r(8)});applyChar();saveChar();render()}
 // ----- Настройки -----
 function saveSet(){try{localStorage.setItem('vse-set',JSON.stringify(ST))}catch(e){}}
-function loadSet(){try{const raw=localStorage.getItem('vse-set');if(!raw)return;const data=JSON.parse(raw);if(data&&typeof data==='object'&&!Array.isArray(data))Object.assign(ST,data)}catch(e){console.warn('Не удалось загрузить настройки',e)}}
+function loadSet(){try{Object.assign(ST,JSON.parse(localStorage.getItem('vse-set'))||{})}catch(e){}}
 function setSet(k,v){ST[k]=v;saveSet();applySet()}
 function applySet(){ren.setPixelRatio(ST.q==0?1:Math.min(devicePixelRatio,ST.q==1?1.5:2));ren.setSize(innerWidth,innerHeight);
  const ms=[512,1024,2048][ST.q];if(sun.shadow.mapSize.x!=ms){sun.shadow.mapSize.set(ms,ms);if(sun.shadow.map){sun.shadow.map.dispose();sun.shadow.map=null}}
@@ -646,7 +639,7 @@ const langRow=()=>'<div class="mr"><div class="ml">'+ico('ui_lang',16)+' '+L('Я
 function pgMain(){const w=HAVEWORLD?L('Мир: {w} · сид {s} · день {d}',{w:'<b>'+esc(L(WP.name))+'</b>',s:'<b>'+esc(SEEDTXT)+'</b>',d:day}):L('Мира пока нет — создай новый');
  const saved=Object.values(SAVE_DB.worlds||{}).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
  const worlds=saved.length?'<div class="mr"><b>'+L('Мои миры')+'</b>'+saved.map(q=>'<button class="pr" data-a="worldload" data-v="'+esc(q.id)+'"><b>'+esc(L(q.name||'Мир'))+'</b><small>'+L('Сид мира: {s}',{s:esc(q.seed||'')})+' · '+L('День')+' '+(q.day||1)+'</small><i>'+(q.id===activeWorldId?L('Текущий мир'):L('Открыть'))+'</i></button>').join('')+'</div>':'<div class="info">'+L('Нет сохранённых миров')+'</div>';
- return '<div class="logo">'+ico('logo',72)+'<h1>'+GN()+'</h1><div class="sub">v0.0.5.10 '+L('Альфа')+' 3D</div></div><div class="info">'+w+'</div>'+
+ return '<div class="logo">'+ico('logo',72)+'<h1>'+GN()+'</h1><div class="sub">v0.0.5.8 '+L('Альфа')+' 3D</div></div><div class="info">'+w+'</div>'+
  (HAVEWORLD?icb('ui_play','Продолжить','resume'):'')+icb('ui_world','Новый мир','go','world')+worlds+icb('ui_char','Персонаж','go','char')+icb('ui_gear','Настройки','go','set')+langRow()}
 function pgWorld(){return '<h2>'+L('Новый мир')+'</h2>'+row('Название','<input type="text" id="wname" maxlength="24" value="'+esc(WF.name)+'">')+
  row('Сид (пусто — случайный мир)','<div class="sd"><input type="text" id="wseed" maxlength="24" placeholder="'+L('случайный')+'" value="'+esc(WF.seed)+'">'+icb('ui_dice','','dice')+'</div>')+
@@ -733,7 +726,7 @@ function applyLang(){const sb=(id,ic,t)=>$(id).innerHTML='<span class="cb">'+ico
  sb('bAct','ui_act','Действие (E)');sb('bCraft','ui_craft','Крафт (C)');sb('bNew','ui_redo','');
  $('bNew').title=L('Новая игра');$('bMenu').title=L('Меню (Esc)');$('bDel').title=L('Разобрать постройку (X)');
  $('dtxt').textContent=L('Вы погибли');$('bRe').textContent=L('Начать заново');$('menu').dataset.busy=L('Генерация мира...');
- $('gname').textContent=GN();$('gver').textContent='v0.0.5.10 '+L('Альфа')+' 3D';document.title=GN();document.documentElement.lang=ST.lang;$('pname').textContent=CH.name;
+ $('gname').textContent=GN();$('gver').textContent='v0.0.5.8 '+L('Альфа')+' 3D';document.title=GN();document.documentElement.lang=ST.lang;$('pname').textContent=CH.name;
  if(inv)refresh()}
 // ===== Симуляция =====
 const dark=()=>clamp(.35-Math.sin(time*6.2832)*.6,0,.8);
@@ -792,24 +785,15 @@ const SAVE_KEY='miraculous-land-worlds-v1';
 let SAVE_DB={version:1,active:null,worlds:{}},activeWorldId=null;
 function readSaveDB(){
  try{
-  const raw=localStorage.getItem(SAVE_KEY);
-  if(raw){
-   const d=JSON.parse(raw);
-   if(d&&d.version===1&&d.worlds&&typeof d.worlds==='object'&&!Array.isArray(d.worlds)){SAVE_DB=d;return}
+  const d=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');
+  if(d&&d.version===1&&d.worlds&&typeof d.worlds==='object'){SAVE_DB=d;return}
+  const old=JSON.parse(localStorage.getItem('vse3d4')||'null');
+  if(old&&old.P){
+   const id='legacy-'+String(old.seed||Date.now());
+   SAVE_DB={version:1,active:id,worlds:{[id]:{id,name:(old.wp&&old.wp.name)||'Мир',seed:old.st||String(old.seed||''),day:old.day||1,updatedAt:Date.now(),state:old}}};
+   activeWorldId=id;localStorage.setItem(SAVE_KEY,JSON.stringify(SAVE_DB));
   }
-  const legacyRaw=localStorage.getItem('vse3d4');
-  if(legacyRaw){
-   const old=JSON.parse(legacyRaw);
-   if(old&&typeof old==='object'&&!Array.isArray(old)&&old.P&&old.S){
-    const id='legacy-'+String(old.seed||Date.now());
-    SAVE_DB={version:1,active:id,worlds:{[id]:{id,name:(old.wp&&old.wp.name)||'Мир',seed:old.st||String(old.seed||''),day:old.day||1,updatedAt:Date.now(),state:old}}};
-    activeWorldId=id;
-    try{localStorage.setItem(SAVE_KEY,JSON.stringify(SAVE_DB))}catch(writeError){console.warn('Не удалось перенести старое сохранение',writeError)}
-    return;
-   }
-  }
- }catch(e){console.warn('Не удалось прочитать сохранения; исходные данные оставлены без изменений',e)}
- SAVE_DB={version:1,active:null,worlds:{}};
+ }catch(e){SAVE_DB={version:1,active:null,worlds:{}}}
 }
 function save(){
  try{
@@ -822,35 +806,22 @@ function save(){
  }catch(e){console.warn('Не удалось сохранить мир',e)}
 }
 function restoreWorld(slot){
- try{
-  const s=slot&&slot.state;
-  if(!s||typeof s!=='object'||!s.P||typeof s.P!=='object'||!s.S||typeof s.S!=='object'||!Number.isFinite(s.P.x)||!Number.isFinite(s.P.z))return false;
-  WP=Object.assign({},WPD,s.wp&&typeof s.wp==='object'&&!Array.isArray(s.wp)?s.wp:{});
-  SEEDTXT=s.st||String(s.seed||'');
-  seed=Number.isFinite(s.seed)?s.seed:seedFrom(SEEDTXT);
-  buildWorld();
-  (Array.isArray(s.gone)?s.gone:[]).forEach(i=>{if(Number.isInteger(i)&&nodes[i]){nodes[i].gone=true;put(nodes[i])}});
-  (Array.isArray(s.dd)?s.dd:[]).forEach(q=>{if(Array.isArray(q)&&Number.isInteger(q[0])&&nodes[q[0]]){nodes[q[0]].dead=true;nodes[q[0]].rt=q[1];put(nodes[q[0]])}});
-  (Array.isArray(s.fires)?s.fires:[]).forEach(q=>{if(Array.isArray(q)&&Number.isFinite(q[0])&&Number.isFinite(q[1]))mkFire(q[0],q[1])});
-  (Array.isArray(s.pcs)?s.pcs:[]).forEach(q=>{if(q&&typeof q==='object'&&typeof q.k==='string'&&Number.isFinite(q.x)&&Number.isFinite(q.z))mkPiece(q.k,q.x,q.z,q.y,q.r,q.i)});
-  P=s.P;S=s.S;inv=Array.isArray(s.inv)?s.inv:new Array(16).fill(null);
-  time=Number.isFinite(s.time)?s.time:0;day=Number.isFinite(s.day)?s.day:1;
-  dead=false;$('dead').hidden=true;refresh();return true;
- }catch(e){console.warn('Не удалось восстановить сохранённый мир; сохранение не удалено',e);return false}
+ const s=slot&&slot.state;if(!s||!s.P||!s.S)return false;
+ WP=Object.assign({},WPD,s.wp||{});SEEDTXT=s.st||String(s.seed);seed=s.seed;buildWorld();
+ (s.gone||[]).forEach(i=>{if(nodes[i]){nodes[i].gone=true;put(nodes[i])}});
+ (s.dd||[]).forEach(([i,rt])=>{if(nodes[i]){nodes[i].dead=true;nodes[i].rt=rt;put(nodes[i])}});
+ (s.fires||[]).forEach(([x,z])=>mkFire(x,z));(s.pcs||[]).forEach(q=>mkPiece(q.k,q.x,q.z,q.y,q.r,q.i));
+ P=s.P;S=s.S;inv=s.inv||new Array(16).fill(null);time=s.time||0;day=s.day||1;dead=false;$('dead').hidden=true;refresh();return true;
 }
 function loadSavedWorld(id){
- try{
-  const slot=SAVE_DB.worlds&&SAVE_DB.worlds[id];if(!slot||!restoreWorld(slot))return false;
-  activeWorldId=id;SAVE_DB.active=id;HAVEWORLD=true;save();return true;
- }catch(e){console.warn('Не удалось открыть сохранённый мир',e);return false}
+ const slot=SAVE_DB.worlds[id];if(!slot)return false;
+ if(!restoreWorld(slot))return false;
+ activeWorldId=id;SAVE_DB.active=id;HAVEWORLD=true;save();return true;
 }
 function load(){
- try{
-  readSaveDB();
-  const id=SAVE_DB.active||activeWorldId,slot=id&&SAVE_DB.worlds[id];if(!slot)return false;
-  if(!restoreWorld(slot))return false;
-  activeWorldId=id;return true;
- }catch(e){console.warn('Не удалось загрузить мир; сохранение не удалено',e);return false}
+ readSaveDB();
+ const id=SAVE_DB.active||activeWorldId,slot=id&&SAVE_DB.worlds[id];if(!slot)return false;
+ activeWorldId=id;if(!restoreWorld(slot))return false;return true;
 }
 document.addEventListener('visibilitychange',()=>{if(document.hidden){save();saveChar()}});
 addEventListener('pagehide',()=>{save();saveChar()});
