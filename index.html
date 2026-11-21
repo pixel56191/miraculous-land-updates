@@ -87,6 +87,7 @@ window.addEventListener('unhandledrejection',function(event){showError(event.rea
 var button=document.createElement('button');
 button.type='button';
 button.textContent='🔄 Обновить из GitHub';
+button.hidden=true;
 button.style.cssText='position:fixed;top:44px;right:16px;z-index:99999;padding:9px 12px;border:1px solid #8bbd78;border-radius:10px;background:#253f20;color:#fff;font:600 13px system-ui,sans-serif;box-shadow:0 3px 12px #0009;touch-action:manipulation';
 function fallbackUpdate(){
 try{

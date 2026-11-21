@@ -26,16 +26,16 @@
       "purpose": "any maskable"
     }
   ],
-  "version": "0.0.5.9",
+  "version": "0.0.5.10",
   "files": {
     "index.html": {
-      "sha256": "4a221d3b0897374c07d6a24334243e0fa9b02a1a4a5a8ecd5fe164dd67e401be",
-      "size": 12197,
+      "sha256": "472196c5e2eb6e74296a2571a96cc704b10b7191b0495976bc219d053d666d11",
+      "size": 12217,
       "url": "index.html"
     },
     "game.js": {
-      "sha256": "7239a660d5b3d70838090b243f59947e9ef62fab7b501b3082dc25fc3960f1da",
-      "size": 175146,
+      "sha256": "e587b48243ad9ea61cfd6316541406b910a2871951727bdd8d1fec5f7eca5dc1",
+      "size": 177843,
       "url": "game.js"
     }
   }
