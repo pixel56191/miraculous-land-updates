@@ -747,6 +747,7 @@ function initCameraToggleBtn() {
  if(cameraToggleButton)return;
  const btn=document.createElement('button');btn.id='bCamView';btn.textContent='👁 3-е лицо';
  btn.style.cssText='position:fixed;right:14px;bottom:158px;z-index:50;padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:rgba(28,36,24,.82);color:#e8efe0;font-size:13px;font-weight:600;';
+ btn.hidden=MENU;
  btn.onclick=()=>{FIRST_PERSON=!FIRST_PERSON;btn.textContent=FIRST_PERSON?'👁 1-е лицо':'👁 3-е лицо';pl.visible=!FIRST_PERSON;cameraFollowReady=false};
  document.body.appendChild(btn);cameraToggleButton=btn;
 }
@@ -796,6 +797,7 @@ function step(dt){if(MENU)return;if(autoTest&&autoTest.active){const directions=
  F.forEach(f=>{const q=1+Math.sin(tm*18+f.x)*.12+Math.random()*.08;f.f1.scale.set(q,q*1.1,q);f.f2.scale.set(q,q*1.2,q);f.L.intensity=1.4+Math.sin(tm*17+f.x)*.25+Math.random()*.2;if(Math.random()<dt*2&&Math.hypot(f.x-P.x,f.z-P.z)<12)snd(900+Math.random()*900,.03,'square',.012);updPts(f.sk,dt,spk);updPts(f.sm,dt,smk)});
  updAnimals(dt);animPC(dt);WT.value=tm;if(openC&&Math.hypot(openC.x-P.x,openC.z-P.z)>5){openC=null;refresh()}if((cbT-=dt)<0){cbT=.4;updCraft()}const wp=water.geometry.attributes.position,b=water.userData.b;
  for(let i=0;i<wp.count;i++)wp.setY(i,Math.sin(b[i*3]*.3+tm)*.07+Math.cos(b[i*3+2]*.25+tm*1.3)*.06);wp.needsUpdate=true;water.geometry.computeVertexNormals();
+ if(cameraToggleButton)cameraToggleButton.hidden=MENU;
  if(MENU){
   menuCam(dt);
   const mo=innerWidth>760?1.3:0,tx=P.x-Math.cos(yaw)*mo,ty=P.y+(innerWidth>760?1.25:.5),tz=P.z+Math.sin(yaw)*mo,cp=Math.cos(pit);
