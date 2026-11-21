@@ -5,7 +5,7 @@ window.addEventListener('unhandledrejection',e=>window.__ML_STARTUP_FALLBACK(e.r
 try{const $=id=>document.getElementById(id);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // ===== Ядро: реестры (новый контент добавляется здесь или через Game.use) =====
-const G=window.Game={version:'0.0.5.3 Альфа 3D',items:{},nodes:{},recipes:[],mods:[],
+const G=window.Game={version:'0.0.5.6 Альфа 3D',items:{},nodes:{},recipes:[],mods:[],
  registerItem(id,o){o.ru=o.n;Object.defineProperty(o,'n',{get(){return L(this.ru)},enumerable:true});this.items[id]=o},registerNode(id,o){if(o.hint){o.hru=o.hint;Object.defineProperty(o,'hint',{get(){return L(this.hru)},enumerable:true})}this.nodes[id]=o},registerRecipe(r){this.recipes.push(r)},
  use(f){this.mods.push(f);f(this)}};
 G.use(g=>{
@@ -306,7 +306,7 @@ function mkAn(k){const D=AN[k],g=new THREE.Group(),hd=new THREE.Group(),tl=new T
  for(const sx of[-1,1]){leg(sx*.14,.5,.32,.5,.055,f,dk);leg(sx*.14,.5,-.3,.5,.06,f,dk)}
  return out([0,.7,.35],[0,.62,-.36])}
 let ANIMAL_POP_TIMER=0,WOLF_POP_TIMER=0;
-function addAn(k,x,z){const o=mkAn(k),a={k,x,z,hp:AN[k].hp,dir:Math.random()*6.28,t:0,cd:0,fl:0,g:o.g,legs:o.legs,hd:o.hd,hv:o.hp,tl:o.tl,tv:o.tp};world.add(o.g);AL.push(a);return a}
+function addAn(k,x,z){const o=mkAn(k),a={k,x,z,hp:AN[k].hp,dir:Math.random()*6.28,t:0,cd:0,fl:0,lastX:x,lastZ:z,stuckClock:0,fleeTime:0,fleeFrom:null,g:o.g,legs:o.legs,hd:o.hd,hv:o.hp,tl:o.tl,tv:o.tp};world.add(o.g);AL.push(a);return a}
 function trySpawnAnimal(k,R=Math.random){
  for(let t=0;t<1800;t++){const x=(R()-.5)*180,z=(R()-.5)*180,y=hgt(x,z);
   if(Math.hypot(x,z)<14)continue;
@@ -342,22 +342,26 @@ function hitAn(a){const D=AN[a.k],pw=hasTool('spear')?3:hasTool('axe')?2:1;a.hp-
  if(a.hp<=0){D.drops.forEach(([id,lo,hi])=>{const q=lo+Math.floor(Math.random()*(hi-lo+1));if(q)add(id,q)});a.dying=.8;a.side=Math.random()<.5?1:-1;snd(600,.1,'sine')}else a.hurt=.3}
 function updAnimals(dt){
  updateAnimalPopulation(dt);updateWolfPopulation(dt);
- const dk=dark(),fireNear=F.some(f=>Math.hypot(f.x-P.x,f.z-P.z)<10),wolves=AL.filter(a=>a.k=='wolf').length;
+ const dk=dark(),fireNear=F.some(f=>Math.hypot(f.x-P.x,f.z-P.z)<10),wolves=AL.filter(a=>a.k=='wolf'&&a.dying<=0).length;
  if(!dead&&!MENU&&WP.wolves&&dk>.5&&wolves<6&&Math.random()<dt*.08){const an=Math.random()*6.28,x=P.x+Math.cos(an)*34,z=P.z+Math.sin(an)*34;if(Math.abs(x)<92&&Math.abs(z)<92&&hgt(x,z)>.5)addAn('wolf',x,z)}
+ const turn=a=>{a.dir+=((Math.random()<.5?-1:1)*(Math.PI/2+Math.random()*Math.PI/4));a.t=1+Math.random()*2;a.w=true};
+ const blocked=(a,dir)=>{const dist=a.k==='fish'?1.25:1.35,nx=a.x+Math.sin(dir)*dist,nz=a.z+Math.cos(dir)*dist,y=hgt(nx,nz),here=hgt(a.x,a.z);if(a.k==='fish')return y>=-.6;if(y<.15||y>8.5||Math.abs(nx)>94||Math.abs(nz)>94||y-here>.62)return true;for(const n of near(nx,nz)){const nd=G.nodes[n.t];if(!nd||!nd.solid||n.gone||n.dead||n.fall>0)continue;if(Math.hypot(nx-n.x,nz-n.z)<(nd.r||.4)*n.s+.55)return true}for(const p of PC){const b=pcBox(p);if(!b)continue;if(Math.abs(nx-p.x)<b[0]+.45&&Math.abs(nz-p.z)<b[1]+.45)return true}return false};
  for(let i=AL.length-1;i>=0;i--){const a=AL[i],D=AN[a.k],dx=P.x-a.x,dz=P.z-a.z,d=Math.hypot(dx,dz);
   if(a.dying>0){a.dying-=dt;const q=1-a.dying/.8;a.g.rotation.z=Math.min(1.5,q*2.2)*(a.side||1);a.g.position.y=Math.max(a.g.position.y-dt*.1,-.5);if(a.dying<=0){world.remove(a.g);AL.splice(i,1)}continue}
-  if(a.k=='wolf'&&((dk<.15&&d>20)||d>70)){world.remove(a.g);AL.splice(i,1);continue}
+  if(a.k==='wolf'&&((dk<.15&&d>20)||d>70)){world.remove(a.g);AL.splice(i,1);continue}
   let sp=0;a.t-=dt;a.cd-=dt;a.fl=Math.max(0,a.fl-dt);
-  if(a.k=='wolf'){if(!dead&&d<40){a.dir=Math.atan2(dx,dz);
-    if(fireNear&&d<9){a.dir+=Math.PI;sp=D.spd*.6}else if(d>1.3)sp=D.spd;
-    if(d<1.5&&a.cd<=0&&!MENU){S.hp-=D.dmg*WP.diff;a.cd=1.3;a.lunge=.35;snd(90,.25,'sawtooth',.08);log(ico('ui_wolf',18)+' '+L('Волк кусает!'))}}}
-  else if(D.fear&&(d<D.fear||a.fl>0)){a.dir=Math.atan2(-dx,-dz);sp=D.spd}
-  else{if(a.t<=0){a.t=2+Math.random()*4;a.dir=Math.random()*6.28;a.w=Math.random()<.55}sp=a.w?D.spd*.3:0}
-  if(sp){const nx=a.x+Math.sin(a.dir)*sp*dt,nz=a.z+Math.cos(a.dir)*sp*dt,y=hgt(nx,nz),ok=a.k=='fish'?y<-.4:(y>.3&&Math.abs(nx)<95&&Math.abs(nz)<95);
-   if(ok){a.x=nx;a.z=nz}else{a.dir+=1.6+Math.random()*1.5;a.t=0}}
-  const y=hgt(a.x,a.z);a.g.position.set(a.x,a.k=='fish'?-.35+Math.sin(tm*2+i)*.04:Math.max(y,-.6),a.z);
-  let df=a.dir-a.g.rotation.y;df=Math.atan2(Math.sin(df),Math.cos(df));a.g.rotation.y+=df*Math.min(1,dt*8);
-  animAn(a,sp,dt,i)}}
+  if(a.k==='wolf'){if(!dead&&d<40){a.dir=Math.atan2(dx,dz);if(fireNear&&d<9){a.dir+=Math.PI;sp=D.spd*.6}else if(d>1.3)sp=D.spd;if(d<1.5&&a.cd<=0&&!MENU){S.hp-=D.dmg*WP.diff;a.cd=1.3;a.lunge=.35;snd(90,.25,'sawtooth',.08);log(ico('ui_wolf',18)+' '+L('Волк кусает!'))}}}
+  else if(a.k==='fish'){if(a.t<=0){a.t=2+Math.random()*4;a.dir+=(Math.random()-.5)*1.8;a.w=Math.random()<.8}sp=a.w?D.spd*.65:0}
+  else if(D.fear&&(d<D.fear||a.fl>0)){if(!a.fleeTime){a.fleeTime=4+Math.random()*2;a.fleeFrom={x:P.x,z:P.z}}if(a.fleeTime>0&&Math.hypot(a.x-a.fleeFrom.x,a.z-a.fleeFrom.z)<19){a.fleeTime-=dt;a.dir=Math.atan2(-dx,-dz);sp=D.spd}else{a.fleeTime=0;a.fleeFrom=null;a.fl=0;a.t=0;a.w=false}}
+  else{a.fleeTime=0;a.fleeFrom=null;if(a.t<=0){a.t=2+Math.random()*4;a.dir=Math.random()*6.28;a.w=Math.random()<.55}sp=a.w?D.spd*.3:0}
+  if(sp){if(a.k!=='fish'){let sx=0,sz=0;for(let j=0;j<AL.length;j++){const b=AL[j];if(b===a||b.k==='fish'||b.dying>0)continue;const ex=a.x-b.x,ez=a.z-b.z,dd=Math.hypot(ex,ez);if(dd>0&&dd<1.65){const f=(1.65-dd)/1.65;sx+=ex/dd*f;sz+=ez/dd*f}}if(Math.hypot(sx,sz)>.08)a.dir=Math.atan2(Math.sin(a.dir)+sx*.55,Math.cos(a.dir)+sz*.55)}
+   if(blocked(a,a.dir)){let found=false;for(const off of[Math.PI/2+Math.random()*Math.PI/4,-(Math.PI/2+Math.random()*Math.PI/4),Math.PI*.72,-Math.PI*.72]){const candidate=a.dir+off;if(!blocked(a,candidate)){a.dir=candidate;found=true;break}}if(!found)turn(a)}
+   const nx=a.x+Math.sin(a.dir)*sp*dt,nz=a.z+Math.cos(a.dir)*sp*dt,ny=hgt(nx,nz),valid=a.k==='fish'?ny<-.6:(ny>.15&&ny<8.5&&ny-hgt(a.x,a.z)<=.62&&Math.abs(nx)<95&&Math.abs(nz)<95);
+   if(valid&&!blocked(a,a.dir)){a.x=nx;a.z=nz}else turn(a)}
+  a.stuckClock=(a.stuckClock||0)+dt;if(a.stuckClock>=.8){const moved=Math.hypot(a.x-a.lastX,a.z-a.lastZ);if(sp>0&&moved<.2){turn(a);a.fleeTime=0;a.fleeFrom=null;a.fl=0;a.t=0}a.lastX=a.x;a.lastZ=a.z;a.stuckClock=0}
+  const y=hgt(a.x,a.z);a.g.position.set(a.x,a.k==='fish'?-.35+Math.sin(tm*2+i)*.04:Math.max(y,-.6),a.z);let df=a.dir-a.g.rotation.y;df=Math.atan2(Math.sin(df),Math.cos(df));a.g.rotation.y+=df*Math.min(1,dt*8);animAn(a,sp,dt,i)
+ }
+}
 // ===== Строительство (0.0.4) =====
 const RKT=['rock','clay','iron','coal'],EK=['wall','window','door'],TINT={iron:new THREE.Color(1,.62,.5),coal:new THREE.Color(.35,.35,.4),clay:new THREE.Color(1.15,.96,.78)};
 let PC=[],openC=null,cbT=0,CB=[];
@@ -621,7 +625,7 @@ const langRow=()=>'<div class="mr"><div class="ml">'+ico('ui_lang',16)+' '+L('Я
 function pgMain(){const w=HAVEWORLD?L('Мир: {w} · сид {s} · день {d}',{w:'<b>'+esc(L(WP.name))+'</b>',s:'<b>'+esc(SEEDTXT)+'</b>',d:day}):L('Мира пока нет — создай новый');
  const saved=Object.values(SAVE_DB.worlds||{}).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
  const worlds=saved.length?'<div class="mr"><b>'+L('Мои миры')+'</b>'+saved.map(q=>'<button class="pr" data-a="worldload" data-v="'+esc(q.id)+'"><b>'+esc(L(q.name||'Мир'))+'</b><small>'+L('Сид мира: {s}',{s:esc(q.seed||'')})+' · '+L('День')+' '+(q.day||1)+'</small><i>'+(q.id===activeWorldId?L('Текущий мир'):L('Открыть'))+'</i></button>').join('')+'</div>':'<div class="info">'+L('Нет сохранённых миров')+'</div>';
- return '<div class="logo">'+ico('logo',72)+'<h1>'+GN()+'</h1><div class="sub">v0.0.5.5 '+L('Альфа')+' 3D</div></div><div class="info">'+w+'</div>'+
+ return '<div class="logo">'+ico('logo',72)+'<h1>'+GN()+'</h1><div class="sub">v0.0.5.6 '+L('Альфа')+' 3D</div></div><div class="info">'+w+'</div>'+
  (HAVEWORLD?icb('ui_play','Продолжить','resume'):'')+icb('ui_world','Новый мир','go','world')+worlds+icb('ui_char','Персонаж','go','char')+icb('ui_gear','Настройки','go','set')+langRow()}
 function pgWorld(){return '<h2>'+L('Новый мир')+'</h2>'+row('Название','<input type="text" id="wname" maxlength="24" value="'+esc(WF.name)+'">')+
  row('Сид (пусто — случайный мир)','<div class="sd"><input type="text" id="wseed" maxlength="24" placeholder="'+L('случайный')+'" value="'+esc(WF.seed)+'">'+icb('ui_dice','','dice')+'</div>')+
@@ -708,7 +712,7 @@ function applyLang(){const sb=(id,ic,t)=>$(id).innerHTML='<span class="cb">'+ico
  sb('bAct','ui_act','Действие (E)');sb('bCraft','ui_craft','Крафт (C)');sb('bNew','ui_redo','');
  $('bNew').title=L('Новая игра');$('bMenu').title=L('Меню (Esc)');$('bDel').title=L('Разобрать постройку (X)');
  $('dtxt').textContent=L('Вы погибли');$('bRe').textContent=L('Начать заново');$('menu').dataset.busy=L('Генерация мира...');
- $('gname').textContent=GN();$('gver').textContent='v0.0.5.5 '+L('Альфа')+' 3D';document.title=GN();document.documentElement.lang=ST.lang;$('pname').textContent=CH.name;
+ $('gname').textContent=GN();$('gver').textContent='v0.0.5.6 '+L('Альфа')+' 3D';document.title=GN();document.documentElement.lang=ST.lang;$('pname').textContent=CH.name;
  if(inv)refresh()}
 // ===== Симуляция =====
 const dark=()=>clamp(.35-Math.sin(time*6.2832)*.6,0,.8);
@@ -725,14 +729,14 @@ function step(dt){if(MENU)return;if(autoTest&&autoTest.active){const directions=
  tm+=dt;animateBirds(dt);cool=Math.max(0,cool-dt);swing=Math.max(0,swing-dt);
  if(!dead&&!MENU){
   let ix=(KEYS.KeyD||KEYS.ArrowRight?1:0)-(KEYS.KeyA||KEYS.ArrowLeft?1:0),iy=(KEYS.KeyW||KEYS.ArrowUp?1:0)-(KEYS.KeyS||KEYS.ArrowDown?1:0);
-  if(joy){const l=Math.hypot(joy.dx,joy.dy);if(l>8){const k=Math.min(1,l/50);ix=joy.dx/l*k;iy=-joy.dy/l*k}}
+  if(joy){const l=Math.hypot(joy.dx,joy.dy);if(l>=8){const k=clamp((l-8)/30,0,1);ix=joy.dx/l*k;iy=-joy.dy/l*k}}
   const l=Math.hypot(ix,iy);mvAmt=Math.min(1,l);IN_WATER=gy(P.x,P.z)<WATER_LEVEL-.05?1:0;
-  const burstAllowed=S.water>=15&&S.warm>=15&&(S.stamina===undefined||S.stamina>=15),joyDistance=joy?Math.hypot(joy.dx,joy.dy):0,joyBoost=!!(joy&&joyDistance>=38&&burstAllowed),burstInput=!!(KEYS.ShiftLeft||KEYS.ShiftRight||joyBoost);
+  const burstAllowed=S.water>=15&&S.warm>=15&&(S.stamina===undefined||S.stamina>=15),joyDistance=joy?Math.hypot(joy.dx,joy.dy):0,joyBoost=!!(joy&&joyDistance>38&&burstAllowed),burstInput=!!(KEYS.ShiftLeft||KEYS.ShiftRight||joyBoost);
   FAST_SWIM=IN_WATER&&burstAllowed&&burstInput&&l>.5?1:0;
   SPR=IN_WATER?FAST_SWIM:(burstAllowed&&burstInput&&l>.5?1:0);updateJoyVisual(!!(joyBoost&&l>.5));
   const swimRateTarget=FAST_SWIM?6.5:5;swimAnimRate+=(swimRateTarget-swimAnimRate)*Math.min(1,dt*5);swimAnimPhase+=dt*swimAnimRate;if(!IN_WATER&&SPR)breath=Math.min(1,breath+dt*.7);else breath=Math.max(0,breath-dt*.1);
   if(l>.01){if(l>1){ix/=l;iy/=l}
-   const mx=ix*Math.cos(yaw)-iy*Math.sin(yaw),mz=-ix*Math.sin(yaw)-iy*Math.cos(yaw),boostMultiplier=SPR?(IN_WATER?1.45:1.5):1,spd=(IN_WATER?2.6:5.2)*mvAmt*boostMultiplier;
+   const mx=ix*Math.cos(yaw)-iy*Math.sin(yaw),mz=-ix*Math.sin(yaw)-iy*Math.cos(yaw),boostMultiplier=SPR?(IN_WATER?1.45:1.5):1,spd=(IN_WATER?3:4.5)*mvAmt*boostMultiplier;
    move(mx/Math.max(.01,mvAmt)*spd*dt,mz/Math.max(.01,mvAmt)*spd*dt);
    let d=Math.atan2(mx,mz)-P.f;d=Math.atan2(Math.sin(d),Math.cos(d));P.f+=d*Math.min(1,dt*12);walkT+=dt*(spd/boostMultiplier)*1.7*(SPR?1.3:1);const st=Math.floor(walkT/Math.PI);if(st!=lastSt){lastSt=st;if(IN_WATER)snd(260+Math.random()*100,.07,'sine',.025);else snd(70+Math.random()*40,.06,'triangle',.04)}}
   if(!autoTest||!autoTest.active){time+=dt/WP.day;if(time>=1){time-=1;day++}
