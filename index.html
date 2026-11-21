@@ -75,21 +75,4 @@ body.menu #dock,body.menu #hud,body.menu #hint,body.menu #top,body.menu #toast{d
 <div id="menu"></div><div id="autotest-report" hidden></div><div id="hurt"></div><div id="dead" hidden><div><span id="dtxt"></span><br><button id="bRe"></button></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="game.js"></script>
-<script>
-(async function disableLegacyUpdater() {
-  if (!('serviceWorker' in navigator)) return;
-  try {
-    const registrations = await navigator.serviceWorker.getRegistrations();
-    await Promise.all(registrations.map(registration => registration.unregister()));
-  } catch (_) {}
-  try {
-    if ('caches' in window) {
-      const names = await caches.keys();
-      await Promise.all(names.filter(name =>
-        name.startsWith('miraculous-land-pwa-') ||
-        name === 'miraculous-land-pwa-v1' || name === 'miraculous-land-pwa-meta-v2'
-      ).map(name => caches.delete(name)));
-    }
-  } catch (_) {}
-})();
-</script></body></html>
+</body></html>
