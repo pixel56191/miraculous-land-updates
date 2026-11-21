@@ -151,6 +151,13 @@ async function cacheStaticResources() {
   }
 }
 
+self.addEventListener('message', event => {
+  const data = event.data || {};
+  if (data.type === 'ML_CHECK_UPDATES') {
+    event.waitUntil(refreshChangedAssets(true).catch(() => []));
+  }
+});
+
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
     try { await refreshChangedAssets(false); } catch (_) {}
