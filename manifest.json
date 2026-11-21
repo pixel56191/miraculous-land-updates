@@ -12,21 +12,7 @@
   "categories": [
     "games"
   ],
-  "icons": [
-    {
-      "src": "icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ],
-  "version": "0.0.5.2",
+  "version": "0.0.5.3",
   "files": {
     "index.html": {
       "sha256": "de00d56c28ebe00e2e4ed8c70ac6e325a0a5939f70b2fc91facdb35e24f80527",
@@ -34,8 +20,8 @@
       "url": "index.html"
     },
     "game.js": {
-      "sha256": "4d72c80208fcaede684241b93fec7615c460f1a50b2377120d71fdb91195d62e",
-      "size": 127786,
+      "sha256": "b08d1a78f84f324c9e890ef6d37319ad88829803fddd5b65bdf0649e52dc68f9",
+      "size": 128435,
       "url": "game.js"
     }
   }
