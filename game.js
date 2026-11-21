@@ -360,7 +360,7 @@ function updAnimals(dt){
   if(a.k!=='fish'&&a.unstuckTimer>0)a.dir=a.unstuckDir;
   const prevX=a.x,prevZ=a.z;let actualMoveDist=0;
   if(sp){if(a.k!=='fish'&&a.unstuckTimer<=0){let sx=0,sz=0;for(let j=0;j<AL.length;j++){const b=AL[j];if(b===a||b.k==='fish'||b.dying>0)continue;const ex=a.x-b.x,ez=a.z-b.z,dd=Math.hypot(ex,ez);if(dd>0&&dd<1.65){const f=(1.65-dd)/1.65;sx+=ex/dd*f;sz+=ez/dd*f}}if(Math.hypot(sx,sz)>.08)a.dir=Math.atan2(Math.sin(a.dir)+sx*.55,Math.cos(a.dir)+sz*.55)}
-   const pathHit=a.k==='fish'||a.unstuckTimer>0?null:blocked(a,a.dir);if(pathHit&&!pathHit.terrain&&a.obstacleCooldown<=0){let found=false;const offsets=(a.k==='deer'||a.k==='rabbit')?[65*Math.PI/180,-65*Math.PI/180]:[.72,-.72,1.12,-1.12];for(const off of offsets){const candidate=a.dir+off;if(!blocked(a,candidate)){a.dir=candidate;a.obstacleCooldown=1.2;found=true;break}}if(!found)turn(a)}
+   const pathHit=a.k==='fish'||a.unstuckTimer>0?null:blocked(a,a.dir);if(pathHit&&!pathHit.terrain&&a.obstacleCooldown<=0){let found=false;const offsets=(a.k==='deer'||a.k==='rabbit')?[65*Math.PI/180,-65*Math.PI/180]:[.72,-.72,1.12,-1.12];for(const off of offsets){const candidate=a.dir+off;if(!blocked(a,candidate)){a.dir=candidate;a.obstacleCooldown=(a.k==='deer'||a.k==='rabbit')?.9:1.2;found=true;break}}if(!found)turn(a)}
    const nx=a.x+Math.sin(a.dir)*sp*dt,nz=a.z+Math.cos(a.dir)*sp*dt,ny=hgt(nx,nz),valid=a.k==='fish'?ny<-.6:(ny>.15&&ny<8.5&&ny-hgt(a.x,a.z)<=maxSlopeOf(a)&&Math.abs(nx)<95&&Math.abs(nz)<95);
    const hit=a.k==='fish'?null:obstacleAt(a,nx,nz);
    if(valid&&!hit){a.x=nx;a.z=nz}else if(valid&&hit){let ex=nx-hit.x,ez=nz-hit.z;if(hit.box){if(hit.hx-Math.abs(ex)<hit.hz-Math.abs(ez)){ex=Math.sign(ex)||1;ez=0}else{ez=Math.sign(ez)||1;ex=0}}else{const dd=Math.hypot(ex,ez)||1;ex/=dd;ez/=dd}let tx=-ez,tz=ex;if(tx*Math.sin(a.dir)+tz*Math.cos(a.dir)<0){tx=-tx;tz=-tz}const len=Math.hypot(nx-a.x,nz-a.z),sx=tx*len,sz=tz*len,qx=a.x+sx,qz=a.z+sz,qy=hgt(qx,qz);if(qy>.15&&qy<8.5&&qy-hgt(a.x,a.z)<=maxSlopeOf(a)&&Math.abs(qx)<95&&Math.abs(qz)<95&&!obstacleAt(a,qx,qz)){a.x=qx;a.z=qz;if(a.obstacleCooldown<=0){a.dir=Math.atan2(sx,sz);a.obstacleCooldown=1.2}}else turn(a)}else turn(a)}
@@ -368,10 +368,10 @@ function updAnimals(dt){
   actualMoveDist=Math.hypot(a.x-prevX,a.z-prevZ);
   if(sp>0&&a.k!=='fish'&&actualMoveDist<.002){
    const probeDist=Math.max(.16,sp*dt*2),contact=obstacleAt(a,a.x+Math.sin(a.dir)*probeDist,a.z+Math.cos(a.dir)*probeDist)||blocked(a,a.dir);
-   if(contact&&!contact.terrain&&a.obstacleCooldown<=0){const base=a.dir,angle=(75+Math.random()*35)*Math.PI/180,step=Math.max(.12,sp*dt),sides=Math.random()<.5?[1,-1]:[-1,1];let diverted=false;
+   if(contact&&!contact.terrain&&a.obstacleCooldown<=0){const base=a.dir,angle=((a.k==='deer'||a.k==='rabbit')?65:(75+Math.random()*35))*Math.PI/180,step=Math.max(.12,sp*dt),sides=Math.random()<.5?[1,-1]:[-1,1];let diverted=false;
     for(const side of sides){const candidate=base+side*angle,qx=a.x+Math.sin(candidate)*step,qz=a.z+Math.cos(candidate)*step,qy=hgt(qx,qz);
-     if(qy>.15&&qy<8.5&&qy-hgt(a.x,a.z)<=maxSlopeOf(a)&&Math.abs(qx)<95&&Math.abs(qz)<95&&!obstacleAt(a,qx,qz)&&!blocked(a,candidate)){a.dir=candidate;a.x=qx;a.z=qz;a.obstacleCooldown=.35;diverted=true;break}}
-    if(!diverted){a.dir=base+sides[0]*angle;a.obstacleCooldown=.35}
+     if(qy>.15&&qy<8.5&&qy-hgt(a.x,a.z)<=maxSlopeOf(a)&&Math.abs(qx)<95&&Math.abs(qz)<95&&!obstacleAt(a,qx,qz)&&!blocked(a,candidate)){a.dir=candidate;a.x=qx;a.z=qz;a.obstacleCooldown=(a.k==='deer'||a.k==='rabbit')?.9:.35;diverted=true;break}}
+    if(!diverted){a.dir=base+sides[0]*angle;a.obstacleCooldown=(a.k==='deer'||a.k==='rabbit')?.9:.35}
    }
    actualMoveDist=Math.hypot(a.x-prevX,a.z-prevZ);
   }
