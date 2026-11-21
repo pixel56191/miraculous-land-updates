@@ -26,22 +26,16 @@
       "purpose": "any maskable"
     }
   ],
-  "version": "0.0.5.8",
+  "version": "0.0.5.9",
   "files": {
     "index.html": {
       "sha256": "025ee287670c605f17720aa6f170b84328d3d2701861a74d5ddabb7c549ebaf8",
       "size": 10022,
-      "url": "index.html",
-      "patch": {
-        "url": "patches/index.html.bsdiff",
-        "from_sha256": "025ee287670c605f17720aa6f170b84328d3d2701861a74d5ddabb7c549ebaf8",
-        "sha256": "ee674bb7c88ba6d5dc7c646fb22999a7d88050c6e21ca4109b7e6fa87af5ad1a",
-        "size": 190
-      }
+      "url": "index.html"
     },
     "game.js": {
-      "sha256": "6ab1d897a9020bc5be481650dd79f86968f61c45efe0fd1abb174ee7645a2c2d",
-      "size": 136990,
+      "sha256": "195face83abf763d199ed28dc3e9a1dedf5d2ab1710ffe677ead0246a2de2846",
+      "size": 165494,
       "url": "game.js"
     }
   }
