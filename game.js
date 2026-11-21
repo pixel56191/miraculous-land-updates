@@ -5,7 +5,7 @@ window.addEventListener('unhandledrejection',e=>window.__ML_STARTUP_FALLBACK(e.r
 try{const $=id=>document.getElementById(id);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // ===== Ядро: реестры (новый контент добавляется здесь или через Game.use) =====
-const G=window.Game={version:'0.0.5.8 Альфа 3D',items:{},nodes:{},recipes:[],mods:[],
+const G=window.Game={version:'0.0.5.9 Альфа 3D',items:{},nodes:{},recipes:[],mods:[],
  registerItem(id,o){o.ru=o.n;Object.defineProperty(o,'n',{get(){return L(this.ru)},enumerable:true});this.items[id]=o},registerNode(id,o){if(o.hint){o.hru=o.hint;Object.defineProperty(o,'hint',{get(){return L(this.hru)},enumerable:true})}this.nodes[id]=o},registerRecipe(r){this.recipes.push(r)},
  use(f){this.mods.push(f);f(this)}};
 G.use(g=>{
@@ -46,7 +46,7 @@ const sm=a=>a*a*(3-2*a);
 function vn(x,y){const xi=Math.floor(x),yi=Math.floor(y),u=sm(x-xi),v=sm(y-yi),a=h(xi,yi),b=h(xi+1,yi),c=h(xi,yi+1),d=h(xi+1,yi+1);return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v}
 const WPD={wl:.4,amp:26,forest:.5,ftree:.5,res:1,animals:1,wolves:1,diff:1,day:240,start:.1,name:'Мир'};let WP=Object.assign({},WPD),SEEDTXT='';
 const hgt=(x,z)=>{const X=x+300,Z=z+300,e=vn(X/40,Z/40)*.6+vn(X/17,Z/17)*.28+vn(X/7,Z/7)*.12;
- const k=clamp(1-Math.hypot(x,z)/16,0,1),s=k*k*(3-2*k);return (e-WP.wl)*WP.amp*(1-s)+1.5*s};
+ const k=clamp(1-Math.hypot(x,z)/16,0,1),s=k*k*(3-2*k);const base=(e-WP.wl)*WP.amp*(1-s)+1.5*s;return typeof mlBiome==='function'&&mlBiome(x,z)==='desert'?base+Math.sin(x*.075+vn(x/70,z/70)*3)*.55+Math.cos(z*.08)*.4:base};
 // ===== Three.js: сцена, небо, свет =====
 const ren=new THREE.WebGLRenderer({antialias:true});ren.setPixelRatio(Math.min(devicePixelRatio,2));
 ren.shadowMap.enabled=true;ren.shadowMap.type=THREE.PCFSoftShadowMap;document.body.prepend(ren.domElement);
@@ -343,11 +343,11 @@ function hitAn(a){const D=AN[a.k],pw=hasTool('spear')?3:hasTool('axe')?2:1;a.hp-
 function updAnimals(dt){
  updateAnimalPopulation(dt);updateWolfPopulation(dt);
  const dk=dark(),fireNear=F.some(f=>Math.hypot(f.x-P.x,f.z-P.z)<10),wolves=AL.filter(a=>a.k=='wolf'&&a.dying<=0).length;
- if(!dead&&!MENU&&WP.wolves&&dk>.5&&wolves<6&&Math.random()<dt*.08){const an=Math.random()*6.28,x=P.x+Math.cos(an)*34,z=P.z+Math.sin(an)*34;if(Math.abs(x)<92&&Math.abs(z)<92&&hgt(x,z)>.5)addAn('wolf',x,z)}
+ if(!dead&&!MENU&&WP.wolves&&dk>.5&&wolves<6&&Math.random()<dt*.08){const an=Math.random()*6.28,x=P.x+Math.cos(an)*34,z=P.z+Math.sin(an)*34;if(hgt(x,z)>.5)addAn('wolf',x,z)}
  const turn=a=>{if(a.obstacleCooldown>0)return false;a.dir+=((Math.random()<.5?-1:1)*(Math.PI/2+Math.random()*Math.PI/4));a.obstacleCooldown=1.2;a.t=1+Math.random()*2;a.w=true;return true};
  const animalRadiusOf=a=>AN[a.k]?.cr||.35;
  const obstacleAt=(a,x,z)=>{const animalRadius=animalRadiusOf(a);for(const n of near(x,z)){const nd=G.nodes[n.t];if(!nd||!nd.solid||n.gone||n.dead||n.fall>0)continue;const obstacleRadius=n.colliderRadius!=null?Math.max(0,n.colliderRadius-.35):(nd.r||.4)*n.s,r=obstacleRadius+animalRadius,dx=x-n.x,dz=z-n.z;if(dx*dx+dz*dz<r*r)return{x:n.x,z:n.z,r}}for(const p of PC){const b=pcBox(p);if(!b)continue;const hx=b[0]+animalRadius,hz=b[1]+animalRadius;if(Math.abs(x-p.x)<hx&&Math.abs(z-p.z)<hz)return{x:p.x,z:p.z,hx,hz,box:true}}return null};
- const blocked=(a,dir)=>{const dist=a.k==='fish'?1.25:.6,nx=a.x+Math.sin(dir)*dist,nz=a.z+Math.cos(dir)*dist,y=hgt(nx,nz),here=hgt(a.x,a.z);if(a.k==='fish')return y>=-.6?{terrain:true}:null;if(y<.15||y>8.5||Math.abs(nx)>94||Math.abs(nz)>94||y-here>.62)return{terrain:true};return obstacleAt(a,nx,nz)};
+ const blocked=(a,dir)=>{const dist=a.k==='fish'?1.25:.6,nx=a.x+Math.sin(dir)*dist,nz=a.z+Math.cos(dir)*dist,y=hgt(nx,nz),here=hgt(a.x,a.z);if(a.k==='fish')return y>=-.6?{terrain:true}:null;if(y<.15||y>8.5||y-here>.62)return{terrain:true};return obstacleAt(a,nx,nz)};
  for(let i=AL.length-1;i>=0;i--){const a=AL[i],D=AN[a.k],dx=P.x-a.x,dz=P.z-a.z,d=Math.hypot(dx,dz);
   if(a.dying>0){a.dying-=dt;const q=1-a.dying/.8;a.g.rotation.z=Math.min(1.5,q*2.2)*(a.side||1);a.g.position.y=Math.max(a.g.position.y-dt*.1,-.5);if(a.dying<=0){world.remove(a.g);AL.splice(i,1)}continue}
   if(a.k==='wolf'&&((dk<.15&&d>20)||d>70)){world.remove(a.g);AL.splice(i,1);continue}
@@ -641,7 +641,7 @@ const langRow=()=>'<div class="mr"><div class="ml">'+ico('ui_lang',16)+' '+L('Я
 function pgMain(){const w=HAVEWORLD?L('Мир: {w} · сид {s} · день {d}',{w:'<b>'+esc(L(WP.name))+'</b>',s:'<b>'+esc(SEEDTXT)+'</b>',d:day}):L('Мира пока нет — создай новый');
  const saved=Object.values(SAVE_DB.worlds||{}).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
  const worlds=saved.length?'<div class="mr"><b>'+L('Мои миры')+'</b>'+saved.map(q=>'<button class="pr" data-a="worldload" data-v="'+esc(q.id)+'"><b>'+esc(L(q.name||'Мир'))+'</b><small>'+L('Сид мира: {s}',{s:esc(q.seed||'')})+' · '+L('День')+' '+(q.day||1)+'</small><i>'+(q.id===activeWorldId?L('Текущий мир'):L('Открыть'))+'</i></button>').join('')+'</div>':'<div class="info">'+L('Нет сохранённых миров')+'</div>';
- return '<div class="logo">'+ico('logo',72)+'<h1>'+GN()+'</h1><div class="sub">v0.0.5.8 '+L('Альфа')+' 3D</div></div><div class="info">'+w+'</div>'+
+ return '<div class="logo">'+ico('logo',72)+'<h1>'+GN()+'</h1><div class="sub">v0.0.5.9 '+L('Альфа')+' 3D</div></div><div class="info">'+w+'</div>'+
  (HAVEWORLD?icb('ui_play','Продолжить','resume'):'')+icb('ui_world','Новый мир','go','world')+worlds+icb('ui_char','Персонаж','go','char')+icb('ui_gear','Настройки','go','set')+langRow()}
 function pgWorld(){return '<h2>'+L('Новый мир')+'</h2>'+row('Название','<input type="text" id="wname" maxlength="24" value="'+esc(WF.name)+'">')+
  row('Сид (пусто — случайный мир)','<div class="sd"><input type="text" id="wseed" maxlength="24" placeholder="'+L('случайный')+'" value="'+esc(WF.seed)+'">'+icb('ui_dice','','dice')+'</div>')+
@@ -728,7 +728,7 @@ function applyLang(){const sb=(id,ic,t)=>$(id).innerHTML='<span class="cb">'+ico
  sb('bAct','ui_act','Действие (E)');sb('bCraft','ui_craft','Крафт (C)');sb('bNew','ui_redo','');
  $('bNew').title=L('Новая игра');$('bMenu').title=L('Меню (Esc)');$('bDel').title=L('Разобрать постройку (X)');
  $('dtxt').textContent=L('Вы погибли');$('bRe').textContent=L('Начать заново');$('menu').dataset.busy=L('Генерация мира...');
- $('gname').textContent=GN();$('gver').textContent='v0.0.5.8 '+L('Альфа')+' 3D';document.title=GN();document.documentElement.lang=ST.lang;$('pname').textContent=CH.name;
+ $('gname').textContent=GN();$('gver').textContent='v0.0.5.9 '+L('Альфа')+' 3D';document.title=GN();document.documentElement.lang=ST.lang;$('pname').textContent=CH.name;
  if(inv)refresh()}
 // ===== Симуляция =====
 const dark=()=>clamp(.35-Math.sin(time*6.2832)*.6,0,.8);
@@ -850,6 +850,232 @@ $('bAct').onclick=act;$('bCraft').onclick=()=>$('craft').hidden=!$('craft').hidd
 $('bNew').onclick=()=>{save();showMenu('world')};$('bRe').onclick=()=>newGame(SEEDTXT,WP);
 function resize(){ren.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();if(menuCamera){menuCamera.aspect=innerWidth/innerHeight;menuCamera.updateProjectionMatrix()}}
 addEventListener('resize',resize);resize();
+
+// ===== v0.0.5.9: streaming chunks, deterministic biome and persistent edits =====
+const ML_CHUNK_SIZE=32,ML_CHUNKS=new Map();let ML_CHUNK_ROOT=null,ML_CHUNK_CHANGES={},ML_LEGACY_COUNT=0,ML_PENDING_HERB_CHANGES=null;
+const mlKey=(x,z)=>x+','+z;
+function mlBiome(x,z){
+ const t=vn((x+seed*.013)/270,(z-seed*.007)/270),m=vn((x-seed*.009)/190,(z+seed*.011)/190);
+ return t>.56&&m<.48?'desert':'temperate';
+}
+function mlChunkHash(x,z){return (seed^Math.imul(x+4096,73856093)^Math.imul(z+4096,19349663))|0}
+function mlGridAdd(n){const k=Math.floor(n.x/6)+','+Math.floor(n.z/6);if(!grid.has(k))grid.set(k,[]);grid.get(k).push(n)}
+function mlRegrid(){grid=new Map();for(const n of nodes)mlGridAdd(n)}
+function mlPut(n){
+ const c=n.chunk;if(!c)return;
+ const k=n.gone?.0001:n.s,mat=new THREE.Matrix4(),pos=new THREE.Vector3(),sc=new THREE.Vector3(),e=new THREE.Euler(n.tilt||0,n.r||0,0),q=new THREE.Quaternion().setFromEuler(e);
+ if(n.t==='tree'){pos.set(n.x,n.y-.05,n.z);sc.set(k,k,k);mat.compose(pos,q,sc);c.trunk.setMatrixAt(n.ci,mat);c.trunk.instanceMatrix.needsUpdate=true;pos.set(n.x,n.y+2.5*k,n.z);sc.set(1.8*k,2.2*k,1.8*k);mat.compose(pos,q,sc);c.crown.setMatrixAt(n.ci,mat);c.crown.instanceMatrix.needsUpdate=true}
+ else if(n.t==='cactus'){pos.set(n.x,n.y+1.0*k,n.z);sc.set(.55*k,1.8*k,.55*k);mat.compose(pos,q,sc);c.cactus.setMatrixAt(n.ci,mat);c.cactus.instanceMatrix.needsUpdate=true}
+ else if(n.t==='rock'){pos.set(n.x,n.y+.3*k,n.z);sc.set(k*n.a*1.2,k*.8,k*n.a);mat.compose(pos,q,sc);c.rock.setMatrixAt(n.ci,mat);c.rock.instanceMatrix.needsUpdate=true}
+ else {pos.set(n.x,n.y+.3*k,n.z);sc.set(k,k*.75,k);mat.compose(pos,q,sc);c.bush.setMatrixAt(n.ci,mat);c.bush.instanceMatrix.needsUpdate=true}
+}
+const mlOldPut=put;
+put=function(n,tilt=0){if(n&&n.chunk){n.tilt=tilt;mlPut(n);return}return mlOldPut(n,tilt)};
+function mlMakeChunk(cx,cz){
+ const key=mlKey(cx,cz);if(ML_CHUNKS.has(key))return;
+ const group=new THREE.Group();group.position.set(cx*32,0,cz*32);ML_CHUNK_ROOT.add(group);
+ const biome=mlBiome(cx*32+16,cz*32+16),geo=new THREE.PlaneGeometry(32,32,16,16);geo.rotateX(-Math.PI/2);
+ const pa=geo.attributes.position,col=new Float32Array(pa.count*3),color=new THREE.Color();
+ for(let i=0;i<pa.count;i++){const x=cx*32+pa.getX(i),z=cz*32+pa.getZ(i),y=hgt(x,z);pa.setY(i,y);
+  const n=vn(x/7+seed*.0001,z/7),j=n*.08;
+  if(biome==='desert')color.setRGB(.72+j,.56+j,.30+j*.5);
+  else if(y<.9)color.setRGB(.66+j,.62+j,.43+j*.4);
+  else color.setRGB(.19+j,.39+j,.15+j*.4);
+  col[i*3]=color.r;col[i*3+1]=color.g;col[i*3+2]=color.b}
+ geo.setAttribute('color',new THREE.BufferAttribute(col,3));geo.computeVertexNormals();
+ const ground=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,flatShading:true}));ground.receiveShadow=true;group.add(ground);
+ const wg=new THREE.PlaneGeometry(32,32,1,1);wg.rotateX(-Math.PI/2);const wm=new THREE.Mesh(wg,new THREE.MeshStandardMaterial({color:0x2f7fb5,transparent:true,opacity:.72,roughness:.14,metalness:.18,depthWrite:false}));wm.position.y=.015;group.add(wm);
+ const mk=(g,m,n)=>{const q=new THREE.InstancedMesh(g,m,Math.max(1,n));q.castShadow=true;q.receiveShadow=true;group.add(q);return q};
+ const c={key,cx,cz,biome,group,nodes:[],trunk:mk(new THREE.CylinderGeometry(.18,.28,2.4,6).translate(0,1.2,0),mt(0x5b3d24),70),crown:mk(new THREE.ConeGeometry(1.8,2.5,7).translate(0,2.4,0),mt(0x34713a),70),rock:mk(new THREE.IcosahedronGeometry(1,1),mt(0x898983),36),bush:mk(new THREE.IcosahedronGeometry(.65,1),mt(biome==='desert'?0x9a8050:0x477d32),32),cactus:mk(new THREE.CylinderGeometry(.22,.28,1.8,7),mt(0x2d7847),20)};
+ const outsideLegacy=Math.abs(cx)>2||Math.abs(cz)>2,R=rng(mlChunkHash(cx,cz));
+ if(outsideLegacy){
+  let ti=0,ri=0,bi=0,ci=0;
+  for(let i=0;i<42;i++){
+   const x=cx*32+2+R()*28,z=cz*32+2+R()*28,y=hgt(x,z),r=R();
+   if(y<.35||y>13)continue;
+   let type=null,idx=0;
+   if(biome==='desert'){if(r<.18){type='cactus';idx=ci++}else if(r<.25){type='rock';idx=ri++}else if(r<.34){type='bush';idx=bi++}}
+   else if(r<.22){type='tree';idx=ti++}else if(r<.29){type='rock';idx=ri++}else if(r<.36){type='bush';idx=bi++}
+   if(!type)continue;
+   const n={t:type,x,y,z,s:.7+R()*.8,r:R()*6.28,a:.8+R()*.5,hp:(G.nodes[type]||{}).hp||3,i:idx,ci:idx,chunk:c,gone:false,dead:false};
+   if(type==='cactus')n.hp=3;
+   c.nodes.push(n);nodes.push(n);mlGridAdd(n);mlPut(n);
+  }
+ }
+ c.trunk.count=c.nodes.filter(n=>n.t==='tree').length;c.crown.count=c.trunk.count;
+ c.rock.count=c.nodes.filter(n=>n.t==='rock').length;c.bush.count=c.nodes.filter(n=>n.t==='bush').length;c.cactus.count=c.nodes.filter(n=>n.t==='cactus').length;
+ for(const m of[c.trunk,c.crown,c.rock,c.bush,c.cactus]){if(m.instanceColor)m.instanceColor.needsUpdate=true}
+ const edits=ML_CHUNK_CHANGES[key]||{};
+ for(const n of c.nodes){const e=edits[n.ci+':'+n.t];if(e){n.gone=!!e.gone;n.dead=!!e.dead;n.rt=e.rt||0;mlPut(n)}}
+ ML_CHUNKS.set(key,c);
+}
+function mlRememberChunk(c){const edits=ML_CHUNK_CHANGES[c.key]||(ML_CHUNK_CHANGES[c.key]={});for(const n of c.nodes){const k=n.ci+':'+n.t;if(n.gone||n.dead)edits[k]={gone:!!n.gone,dead:!!n.dead,rt:n.rt||0};else delete edits[k]}if(!Object.keys(edits).length)delete ML_CHUNK_CHANGES[c.key]}
+function mlDropChunk(c){mlRememberChunk(c);ML_CHUNKS.delete(c.key);ML_CHUNK_ROOT.remove(c.group);c.group.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}});const set=new Set(c.nodes);nodes=nodes.filter(n=>!set.has(n));mlRegrid()}
+function mlUpdateChunks(){
+ if(!ML_CHUNK_ROOT||!P)return;
+ const cx=Math.floor(P.x/32),cz=Math.floor(P.z/32),radius=ST.q>=2?2:1,want=new Set();
+ for(let x=cx-radius;x<=cx+radius;x++)for(let z=cz-radius;z<=cz+radius;z++){const k=mlKey(x,z);want.add(k);mlMakeChunk(x,z)}
+ for(const [k,c] of ML_CHUNKS)if(!want.has(k))mlDropChunk(c);
+}
+const mlOldBuildWorld=buildWorld;
+buildWorld=function(){
+ for(const c of ML_CHUNKS.values())c.group.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}});ML_CHUNKS.clear();if(typeof ML_PYRAMIDS!=='undefined')ML_PYRAMIDS.clear();if(typeof ML_DUNGEON_ENEMIES!=='undefined')ML_DUNGEON_ENEMIES=[];
+ mlOldBuildWorld();ML_LEGACY_COUNT=nodes.length;
+ const terrain=world.children.find(o=>o.geometry&&o.geometry.type==='PlaneGeometry'&&o.geometry.parameters&&o.geometry.parameters.width===200);
+ if(terrain){world.remove(terrain);terrain.geometry.dispose();if(terrain.material)terrain.material.dispose()}
+ ML_CHUNK_ROOT=new THREE.Group();world.add(ML_CHUNK_ROOT);ML_CHUNKS.clear();mlUpdateChunks();
+};
+move=function(dx,dz){let nx=P.x+dx,nz=P.z+dz;
+ for(const n of near(nx,nz)){const d=G.nodes[n.t];if(!d||!d.solid||n.gone||n.fall>0)continue;const rr=n.colliderRadius||(d.r*n.s+.35),ex=nx-n.x,ez=nz-n.z,dd=Math.hypot(ex,ez);if(dd<rr){const q=dd||1,ux=dd?ex/q:Math.cos(P.f),uz=dd?ez/q:-Math.sin(P.f);nx=n.x+ux*rr;nz=n.z+uz*rr}}
+ for(const p of PC){const b=pcBox(p);if(!b)continue;const hx=b[0]+.35,hz=b[1]+.35,ex=nx-p.x,ez=nz-p.z;if(Math.abs(ex)<hx&&Math.abs(ez)<hz){if(hx-Math.abs(ex)<hz-Math.abs(ez))nx=p.x+(ex<0?-1:1)*hx;else nz=p.z+(ez<0?-1:1)*hz}}
+ P.x=nx;P.z=nz};
+const mlOldStep=step;
+step=function(dt){
+ mlOldStep(dt);mlUpdateChunks();
+ if(!MENU&&!dead&&mlBiome(P.x,P.z)==='desert'&&time>.18&&time<.82){S.warm=Math.min(100,S.warm+.22*dt);S.water=Math.max(0,S.water-.12*dt)}
+};
+G.registerItem('cactus_flesh',{n:'Сочная мякоть кактуса',eat:{water:28,food:4}});
+G.registerNode('cactus',{hint:'Срубить кактус',hp:3,r:.55,solid:true,drops:[['cactus_flesh',1,2]]});
+const mlOldNewGame=newGame;newGame=function(){ML_CHUNK_CHANGES={};ML_DUNGEON_DONE={};ML_DUNGEON_CHESTS={};ML_QUIVER=false;ML_ARROWS=0;ML_CROWN=false;ML_ARROW_PROJECTILES=[];ML_SAND_PROJECTILES=[];ML_DUNGEON_ENEMIES=[];ML_PYRAMIDS.clear();const r=mlOldNewGame.apply(this,arguments);mlUpdateChunks();mlEquipVisual();mlQuiverUI();return r};
+const mlOldSave=save;
+save=function(){mlOldSave();try{if(!activeWorldId||!SAVE_DB.worlds[activeWorldId])return;for(const c of ML_CHUNKS.values())mlRememberChunk(c);const slot=SAVE_DB.worlds[activeWorldId];slot.state.gone=[];slot.state.dd=[];const herbs=nodes.filter(n=>n.t==='herb');nodes.forEach((n,i)=>{if(i<ML_LEGACY_COUNT){if(n.gone)slot.state.gone.push(i);if(n.dead)slot.state.dd.push([i,n.rt])}});slot.state.herbChanges=[];herbs.forEach((n,i)=>{if(n.gone||n.dead)slot.state.herbChanges.push([i,!!n.gone,!!n.dead,n.rt||0])});slot.state.chunkVersion=1;slot.state.chunkChanges=ML_CHUNK_CHANGES;slot.state.pcs=PC.filter(p=>!(p.g&&p.g.parent&&p.g.parent.parent&&p.g.parent.parent.parent===ML_CHUNK_ROOT)).map(p=>({k:p.pk,x:p.x,z:p.z,y:p.y,r:p.rot,i:p.inv}));localStorage.setItem(SAVE_KEY,JSON.stringify(SAVE_DB))}catch(e){console.warn('Chunk save failed',e)}};
+const mlOldRestore=restoreWorld;
+function mlApplyHerbChanges(){if(!ML_PENDING_HERB_CHANGES)return;const herbs=nodes.filter(n=>n.t==='herb');if(!herbs.length&&ML_PENDING_HERB_CHANGES.length)return;for(const [i,gone,dead0,rt] of ML_PENDING_HERB_CHANGES){const n=herbs[i];if(!n)continue;n.gone=!!gone;n.dead=!!dead0;n.rt=rt||0;put(n)}ML_PENDING_HERB_CHANGES=null}
+restoreWorld=function(slot){
+ const s=slot&&slot.state;if(!s||!s.P||!s.S)return false;
+ ML_CHUNK_CHANGES=s.chunkChanges||{};WP=Object.assign({},WPD,s.wp||{});SEEDTXT=s.st||String(s.seed);seed=s.seed;buildWorld();
+ (s.gone||[]).forEach(i=>{if(i<ML_LEGACY_COUNT&&nodes[i]){nodes[i].gone=true;put(nodes[i])}});
+ (s.dd||[]).forEach(([i,rt])=>{if(i<ML_LEGACY_COUNT&&nodes[i]){nodes[i].dead=true;nodes[i].rt=rt;put(nodes[i])}});
+ let hc=s.herbChanges;
+ if(!hc){const hg=[],hd=[];(s.gone||[]).forEach(i=>{if(i>=ML_LEGACY_COUNT)hg.push(i-ML_LEGACY_COUNT)});(s.dd||[]).forEach(([i,rt])=>{if(i>=ML_LEGACY_COUNT)hd.push([i-ML_LEGACY_COUNT,rt])});hc=[...hg.map(i=>[i,true,false,0]),...hd.map(([i,rt])=>[i,false,true,rt])]}
+ ML_PENDING_HERB_CHANGES=hc;mlApplyHerbChanges();
+ (s.fires||[]).forEach(([x,z])=>mkFire(x,z));(s.pcs||[]).forEach(q=>mkPiece(q.k,q.x,q.z,q.y,q.r,q.i));
+ P=s.P;S=s.S;inv=s.inv||new Array(16).fill(null);time=s.time||0;day=s.day||1;dead=false;$('dead').hidden=true;refresh();mlUpdateChunks();mlApplyHerbChanges();return true;
+};
+// end v0.0.5.9 chunk foundation
+
+
+// ===== v0.0.5.9: desert structures, dungeon enemies, bow and quiver =====
+let ML_QUIVER=false,ML_ARROWS=0,ML_CROWN=false,ML_ARROW_PROJECTILES=[],ML_SAND_PROJECTILES=[],ML_DUNGEON_ENEMIES=[],ML_DUNGEON_DONE={},ML_DUNGEON_CHESTS={};
+const ML_PYRAMIDS=new Map();
+G.registerItem('feather',{n:'Перо чайки'});G.registerItem('wooden_bow',{n:'Деревянный лук',tool:'bow'});G.registerItem('arrow',{n:'Стрела'});G.registerItem('quiver',{n:'Колчан'});G.registerItem('gold_ingot',{n:'Золотой слиток'});G.registerItem('pharaoh_crown',{n:'Корона Фараона'});
+G.registerRecipe({out:'wooden_bow',n:1,in:{wood:5,fiber:3},at:'bench'});
+G.registerRecipe({out:'arrow',n:5,in:{wood:1,stone:1,feather:2},at:'bench'});
+G.registerRecipe({out:'arrow',n:5,in:{wood:1,iron_ingot:1,feather:2},at:'bench'});
+G.registerRecipe({out:'quiver',n:1,in:{hide:3,fiber:4},at:'bench'});
+function mlBox(parent,w,h,d,color,x,y,z){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({color,roughness:.88,flatShading:true}));m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
+function mlEnemyModel(type,parent){
+ const g=new THREE.Group();parent.add(g);
+ if(type==='mummy'){
+  mlBox(g,.65,.9,.42,0xaaa18b,0,.85,0);mlBox(g,.48,.5,.46,0xc3b89f,0,1.55,0);
+  for(let y=.45;y<1.8;y+=.18){const b=mlBox(g,.72,.055,.48,0xd0c5ad,0,y,0);b.rotation.z=(Math.floor(y*10)%2?.18:-.18)}
+  mlBox(g,.12,.1,.03,0xd9a52b,-.1,1.58,.24);mlBox(g,.12,.1,.03,0xd9a52b,.1,1.58,.24);
+  for(const x of[-.22,.22]){const arm=mlBox(g,.18,.65,.2,0xbeb39b,x,1.0,0);arm.rotation.z=x<0?-.25:.25}
+ }else{
+  mlBox(g,.85,1.25,.55,0x9c741f,0,1.05,0);mlBox(g,.68,.55,.5,0xe0b52d,0,1.95,.03);
+  mlBox(g,.54,.34,.1,0xe9c84a,0,1.95,.31);mlBox(g,.18,.18,.05,0x14100a,0,1.94,.38);
+  mlBox(g,.2,.22,.2,0xf2cf4a,-.28,2.25,0);mlBox(g,.2,.22,.2,0xf2cf4a,.28,2.25,0);
+  const staff=mlBox(g,.09,1.9,.09,0x70451b,.65,1.0,0);staff.rotation.z=-.08;
+  mlBox(g,.24,.22,.2,0xffd65b,.65,2.0,0);
+ }
+ return g;
+}
+function mlSpawnDungeon(c){
+ const key=c.key;if(c.biome!=='desert'||Math.abs(mlChunkHash(c.cx,c.cz))%4!==0||ML_PYRAMIDS.has(key))return;
+ const done=!!ML_DUNGEON_DONE[key],x=c.cx*32+16,z=c.cz*32+16,y=hgt(x,z),g=new THREE.Group();g.position.set(16,0,16);c.group.add(g);
+ const sand=mt(0xc99b48),dark=mt(0x75552e),floor=new THREE.Mesh(new THREE.BoxGeometry(12,.5,12),sand);floor.position.set(0,y+.25,0);floor.receiveShadow=true;g.add(floor);
+ for(let level=0;level<6;level++){
+  const half=7-level*1.05,yy=y+.5+level*1.15;
+  for(let ix=-Math.floor(half);ix<=Math.floor(half);ix+=2)for(let iz=-Math.floor(half);iz<=Math.floor(half);iz+=2){
+   if(level<2&&iz>half-1&&Math.abs(ix)<1.1)continue;
+   const b=new THREE.Mesh(new THREE.BoxGeometry(2.15,1.2,2.15),sand);b.position.set(ix,yy,iz);b.castShadow=true;b.receiveShadow=true;g.add(b);
+  }
+ }
+ const hall=new THREE.Group();g.add(hall);const enemies=[],columns=[];
+ for(const sx of[-1,1])for(const sz of[-1,1]){const col=new THREE.Mesh(new THREE.CylinderGeometry(.42,.52,3.6,7),dark);col.position.set(sx*3,y+2.1,sz*3);col.castShadow=true;hall.add(col);columns.push({x:x+sx*3,y:y+2.1,z:z+sz*3})}
+ const torchMat=new THREE.MeshBasicMaterial({color:0xffa33b});for(const sx of[-1,1]){const t=new THREE.Mesh(new THREE.ConeGeometry(.18,.6,6),torchMat);t.position.set(sx*5,y+2.8,0);hall.add(t)}
+ const chest=BUILD.chest(),loot=ML_DUNGEON_CHESTS[key]||[{id:'gold_ingot',n:2+Math.floor(Math.abs(mlChunkHash(c.cx,c.cz))%4)},{id:'iron_ingot',n:3},{id:'bandage',n:2}];chest.position.set(0,y+.5,-4);g.add(chest);PC.push({pk:'chest',x,z:z-4,y:y+.5,rot:0,g:chest,p:1,inv:loot});
+
+ if(!done){
+  for(let i=0;i<3;i++){const eg=mlEnemyModel('mummy',g);const e={type:'mummy',x:x+(i-1)*2,z:z+5-i*1.5,y:y+.5,hp:28,maxHp:28,cd:1+Math.random(),g:eg,chunk:key,dead:false};eg.position.set(e.x-x,e.y,e.z-z);enemies.push(e);ML_DUNGEON_ENEMIES.push(e)}
+  const bg=mlEnemyModel('pharaoh',g),boss={type:'pharaoh',x,z,y:y+.5,hp:260,maxHp:260,cd:2,spell:5,g:bg,chunk:key,dead:false};bg.position.set(0,y+.5,0);ML_DUNGEON_ENEMIES.push(boss);enemies.push(boss);
+ }
+ ML_PYRAMIDS.set(key,{group:g,x,z,y,enemies,columns,chunk:c});
+}
+const mlPrevMakeChunk=mlMakeChunk;
+mlMakeChunk=function(cx,cz){mlPrevMakeChunk(cx,cz);const c=ML_CHUNKS.get(mlKey(cx,cz));if(!c)return;mlSpawnDungeon(c);if((Math.abs(cx)>2||Math.abs(cz)>2)&&!c.animalsSpawned){c.animalsSpawned=true;const R=rng(mlChunkHash(cx,cz)^0x51a7);for(let i=0;i<2;i++){const x=cx*32+4+R()*24,z=cz*32+4+R()*24;if(hgt(x,z)>.4){const a=addAn(R()<.7?'rabbit':'deer',x,z);a.chunkKey=c.key}}if(R()<.18){const x=cx*32+8+R()*16,z=cz*32+8+R()*16;if(hgt(x,z)>.4){const a=addAn('wolf',x,z);a.chunkKey=c.key}}}};
+const mlPrevDropChunk=mlDropChunk;
+mlDropChunk=function(c){const pyr=ML_PYRAMIDS.get(c.key);if(pyr){const chest=PC.find(p=>p.g&&p.g.parent===pyr.group);if(chest)ML_DUNGEON_CHESTS[c.key]=chest.inv}ML_DUNGEON_ENEMIES=ML_DUNGEON_ENEMIES.filter(e=>e.chunk!==c.key);ML_PYRAMIDS.delete(c.key);for(let i=AL.length-1;i>=0;i--)if(AL[i].chunkKey===c.key){world.remove(AL[i].g);AL.splice(i,1)}PC=PC.filter(p=>!(p.g&&p.g.parent&&p.g.parent.parent===c.group));if(openC&&openC.g&&openC.g.parent&&openC.g.parent.parent===c.group){openC=null;refresh()}return mlPrevDropChunk(c)};
+function mlQuiverUI(){
+ let q=document.getElementById('ml-quiver-slot');if(!q){q=document.createElement('div');q.id='ml-quiver-slot';q.style.cssText='display:flex;align-items:center;gap:6px;margin:5px 0;padding:6px 10px;border:1px solid #8b805f;border-radius:9px;background:#20251e;color:#f0e4c5;font-size:13px';const p=$('inv').parentElement;p.appendChild(q)}
+ q.textContent=(ML_QUIVER?'🎒 '+L('Колчан'):'🎒 '+L('Колчан не надет'))+' · 🏹 '+ML_ARROWS;
+}
+const mlOldRefresh=refresh;
+refresh=function(){mlOldRefresh();mlQuiverUI()};
+function mlEquipVisual(){
+ if(armR&&!armR.getObjectByName('ml-bow')&&Array.isArray(inv)&&hasTool('bow')){const bg=new THREE.Group();bg.name='ml-bow';const arc=new THREE.Mesh(new THREE.TorusGeometry(.34,.035,6,14,Math.PI),mt(0x8a5527));arc.rotation.z=Math.PI/2;bg.add(arc);const string=new THREE.Mesh(new THREE.CylinderGeometry(.008,.008,.65,4),mt(0xd9d0b4));string.position.z=-.02;bg.add(string);armR.add(bg)}
+ if(armR){const b=armR.getObjectByName('ml-bow');if(b)b.visible=Array.isArray(inv)&&hasTool('bow')}
+ if(ML_QUIVER&&!pl.getObjectByName('ml-quiver')){const q=new THREE.Group();q.name='ml-quiver';const b=new THREE.Mesh(new THREE.BoxGeometry(.42,.58,.18),mt(0x79502d));b.position.set(0,1.15,-.34);q.add(b);for(let i=0;i<4;i++){const a=new THREE.Mesh(new THREE.CylinderGeometry(.018,.018,.52,5),mt(0xbda36d));a.position.set((i-1.5)*.075,1.25,-.22);a.rotation.z=.1;q.add(a)}pl.add(q)}
+ const q=pl.getObjectByName('ml-quiver');if(q)q.visible=ML_QUIVER;
+ if(head){let crown=head.getObjectByName('ml-pharaoh-crown');if(ML_CROWN&&!crown){crown=new THREE.Group();crown.name='ml-pharaoh-crown';const m=mt(0xd9aa25);const band=new THREE.Mesh(new THREE.CylinderGeometry(.22,.24,.09,8),m);band.position.y=.18;crown.add(band);const tip=new THREE.Mesh(new THREE.ConeGeometry(.09,.34,5),m);tip.position.set(0,.38,-.02);crown.add(tip);head.add(crown)}if(crown)crown.visible=ML_CROWN}
+}
+const mlOldApplyChar=applyChar;applyChar=function(){mlOldApplyChar();mlEquipVisual()};
+const mlOldUseSlot=useSlot;
+useSlot=function(i){const s=inv[i];if(s&&s.id==='quiver'){take('quiver',1);ML_QUIVER=true;mlEquipVisual();mlQuiverUI();log(L('Колчан надет'));return}
+ if(s&&s.id==='pharaoh_crown'){take('pharaoh_crown',1);ML_CROWN=true;mlEquipVisual();log(L('Корона Фараона надета'));return}
+ return mlOldUseSlot(i)};
+const mlOldCraft=craft;
+craft=function(r){if(r.out==='arrow'){if(!Object.entries(r.in).every(([k,v])=>count(k)>=v))return;if(r.at&&!nearPc('bench'))return log(L('Нужен верстак рядом'));for(const k in r.in)take(k,r.in[k]);ML_ARROWS+=r.n||5;mlQuiverUI();playA('build');log(L('Создано: {n} стрел',{n:r.n||5}));return}if(r.out==='quiver'){if(!Object.entries(r.in).every(([k,v])=>count(k)>=v))return;if(r.at&&!nearPc('bench'))return log(L('Нужен верстак рядом'));for(const k in r.in)take(k,r.in[k]);ML_QUIVER=true;mlEquipVisual();mlQuiverUI();log(L('Колчан создан и надет'));return}const result=mlOldCraft(r);mlEquipVisual();return result};
+function mlShootArrow(){
+ if(!hasTool('bow'))return false;
+ if(!ML_QUIVER)return log(L('Сначала наденьте колчан')),true;
+ if(ML_ARROWS<=0)return log(L('В колчане нет стрел')),true;
+ ML_ARROWS--;mlQuiverUI();
+ const dir=cam.getWorldDirection(new THREE.Vector3()).normalize(),origin=new THREE.Vector3(P.x,P.y+1.45,P.z).addScaledVector(dir,.7);
+ const g=new THREE.Group(),shaft=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.72,5),mt(0x9a7443)),tip=new THREE.Mesh(new THREE.ConeGeometry(.065,.18,5),mt(0x9da4a7));
+ shaft.rotation.x=Math.PI/2;tip.rotation.x=-Math.PI/2;tip.position.z=.43;g.add(shaft,tip);g.position.copy(origin);g.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),dir);world.add(g);
+ ML_ARROW_PROJECTILES.push({g,pos:origin,vel:dir.multiplyScalar(23),life:4});snd(420,.07,'triangle');return true;
+}
+function mlDistSeg(p,a,b){const v=b.clone().sub(a),w=p.clone().sub(a),d=v.lengthSq(),t=d?clamp(w.dot(v)/d,0,1):0;return p.distanceTo(a.clone().addScaledVector(v,t))}
+function mlArrowHit(p,prev){
+ const nearHit=q=>prev?mlDistSeg(q,prev,p)<.9:q.distanceTo(p)<.9;
+ for(const e of ML_DUNGEON_ENEMIES){if(e.dead)continue;const q=new THREE.Vector3(e.x,e.y+1,e.z);if(nearHit(q)){e.hp-=e.type==='pharaoh'?22:35;if(e.hp<=0){e.dead=true;e.g.visible=false;if(e.type==='pharaoh'){ML_DUNGEON_DONE[e.chunk]=true;add('gold_ingot',12);add('bandage',4);add('pharaoh_crown',1);log(L('Фараон повержен!'))}else add('bandage',1)}return true}}
+ for(const a of AL){if(a.dying>0)continue;const q=new THREE.Vector3(a.x,a.g.position.y+.35,a.z);if(nearHit(q)){hitAn(a);return true}}
+ for(let i=BIRDS.length-1;i>=0;i--){const b=BIRDS[i];if(nearHit(b.g.position)){add('feather',1+Math.floor(Math.random()*2));add('meat',1);world.remove(b.g);BIRDS.splice(i,1);return true}}
+ return false;
+}
+function mlUpdateProjectiles(dt){
+ for(let i=ML_ARROW_PROJECTILES.length-1;i>=0;i--){const a=ML_ARROW_PROJECTILES[i],prev=a.pos.clone();a.life-=dt;a.vel.y-=8.8*dt;a.pos.addScaledVector(a.vel,dt);a.g.position.copy(a.pos);a.g.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),a.vel.clone().normalize());
+  if(mlArrowHit(a.pos,prev)||a.life<=0||a.pos.y<hgt(a.pos.x,a.pos.z)+.08){world.remove(a.g);a.g.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material)o.material.dispose()});ML_ARROW_PROJECTILES.splice(i,1)}}
+ for(let i=ML_SAND_PROJECTILES.length-1;i>=0;i--){const p=ML_SAND_PROJECTILES[i];p.life-=dt;p.pos.addScaledVector(p.vel,dt);p.g.position.copy(p.pos);let blocked=false;for(const c of ML_PYRAMIDS.values())for(const col of c.columns||[])if(mlDistSeg(new THREE.Vector3(col.x,col.y,col.z),p.prev,p.pos)<.7)blocked=true;
+  if(blocked)p.life=0;if(!blocked&&Math.hypot(p.pos.x-P.x,p.pos.z-P.z)<.85&&Math.abs(p.pos.y-(P.y+1))<1){S.hp=Math.max(0,S.hp-13*(ML_CROWN?.75:1));log(L('Песчаный вихрь задел вас'));p.life=0}
+  if(p.life<=0||p.pos.y<hgt(p.pos.x,p.pos.z)){world.remove(p.g);ML_SAND_PROJECTILES.splice(i,1)}else p.prev.copy(p.pos)}
+}
+function mlUpdateDungeon(dt){
+ let bossNear=null;
+ for(const e of ML_DUNGEON_ENEMIES){if(e.dead)continue;const dx=P.x-e.x,dz=P.z-e.z,d=Math.hypot(dx,dz);if(e.type==='pharaoh'&&d<20)bossNear=e;
+  e.cd-=dt;if(e.type==='pharaoh')e.spell-=dt;
+  if(d<22&&!dead){
+   if(d>1.65){const step=Math.min(d-1.5,(e.type==='pharaoh'?1.25:1.7)*dt),nx=e.x+dx/(d||1)*step,nz=e.z+dz/(d||1)*step;
+    const blocked=near(nx,nz).some(n=>{const def=G.nodes[n.t];return def&&def.solid&&!n.gone&&!n.dead&&Math.hypot(nx-n.x,nz-n.z)<(def.r||.4)*n.s+.55})||ML_PYRAMIDS.get(e.chunk)?.columns?.some(col=>Math.hypot(nx-col.x,nz-col.z)<.8);
+    if(!blocked){e.x=nx;e.z=nz;e.g.position.x=e.x-(ML_PYRAMIDS.get(e.chunk)?.x||0);e.g.position.z=e.z-(ML_PYRAMIDS.get(e.chunk)?.z||0)}
+   }else if(e.cd<=0){S.hp=Math.max(0,S.hp-(e.type==='pharaoh'?16:7)*(ML_CROWN?.75:1));e.cd=e.type==='pharaoh'?1.35:1.6;log(e.type==='pharaoh'?L('Фараон ударил посохом!'):L('Мумия атакует!'))}
+   if(e.type==='pharaoh'&&e.spell<=0&&d>3&&d<15){const g=new THREE.Mesh(new THREE.SphereGeometry(.34,7,6),new THREE.MeshBasicMaterial({color:0xc99a35}));world.add(g);const pos=new THREE.Vector3(e.x,e.y+1.5,e.z),dir=new THREE.Vector3(dx,0,dz).normalize();ML_SAND_PROJECTILES.push({g,pos:pos.clone(),prev:pos.clone(),vel:dir.multiplyScalar(7).add(new THREE.Vector3(0,1.2,0)),life:3});e.spell=6}
+  }
+ }
+ const bar=document.getElementById('ml-boss-bar');if(bossNear){bar.hidden=false;bar.querySelector('i').style.width=Math.max(0,bossNear.hp/bossNear.maxHp*100)+'%';bar.querySelector('b').textContent=L('Фараон')}else if(bar)bar.hidden=true;
+}
+function mlEnsureBossBar(){if(document.getElementById('ml-boss-bar'))return;const d=document.createElement('div');d.id='ml-boss-bar';d.hidden=true;d.style.cssText='position:fixed;z-index:50;top:12px;left:50%;transform:translateX(-50%);width:min(340px,72vw);text-align:center;color:#ffe2a0;font-weight:700;text-shadow:0 2px 4px #000;pointer-events:none';d.innerHTML='<b>Фараон</b><div style="height:12px;border:1px solid #d7b45b;background:#241b10;border-radius:8px;overflow:hidden"><i style="display:block;width:100%;height:100%;background:#b52e25"></i></div>';document.body.appendChild(d)}
+mlEnsureBossBar();
+const mlOldAct=act;act=function(){if(cool<=0&&!dead&&!MENU){if(mlShootArrow()){cool=.35;swing=.25;return}
+  if(!hasTool('bow')){let bird=null,bd0=3.1;for(const b of BIRDS){const d=b.g.position.distanceTo(new THREE.Vector3(P.x,P.y+1,P.z));if(d<bd0){bd0=d;bird=b}}if(bird){world.remove(bird.g);BIRDS.splice(BIRDS.indexOf(bird),1);add('feather',1+Math.floor(Math.random()*2));add('meat',1);cool=.45;snd(240,.08,'sawtooth');log(L('Добыты перья и мясо чайки'));return}}
+  let best=null,bd=3;for(const e of ML_DUNGEON_ENEMIES){if(e.dead)continue;const d=Math.hypot(e.x-P.x,e.z-P.z);if(d<bd){bd=d;best=e}}
+  if(best){best.hp-=ML_CROWN?18:14;cool=.55;swing=.35;if(best.hp<=0){best.dead=true;best.g.visible=false;if(best.type==='pharaoh'){ML_DUNGEON_DONE[best.chunk]=true;add('gold_ingot',12);add('bandage',4);add('pharaoh_crown',1);log(L('Фараон повержен!'))}else add('bandage',1)}return}
+ }return mlOldAct()};
+const mlOldStepCombat=step;step=function(dt){mlOldStepCombat(dt);if(!MENU&&!dead){mlUpdateDungeon(dt);mlUpdateProjectiles(dt)}};
+const mlOldSaveCombat=save;save=function(){mlOldSaveCombat();try{if(activeWorldId&&SAVE_DB.worlds[activeWorldId]){const st=SAVE_DB.worlds[activeWorldId].state;st.mlCombat={quiver:ML_QUIVER,arrows:ML_ARROWS,crown:ML_CROWN,dungeonDone:ML_DUNGEON_DONE};for(const [key,pyr] of ML_PYRAMIDS){const chest=PC.find(p=>p.g&&p.g.parent===pyr.group);if(chest)ML_DUNGEON_CHESTS[key]=chest.inv}st.dungeonChests=ML_DUNGEON_CHESTS;localStorage.setItem(SAVE_KEY,JSON.stringify(SAVE_DB))}}catch(e){}};
+const mlOldRestoreCombat=restoreWorld;restoreWorld=function(slot){const c=slot&&slot.state&&slot.state.mlCombat||{};ML_QUIVER=!!c.quiver;ML_ARROWS=c.arrows||0;ML_CROWN=!!c.crown;ML_DUNGEON_DONE=c.dungeonDone||{};ML_DUNGEON_CHESTS=slot&&slot.state&&slot.state.dungeonChests||{};const ok=mlOldRestoreCombat(slot);if(ok){mlEquipVisual();mlQuiverUI()}return ok};
+
 loadSet();loadChar();initLang();applyChar();applySet();applyLang();initMenuDiorama();
 HAVEWORLD=load();if(!HAVEWORLD)newGame('',{},1);
 showMenu('main');
@@ -858,14 +1084,14 @@ let last=performance.now();
 
 
 (function(){
- const tr={en:{'Лечебная трава':'Medicinal herb','Травяной настой':'Herbal infusion','Тёплая шапка':'Warm hat','Накидка из шкур':'Fur cloak','Собрать лечебную траву':'Gather medicinal herbs','Проверить обновления':'Check for updates','Погода':'Weather','Ясно':'Clear','Туман':'Fog','Дождь':'Rain','Гроза':'Thunderstorm','Ветер':'Wind','Снег':'Snow','Простуда':'Cold','Отравление':'Food poisoning','Мокрый':'Wet','Вы простудились':'You caught a cold','Пищевое отравление':'Food poisoning','Недуги прошли':'You feel better'},es:{'Лечебная трава':'Hierba medicinal','Травяной настой':'Infusión de hierbas','Тёплая шапка':'Gorro cálido','Накидка из шкур':'Capa de pieles','Собрать лечебную траву':'Recolectar hierbas medicinales','Проверить обновления':'Buscar actualizaciones','Погода':'Clima','Ясно':'Despejado','Туман':'Niebla','Дождь':'Lluvia','Гроза':'Tormenta','Ветер':'Viento','Снег':'Nieve','Простуда':'Resfriado','Отравление':'Intoxicación','Мокрый':'Mojado','Вы простудились':'Te has resfriado','Пищевое отравление':'Intoxicación alimentaria','Недуги прошли':'Te encuentras mejor'}};
+ const tr={en:{'Лечебная трава':'Medicinal herb','Травяной настой':'Herbal infusion','Тёплая шапка':'Warm hat','Накидка из шкур':'Fur cloak','Собрать лечебную траву':'Gather medicinal herbs','Проверить обновления':'Check for updates','Погода':'Weather','Ясно':'Clear','Туман':'Fog','Дождь':'Rain','Гроза':'Thunderstorm','Ветер':'Wind','Снег':'Snow','Простуда':'Cold','Отравление':'Food poisoning','Мокрый':'Wet','Вы простудились':'You caught a cold','Пищевое отравление':'Food poisoning','Недуги прошли':'You feel better','Сочная мякоть кактуса':'Cactus flesh','Перо чайки':'Seagull feather','Деревянный лук':'Wooden bow','Стрела':'Arrow','Колчан':'Quiver','Золотой слиток':'Gold ingot','Корона Фараона':'Pharaoh crown','Срубить кактус':'Chop cactus','Фараон':'Pharaoh','Фараон повержен!':'Pharaoh defeated!','Фараон ударил посохом!':'The Pharaoh strikes with his staff!','Мумия атакует!':'The mummy attacks!','Песчаный вихрь задел вас':'The sand vortex hit you','Сначала наденьте колчан':'Equip a quiver first','В колчане нет стрел':'No arrows in your quiver','Колчан надет':'Quiver equipped','Колчан создан и надет':'Quiver crafted and equipped','Колчан не надет':'No quiver equipped','Добыты перья и мясо чайки':'Seagull feathers and meat collected','Создано: {n} стрел':'Crafted {n} arrows','Пустыня':'Desert','Пирамида':'Pyramid','Мумия':'Mummy','Корона Фараона надета':'Pharaoh crown equipped','Золотые сокровища':'Golden treasures'},es:{'Лечебная трава':'Hierba medicinal','Травяной настой':'Infusión de hierbas','Тёплая шапка':'Gorro cálido','Накидка из шкур':'Capa de pieles','Собрать лечебную траву':'Recolectar hierbas medicinales','Проверить обновления':'Buscar actualizaciones','Погода':'Clima','Ясно':'Despejado','Туман':'Niebla','Дождь':'Lluvia','Гроза':'Tormenta','Ветер':'Viento','Снег':'Nieve','Простуда':'Resfriado','Отравление':'Intoxicación','Мокрый':'Mojado','Вы простудились':'Te has resfriado','Пищевое отравление':'Intoxicación alimentaria','Недуги прошли':'Te encuentras mejor','Сочная мякоть кактуса':'Pulpa de cactus','Перо чайки':'Pluma de gaviota','Деревянный лук':'Arco de madera','Стрела':'Flecha','Колчан':'Carcaj','Золотой слиток':'Lingote de oro','Корона Фараона':'Corona del faraón','Срубить кактус':'Cortar cactus','Фараон':'Faraón','Фараон повержен!':'¡Faraón derrotado!','Фараон ударил посохом!':'¡El faraón golpea con su báculo!','Мумия атакует!':'¡La momia ataca!','Песчаный вихрь задел вас':'El torbellino de arena te alcanzó','Сначала наденьте колчан':'Equipa un carcaj primero','В колчане нет стрел':'No hay flechas en el carcaj','Колчан надет':'Carcaj equipado','Колчан создан и надет':'Carcaj creado y equipado','Колчан не надет':'Sin carcaj equipado','Добыты перья и мясо чайки':'Plumas y carne de gaviota recogidas','Создано: {n} стрел':'Se crearon {n} flechas','Пустыня':'Desierto','Пирамида':'Pirámide','Мумия':'Momia','Корона Фараона надета':'Corona del faraón equipada','Золотые сокровища':'Tesoros de oro'}};
  const oldL=L;L=function(s,v){return (tr[ST.lang]&&tr[ST.lang][s])||oldL(s,v)};
  const oldPg=pgMain;pgMain=function(){return oldPg().replace(langRow(),'<button class="mb" data-a="checkupdates">↻ <span>'+L('Проверить обновления')+'</span></button>'+langRow())};
  const oldBuild=buildWorld;
  function growHerbs(){let made=0;const R=rng(seed+98765);for(let i=0;i<420&&made<70;i++){const x=(R()-.5)*180,z=(R()-.5)*180,y=hgt(x,z);if(y<1||y>8||Math.hypot(x,z)<9)continue;
   const n={t:'herb',x,y,z,s:.8,r:R()*6.28,hp:1,i:made,gone:false};nodes.push(n);const key=Math.floor(x/6)+','+Math.floor(z/6);if(!grid.has(key))grid.set(key,[]);grid.get(key).push(n);
   const g=new THREE.Group();g.position.set(x,y,z);for(let j=0;j<4;j++){const stem=new THREE.Mesh(new THREE.CylinderGeometry(.018,.025,.27,5),new THREE.MeshStandardMaterial({color:0x4c8942}));stem.position.y=.13;g.add(stem);const flower=new THREE.Mesh(new THREE.SphereGeometry(.105,7,6),new THREE.MeshStandardMaterial({color:j%2?0x9167dc:0x638ce8,emissive:0x24143c}));flower.position.set(Math.cos(j*1.57)*.12,.29,Math.sin(j*1.57)*.12);g.add(flower)}world.add(g);n.mesh=g;made++}}
- buildWorld=function(){oldBuild();growHerbs()};growHerbs();
+ buildWorld=function(){oldBuild();growHerbs();if(typeof mlApplyHerbChanges==='function')mlApplyHerbChanges()};growHerbs();if(typeof mlApplyHerbChanges==='function')mlApplyHerbChanges();
  const oldPut=put;put=function(n,t){if(n.t==='herb'){if(n.mesh)n.mesh.visible=!n.gone&&!n.dead;return}return oldPut(n,t)};
  G.registerItem('herb',{n:'Лечебная трава'});G.registerItem('herbal_tea',{n:'Травяной настой'});G.registerItem('warm_hat',{n:'Тёплая шапка'});G.registerItem('fur_cloak',{n:'Накидка из шкур'});
  G.registerNode('herb',{hint:'Собрать лечебную траву',hp:1,drops:[['herb',1,2]],regrow:90});
