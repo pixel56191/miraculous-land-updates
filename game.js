@@ -966,20 +966,40 @@ G.registerRecipe({out:'arrow',n:5,in:{wood:1,stone:1,feather:2},at:'bench'});
 G.registerRecipe({out:'arrow',n:5,in:{wood:1,iron_ingot:1,feather:2},at:'bench'});
 G.registerRecipe({out:'quiver',n:1,in:{hide:3,fiber:4},at:'bench'});
 function mlBox(parent,w,h,d,color,x,y,z){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({color,roughness:.88,flatShading:true}));m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
+function createMummyMesh(isPharaoh = false) {
+  const group = new THREE.Group();
+  const scale = isPharaoh ? 1.35 : 1.0;
+  const skinMat = new THREE.MeshStandardMaterial({ color: 0x5c5346, roughness: 0.9 });
+  const bandageMat = new THREE.MeshStandardMaterial({ color: isPharaoh ? 0xd8c39e : 0xc8bfa8, roughness: 0.85 });
+  const eyeMat = new THREE.MeshBasicMaterial({ color: isPharaoh ? 0xff3b30 : 0x76ff03 });
+  const goldMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.7, roughness: 0.25 });
+  const legGeo = new THREE.BoxGeometry(0.24, 0.7, 0.24);
+  const leftLeg = new THREE.Mesh(legGeo, bandageMat); leftLeg.position.set(-0.15, 0.35, 0);
+  const rightLeg = new THREE.Mesh(legGeo, bandageMat); rightLeg.position.set(0.15, 0.35, 0);
+  group.add(leftLeg, rightLeg);
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.75, 0.32), bandageMat); torso.position.set(0, 1.05, 0); group.add(torso);
+  for (let i = 0; i < 3; i++) { const strip = new THREE.Mesh(new THREE.BoxGeometry(0.61, 0.08, 0.35), skinMat); strip.position.set(0, 0.85 + i * 0.22, 0); group.add(strip); }
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.46, 0.46), bandageMat); head.position.set(0, 1.68, 0);
+  const brow = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.12, 0.48), skinMat); brow.position.set(0, 1.76, 0);
+  const leftEye = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.06, 0.04), eyeMat); leftEye.position.set(-0.11, 1.68, 0.23);
+  const rightEye = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.06, 0.04), eyeMat); rightEye.position.set(0.11, 1.68, 0.23);
+  group.add(head, brow, leftEye, rightEye);
+  const armGeo = new THREE.BoxGeometry(0.2, 0.2, 0.65);
+  const leftArm = new THREE.Mesh(armGeo, bandageMat); leftArm.position.set(-0.4, 1.28, 0.25);
+  const rightArm = new THREE.Mesh(armGeo, bandageMat); rightArm.position.set(0.4, 1.28, 0.25);
+  group.add(leftArm, rightArm);
+  if (isPharaoh) {
+    const crown = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.25, 0.54), goldMat); crown.position.set(0, 1.98, 0);
+    const cobra = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.16, 0.1), goldMat); cobra.position.set(0, 2.02, 0.28);
+    group.add(crown, cobra);
+  }
+  group.scale.set(scale, scale, scale);
+  group.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
+  return group;
+}
 function mlEnemyModel(type,parent){
- const g=new THREE.Group();parent.add(g);
- if(type==='mummy'){
-  mlBox(g,.65,.9,.42,0xaaa18b,0,.85,0);mlBox(g,.48,.5,.46,0xc3b89f,0,1.55,0);
-  for(let y=.45;y<1.8;y+=.18){const b=mlBox(g,.72,.055,.48,0xd0c5ad,0,y,0);b.rotation.z=(Math.floor(y*10)%2?.18:-.18)}
-  mlBox(g,.12,.1,.03,0xd9a52b,-.1,1.58,.24);mlBox(g,.12,.1,.03,0xd9a52b,.1,1.58,.24);
-  for(const x of[-.22,.22]){const arm=mlBox(g,.18,.65,.2,0xbeb39b,x,1.0,0);arm.rotation.z=x<0?-.25:.25}
- }else{
-  mlBox(g,.85,1.25,.55,0x9c741f,0,1.05,0);mlBox(g,.68,.55,.5,0xe0b52d,0,1.95,.03);
-  mlBox(g,.54,.34,.1,0xe9c84a,0,1.95,.31);mlBox(g,.18,.18,.05,0x14100a,0,1.94,.38);
-  mlBox(g,.2,.22,.2,0xf2cf4a,-.28,2.25,0);mlBox(g,.2,.22,.2,0xf2cf4a,.28,2.25,0);
-  const staff=mlBox(g,.09,1.9,.09,0x70451b,.65,1.0,0);staff.rotation.z=-.08;
-  mlBox(g,.24,.22,.2,0xffd65b,.65,2.0,0);
- }
+ const g=createMummyMesh(type==='pharaoh');
+ parent.add(g);
  return g;
 }
 function mlSpawnDungeon(c){
