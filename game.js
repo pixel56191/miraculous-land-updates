@@ -136,7 +136,7 @@ function buildWorld(){
  water=new THREE.Mesh(wg,new THREE.MeshStandardMaterial({color:0x2f7fb5,transparent:true,opacity:.78,roughness:.12,metalness:.25}));water.userData.b=wg.attributes.position.array.slice();world.add(water);
  const R=rng(seed),cnt={tree:0,rock:0,bush:0};
  const reg=n=>{const k=Math.floor(n.x/6)+','+Math.floor(n.z/6);(grid.get(k)||grid.set(k,[]).get(k)).push(n)};
- const addN=(t,x,y,z,s)=>{const a=.8+R()*.5,n={t,x,y,z,s,r:R()*6.28,a,hp:G.nodes[t].hp,i:cnt[RKT.includes(t)?'rock':t]++,colliderRadius:RKT.includes(t)?1.44*s*a+.35:undefined};nodes.push(n);reg(n)};
+ const addN=(t,x,y,z,s)=>{if(G.nodes[t]?.solid){for(const n of near(x,z)){const nd=G.nodes[n.t];if(!nd?.solid||n.gone||n.dead||n.fall>0)continue;if(Math.hypot(x-n.x,z-n.z)<1.8)return false}}const a=.8+R()*.5,n={t,x,y,z,s,r:R()*6.28,a,hp:G.nodes[t].hp,i:cnt[RKT.includes(t)?'rock':t]++,colliderRadius:RKT.includes(t)?1.44*s*a+.35:undefined};nodes.push(n);reg(n);return true};
  for(let x=-95;x<95;x+=2.2)for(let z=-95;z<95;z+=2.2){
   const px=x+(R()-.5)*2,pz=z+(R()-.5)*2,y=hgt(px,pz),r=R();
   if(y<.7||y>9.5||Math.hypot(px,pz)<6)continue;
@@ -306,7 +306,7 @@ function mkAn(k){const D=AN[k],g=new THREE.Group(),hd=new THREE.Group(),tl=new T
  for(const sx of[-1,1]){leg(sx*.14,.5,.32,.5,.055,f,dk);leg(sx*.14,.5,-.3,.5,.06,f,dk)}
  return out([0,.7,.35],[0,.62,-.36])}
 let ANIMAL_POP_TIMER=0,WOLF_POP_TIMER=0;
-function addAn(k,x,z){const o=mkAn(k),a={k,x,z,hp:AN[k].hp,dir:Math.random()*6.28,t:0,cd:0,fl:0,obstacleCooldown:0,lastX:x,lastZ:z,stuckClock:0,fleeTime:0,fleeFrom:null,g:o.g,legs:o.legs,hd:o.hd,hv:o.hp,tl:o.tl,tv:o.tp};world.add(o.g);AL.push(a);return a}
+function addAn(k,x,z){const o=mkAn(k),a={k,x,z,hp:AN[k].hp,dir:Math.random()*6.28,t:0,cd:0,fl:0,obstacleCooldown:0,lastX:x,lastZ:z,stuckClock:0,unstuckTimer:0,unstuckDir:0,fleeTime:0,fleeFrom:null,g:o.g,legs:o.legs,hd:o.hd,hv:o.hp,tl:o.tl,tv:o.tp};world.add(o.g);AL.push(a);return a}
 function trySpawnAnimal(k,R=Math.random){
  for(let t=0;t<1800;t++){const x=(R()-.5)*180,z=(R()-.5)*180,y=hgt(x,z);
   if(Math.hypot(x,z)<14)continue;
@@ -351,17 +351,19 @@ function updAnimals(dt){
  for(let i=AL.length-1;i>=0;i--){const a=AL[i],D=AN[a.k],dx=P.x-a.x,dz=P.z-a.z,d=Math.hypot(dx,dz);
   if(a.dying>0){a.dying-=dt;const q=1-a.dying/.8;a.g.rotation.z=Math.min(1.5,q*2.2)*(a.side||1);a.g.position.y=Math.max(a.g.position.y-dt*.1,-.5);if(a.dying<=0){world.remove(a.g);AL.splice(i,1)}continue}
   if(a.k==='wolf'&&((dk<.15&&d>20)||d>70)){world.remove(a.g);AL.splice(i,1);continue}
-  let sp=0;a.t-=dt;a.cd-=dt;a.obstacleCooldown=Math.max(0,(a.obstacleCooldown||0)-dt);a.fl=Math.max(0,a.fl-dt);if(a.fleeCooldown>0){a.fleeCooldown-=dt;if(d>(D.fear||0)+3)a.fleeCooldown=0}
+  let sp=0;a.t-=dt;a.cd-=dt;a.obstacleCooldown=Math.max(0,(a.obstacleCooldown||0)-dt);a.unstuckTimer=Math.max(0,(a.unstuckTimer||0)-dt);a.fl=Math.max(0,a.fl-dt);if(a.fleeCooldown>0){a.fleeCooldown-=dt;if(d>(D.fear||0)+3)a.fleeCooldown=0}
   if(a.k==='wolf'){if(!dead&&d<40){a.dir=Math.atan2(dx,dz);if(fireNear&&d<9){a.dir+=Math.PI;sp=D.spd*.6}else if(d>1.3)sp=D.spd;if(d<1.5&&a.cd<=0&&!MENU){S.hp-=D.dmg*WP.diff;a.cd=1.3;a.lunge=.35;snd(90,.25,'sawtooth',.08);log(ico('ui_wolf',18)+' '+L('Волк кусает!'))}}}
   else if(a.k==='fish'){if(!dead&&!MENU&&hgt(P.x,P.z)<WATER_LEVEL){if(d<5&&!a.fleeTarget){const away=Math.atan2(a.x-P.x,a.z-P.z);let best=null;for(const dist of[8,9,10])for(let step=0;step<16;step++){const ang=away+step*Math.PI/8,tx=P.x+Math.sin(ang)*dist,tz=P.z+Math.cos(ang)*dist;if(Math.abs(tx)>94||Math.abs(tz)>94||hgt(tx,tz)>=-.6)continue;const score=dist+Math.min(step,16-step)*.025;if(!best||score<best.score)best={x:tx,z:tz,score}}if(best)a.fleeTarget={x:best.x,z:best.z}}}if(a.fleeTarget){const tx=a.fleeTarget.x-a.x,tz=a.fleeTarget.z-a.z;if(Math.hypot(tx,tz)<.65){a.fleeTarget=null;a.t=0;a.w=false;sp=0}else{a.dir=Math.atan2(tx,tz);sp=D.spd*1.25}}else{if(a.t<=0){a.t=2+Math.random()*4;a.dir+=(Math.random()-.5)*1.8;a.w=Math.random()<.8}sp=a.w?D.spd*.65:0}}
   else if(D.fear&&(d<D.fear||a.fl>0)&&!(a.fleeCooldown>0)){if(!a.fleeTime){a.fleeTime=4+Math.random()*2;a.fleeFrom={x:P.x,z:P.z}}if(a.fleeTime>0&&Math.hypot(a.x-a.fleeFrom.x,a.z-a.fleeFrom.z)<19){a.fleeTime-=dt;a.dir=Math.atan2(-dx,-dz);sp=D.spd}else{a.fleeTime=0;a.fleeFrom=null;a.fleeCooldown=6;a.fl=0;a.t=0;a.w=false}}
   else{a.fleeTime=0;a.fleeFrom=null;if(a.t<=0){a.t=2+Math.random()*4;a.dir=Math.random()*6.28;a.w=Math.random()<.55}sp=a.w?D.spd*.3:0}
+  if(a.k!=='fish'&&a.unstuckTimer>0)a.dir=a.unstuckDir;
   const prevX=a.x,prevZ=a.z;let actualMoveDist=0;
   if(sp){if(a.k!=='fish'){let sx=0,sz=0;for(let j=0;j<AL.length;j++){const b=AL[j];if(b===a||b.k==='fish'||b.dying>0)continue;const ex=a.x-b.x,ez=a.z-b.z,dd=Math.hypot(ex,ez);if(dd>0&&dd<1.65){const f=(1.65-dd)/1.65;sx+=ex/dd*f;sz+=ez/dd*f}}if(Math.hypot(sx,sz)>.08)a.dir=Math.atan2(Math.sin(a.dir)+sx*.55,Math.cos(a.dir)+sz*.55)}
    const pathHit=blocked(a,a.dir);if(pathHit&&!pathHit.terrain&&a.obstacleCooldown<=0){let found=false;for(const off of[.72,-.72,1.12,-1.12]){const candidate=a.dir+off;if(!blocked(a,candidate)){a.dir=candidate;a.obstacleCooldown=1.2;found=true;break}}if(!found)turn(a)}
    const nx=a.x+Math.sin(a.dir)*sp*dt,nz=a.z+Math.cos(a.dir)*sp*dt,ny=hgt(nx,nz),valid=a.k==='fish'?ny<-.6:(ny>.15&&ny<8.5&&ny-hgt(a.x,a.z)<=.62&&Math.abs(nx)<95&&Math.abs(nz)<95);
    const hit=a.k==='fish'?null:obstacleAt(a,nx,nz);
    if(valid&&!hit){a.x=nx;a.z=nz}else if(valid&&hit){let ex=nx-hit.x,ez=nz-hit.z;if(hit.box){if(hit.hx-Math.abs(ex)<hit.hz-Math.abs(ez)){ex=Math.sign(ex)||1;ez=0}else{ez=Math.sign(ez)||1;ex=0}}else{const dd=Math.hypot(ex,ez)||1;ex/=dd;ez/=dd}let tx=-ez,tz=ex;if(tx*Math.sin(a.dir)+tz*Math.cos(a.dir)<0){tx=-tx;tz=-tz}const len=Math.hypot(nx-a.x,nz-a.z),sx=tx*len,sz=tz*len,qx=a.x+sx,qz=a.z+sz,qy=hgt(qx,qz);if(qy>.15&&qy<8.5&&qy-hgt(a.x,a.z)<=.62&&Math.abs(qx)<95&&Math.abs(qz)<95&&!obstacleAt(a,qx,qz)){a.x=qx;a.z=qz;if(a.obstacleCooldown<=0){a.dir=Math.atan2(sx,sz);a.obstacleCooldown=1.2}}else turn(a)}else turn(a)}
+  if(a.k!=='fish'&&a.unstuckTimer>0)a.unstuckDir=a.dir;
   actualMoveDist=Math.hypot(a.x-prevX,a.z-prevZ);
   if(sp>0&&a.k!=='fish'&&actualMoveDist<.002){
    const probeDist=Math.max(.16,sp*dt*2),contact=obstacleAt(a,a.x+Math.sin(a.dir)*probeDist,a.z+Math.cos(a.dir)*probeDist)||blocked(a,a.dir);
@@ -372,7 +374,7 @@ function updAnimals(dt){
    }
    actualMoveDist=Math.hypot(a.x-prevX,a.z-prevZ);
   }
-  a.stuckClock=(a.stuckClock||0)+dt;if(a.stuckClock>=.8){const moved=Math.hypot(a.x-a.lastX,a.z-a.lastZ);if(sp>0&&moved<.2){turn(a);a.fleeTime=0;a.fleeFrom=null;a.fl=0;a.t=0}a.lastX=a.x;a.lastZ=a.z;a.stuckClock=0}
+  a.stuckClock=(a.stuckClock||0)+dt;if(a.stuckClock>=.5){const moved=Math.hypot(a.x-a.lastX,a.z-a.lastZ);if(a.k!=='fish'&&sp>0&&moved<.15&&a.unstuckTimer<=0){let nearest=null;for(const radius of[.55,.9,1.25])for(let j=0;j<16;j++){const ang=j*Math.PI/8,px=a.x+Math.sin(ang)*radius,pz=a.z+Math.cos(ang)*radius,hit=obstacleAt(a,px,pz);if(hit){const score=Math.hypot(px-hit.x,pz-hit.z);if(!nearest||score<nearest.score)nearest={hit,score}}}let away;if(nearest){const ax=a.x-nearest.hit.x,az=a.z-nearest.hit.z;away=Math.hypot(ax,az)>.001?Math.atan2(ax,az):a.dir+Math.PI}else away=a.dir+Math.PI;const angle=(120+Math.random()*30)*Math.PI/180,c1=a.dir+angle,c2=a.dir-angle,score1=Math.sin(c1)*Math.sin(away)+Math.cos(c1)*Math.cos(away),score2=Math.sin(c2)*Math.sin(away)+Math.cos(c2)*Math.cos(away);a.dir=score1>=score2?c1:c2;a.unstuckDir=a.dir;a.unstuckTimer=1.2;a.obstacleCooldown=0;a.fleeTime=0;a.fleeFrom=null;a.fl=0;a.t=0}a.lastX=a.x;a.lastZ=a.z;a.stuckClock=0}
   const y=hgt(a.x,a.z);a.g.position.set(a.x,a.k==='fish'?-.35+Math.sin(tm*2+i)*.04:Math.max(y,-.6),a.z);let df=a.dir-a.g.rotation.y;df=Math.atan2(Math.sin(df),Math.cos(df));a.g.rotation.y+=df*Math.min(1,dt*8);animAn(a,actualMoveDist>=.002?sp:0,dt,i)
  }
 }
