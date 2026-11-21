@@ -29,8 +29,8 @@
   "version": "0.0.5.2",
   "files": {
     "index.html": {
-      "sha256": "7468834d93aec604381eca0166cb9b921e39434a452bc13afdfc892b69229bed",
-      "size": 10018,
+      "sha256": "a7a930e738c5e65ce6d238ca74181de0919981d3c7998f964544dacedaa03c19",
+      "size": 10012,
       "url": "index.html"
     },
     "game.js": {
