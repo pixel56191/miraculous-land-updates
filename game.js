@@ -922,7 +922,7 @@ buildWorld=function(){
  for(const c of ML_CHUNKS.values())c.group.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());else o.material.dispose()}});ML_CHUNKS.clear();if(typeof ML_PYRAMIDS!=='undefined')ML_PYRAMIDS.clear();if(typeof ML_DUNGEON_ENEMIES!=='undefined')ML_DUNGEON_ENEMIES=[];
  mlOldBuildWorld();ML_LEGACY_COUNT=nodes.length;
  const terrain=world.children.find(o=>o.geometry&&o.geometry.type==='PlaneGeometry'&&o.geometry.parameters&&o.geometry.parameters.width===200);
- if(terrain){world.remove(terrain);terrain.geometry.dispose();if(terrain.material)terrain.material.dispose()}
+ if(terrain){world.remove(terrain);terrain.geometry.dispose();if(terrain.material)terrain.material.dispose()}if(water)water.visible=false;
  ML_CHUNK_ROOT=new THREE.Group();world.add(ML_CHUNK_ROOT);ML_CHUNKS.clear();mlUpdateChunks();
 };
 move=function(dx,dz){let nx=P.x+dx,nz=P.z+dz;
