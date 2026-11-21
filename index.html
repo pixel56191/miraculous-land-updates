@@ -82,7 +82,7 @@ body.menu #dock,body.menu #hud,body.menu #hint,body.menu #top,body.menu #toast{d
   const updateStatus = document.getElementById('update-status');
   let updateReloading = false;
   let updateHideTimer = 0;
-  function showUpdateStatus(message, timeoutMs = 5000) {
+  function showUpdateStatus(message) {
     if (!updateStatus) return;
     updateStatus.textContent = message;
     // Проверка и загрузка обновлений выполняются в фоне без экранных уведомлений.
@@ -95,7 +95,7 @@ body.menu #dock,body.menu #hud,body.menu #hint,body.menu #top,body.menu #toast{d
   function reloadForUpdate() {
     if (updateReloading) return;
     updateReloading = true;
-    showUpdateStatus('Обновление готово · запуск...', 0);
+    showUpdateStatus('Обновление готово · запуск...');
     try { if (typeof window.save === 'function') window.save(); } catch (_) {}
     setTimeout(() => window.location.reload(), 180);
   }
@@ -116,7 +116,9 @@ body.menu #dock,body.menu #hud,body.menu #hint,body.menu #top,body.menu #toast{d
     navigator.serviceWorker.register('./sw.js', {scope: './', updateViaCache: 'none'})
       .then(registration => registration.update())
       .catch(hideUpdateStatus);
-    if (updateStatus && updateStatus.textContent === 'Проверка обновлений...') showUpdateStatus('Проверка обновлений...');
+    updateHideTimer = setTimeout(() => {
+      if (updateStatus && updateStatus.textContent === 'Проверка обновлений...') hideUpdateStatus();
+    }, 5000);
   });
 } else {
   const status = document.getElementById('update-status');
