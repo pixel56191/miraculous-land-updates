@@ -31,13 +31,7 @@
     "index.html": {
       "sha256": "b174e9e4aaec79d13f9a2fcad43baa8776d4dd0478fe528e3219c183c9a09f70",
       "size": 10013,
-      "url": "index.html",
-      "patch": {
-        "url": "patches/index.html.bsdiff",
-        "from_sha256": "ca9b683b6b4aacd5841137cbd5176090ea95d35d4c0579d04d6882a79cf59f0b",
-        "sha256": "a4350a42e87220c3a9a201362bf0d2852dea9f3782007397eb4bedafb62a2afa",
-        "size": 139
-      }
+      "url": "index.html"
     },
     "game.js": {
       "sha256": "714e47950024267304b77ea28904da8a14f5ab27103c411933f2840848d7e8b2",
