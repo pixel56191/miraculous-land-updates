@@ -12,16 +12,16 @@
   "categories": [
     "games"
   ],
-  "version": "0.0.5.10",
+  "version": "0.0.5.8",
   "files": {
     "index.html": {
-      "sha256": "de00d56c28ebe00e2e4ed8c70ac6e325a0a5939f70b2fc91facdb35e24f80527",
-      "size": 10011,
+      "sha256": "025ee287670c605f17720aa6f170b84328d3d2701861a74d5ddabb7c549ebaf8",
+      "size": 10022,
       "url": "index.html"
     },
     "game.js": {
-      "sha256": "f1b60a779c6b0791e81028be55388cf67ade377fca7d8460239522c8d58664c9",
-      "size": 137758,
+      "sha256": "cf76f563e92db4c7575936c590b3bc465403f5b6f93277c9c61851de8af0e083",
+      "size": 135410,
       "url": "game.js"
     }
   }
