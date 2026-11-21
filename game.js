@@ -1297,7 +1297,7 @@ loadSet();loadChar();initLang();applyChar();applySet();applyLang();initMenuDiora
 HAVEWORLD=load();if(!HAVEWORLD)newGame('',{},1);
 showMenu('main');
 let last=performance.now();
-(function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;FPS.n++;if(now-FPS.t>500){if(ST.fps)$('fps').textContent=Math.round(FPS.n*1000/(now-FPS.t))+' FPS';FPS.n=0;FPS.t=now}if(autoTest&&autoTest.active){autoTest.frameCount++;if(now-autoTest.lastSample>=500){autoTest.fpsSamples.push(Math.round(autoTest.frameCount*1000/(now-autoTest.lastSample)));autoTest.frameCount=0;autoTest.lastSample=now}if(now-autoTest.startedAt>=20000)finishAutoTest()}step(dt);if(MENU)menuCam(dt);else env();hud();ren.render(MENU&&menuScene?menuScene:scene,MENU&&menuCamera?menuCamera:cam);requestAnimationFrame(loop)})(last);
+(function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;FPS.n++;if(now-FPS.t>500){if(ST.fps)$('fps').textContent=Math.round(FPS.n*1000/(now-FPS.t))+' FPS';FPS.n=0;FPS.t=now}if(autoTest&&autoTest.active){autoTest.frameCount++;if(now-autoTest.lastSample>=500){autoTest.fpsSamples.push(Math.round(autoTest.frameCount*1000/(now-autoTest.lastSample)));autoTest.frameCount=0;autoTest.lastSample=now}if(now-autoTest.startedAt>=20000)finishAutoTest()}if(cameraToggleButton)cameraToggleButton.hidden=MENU;step(dt);if(MENU)menuCam(dt);else env();hud();ren.render(MENU&&menuScene?menuScene:scene,MENU&&menuCamera?menuCamera:cam);requestAnimationFrame(loop)})(last);
 
 
 (function(){
