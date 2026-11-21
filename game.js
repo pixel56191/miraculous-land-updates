@@ -5,7 +5,7 @@ window.addEventListener('unhandledrejection',e=>window.__ML_STARTUP_FALLBACK(e.r
 try{const $=id=>document.getElementById(id);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // ===== Ядро: реестры (новый контент добавляется здесь или через Game.use) =====
-const G=window.Game={version:'0.0.5.6 Альфа 3D',items:{},nodes:{},recipes:[],mods:[],
+const G=window.Game={version:'0.0.5.7 Альфа 3D',items:{},nodes:{},recipes:[],mods:[],
  registerItem(id,o){o.ru=o.n;Object.defineProperty(o,'n',{get(){return L(this.ru)},enumerable:true});this.items[id]=o},registerNode(id,o){if(o.hint){o.hru=o.hint;Object.defineProperty(o,'hint',{get(){return L(this.hru)},enumerable:true})}this.nodes[id]=o},registerRecipe(r){this.recipes.push(r)},
  use(f){this.mods.push(f);f(this)}};
 G.use(g=>{
@@ -136,7 +136,7 @@ function buildWorld(){
  water=new THREE.Mesh(wg,new THREE.MeshStandardMaterial({color:0x2f7fb5,transparent:true,opacity:.78,roughness:.12,metalness:.25}));water.userData.b=wg.attributes.position.array.slice();world.add(water);
  const R=rng(seed),cnt={tree:0,rock:0,bush:0};
  const reg=n=>{const k=Math.floor(n.x/6)+','+Math.floor(n.z/6);(grid.get(k)||grid.set(k,[]).get(k)).push(n)};
- const addN=(t,x,y,z,s)=>{const n={t,x,y,z,s,r:R()*6.28,a:.8+R()*.5,hp:G.nodes[t].hp,i:cnt[RKT.includes(t)?'rock':t]++};nodes.push(n);reg(n)};
+ const addN=(t,x,y,z,s)=>{const a=.8+R()*.5,n={t,x,y,z,s,r:R()*6.28,a,hp:G.nodes[t].hp,i:cnt[RKT.includes(t)?'rock':t]++,colliderRadius:RKT.includes(t)?1.44*s*a+.35:undefined};nodes.push(n);reg(n)};
  for(let x=-95;x<95;x+=2.2)for(let z=-95;z<95;z+=2.2){
   const px=x+(R()-.5)*2,pz=z+(R()-.5)*2,y=hgt(px,pz),r=R();
   if(y<.7||y>9.5||Math.hypot(px,pz)<6)continue;
@@ -164,7 +164,7 @@ function mkFire(x,z){
  const f1=new THREE.Mesh(new THREE.ConeGeometry(.28,.8,7),new THREE.MeshBasicMaterial({color:0xff6a1a,transparent:true,opacity:.9})),f2=new THREE.Mesh(new THREE.ConeGeometry(.15,.5,6),new THREE.MeshBasicMaterial({color:0xffe27a}));
  f1.position.y=.5;f2.position.y=.4;g.add(f1,f2);
  const L=new THREE.PointLight(0xff8a30,1.6,28,1.6);L.position.y=1;g.add(L);world.add(g);
- const n={t:'campfire',x,y,z,s:1,r:0,hp:99,f1,f2,L,sk:mkPts(g,18,.12,0xffa030,.95,1),sm:mkPts(g,14,.6,0x888888,.2,0)};nodes.push(n);F.push(n);
+ const n={t:'campfire',x,y,z,s:1,r:0,colliderRadius:1.02,hp:99,f1,f2,L,sk:mkPts(g,18,.12,0xffa030,.95,1),sm:mkPts(g,14,.6,0x888888,.2,0)};nodes.push(n);F.push(n);
  const k=Math.floor(x/6)+','+Math.floor(z/6);(grid.get(k)||grid.set(k,[]).get(k)).push(n);return n}
 function near(x,z){const cx=Math.floor(x/6),cz=Math.floor(z/6),o=[];
  for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++){const a=grid.get((cx+i)+','+(cz+j));if(a)for(const n of a)o.push(n)}return o}
@@ -306,7 +306,7 @@ function mkAn(k){const D=AN[k],g=new THREE.Group(),hd=new THREE.Group(),tl=new T
  for(const sx of[-1,1]){leg(sx*.14,.5,.32,.5,.055,f,dk);leg(sx*.14,.5,-.3,.5,.06,f,dk)}
  return out([0,.7,.35],[0,.62,-.36])}
 let ANIMAL_POP_TIMER=0,WOLF_POP_TIMER=0;
-function addAn(k,x,z){const o=mkAn(k),a={k,x,z,hp:AN[k].hp,dir:Math.random()*6.28,t:0,cd:0,fl:0,lastX:x,lastZ:z,stuckClock:0,fleeTime:0,fleeFrom:null,g:o.g,legs:o.legs,hd:o.hd,hv:o.hp,tl:o.tl,tv:o.tp};world.add(o.g);AL.push(a);return a}
+function addAn(k,x,z){const o=mkAn(k),a={k,x,z,hp:AN[k].hp,dir:Math.random()*6.28,t:0,cd:0,fl:0,obstacleCooldown:0,lastX:x,lastZ:z,stuckClock:0,fleeTime:0,fleeFrom:null,g:o.g,legs:o.legs,hd:o.hd,hv:o.hp,tl:o.tl,tv:o.tp};world.add(o.g);AL.push(a);return a}
 function trySpawnAnimal(k,R=Math.random){
  for(let t=0;t<1800;t++){const x=(R()-.5)*180,z=(R()-.5)*180,y=hgt(x,z);
   if(Math.hypot(x,z)<14)continue;
@@ -344,20 +344,22 @@ function updAnimals(dt){
  updateAnimalPopulation(dt);updateWolfPopulation(dt);
  const dk=dark(),fireNear=F.some(f=>Math.hypot(f.x-P.x,f.z-P.z)<10),wolves=AL.filter(a=>a.k=='wolf'&&a.dying<=0).length;
  if(!dead&&!MENU&&WP.wolves&&dk>.5&&wolves<6&&Math.random()<dt*.08){const an=Math.random()*6.28,x=P.x+Math.cos(an)*34,z=P.z+Math.sin(an)*34;if(Math.abs(x)<92&&Math.abs(z)<92&&hgt(x,z)>.5)addAn('wolf',x,z)}
- const turn=a=>{a.dir+=((Math.random()<.5?-1:1)*(Math.PI/2+Math.random()*Math.PI/4));a.t=1+Math.random()*2;a.w=true};
- const blocked=(a,dir)=>{const dist=a.k==='fish'?1.25:1.35,nx=a.x+Math.sin(dir)*dist,nz=a.z+Math.cos(dir)*dist,y=hgt(nx,nz),here=hgt(a.x,a.z);if(a.k==='fish')return y>=-.6;if(y<.15||y>8.5||Math.abs(nx)>94||Math.abs(nz)>94||y-here>.62)return true;for(const n of near(nx,nz)){const nd=G.nodes[n.t];if(!nd||!nd.solid||n.gone||n.dead||n.fall>0)continue;if(Math.hypot(nx-n.x,nz-n.z)<(nd.r||.4)*n.s+.55)return true}for(const p of PC){const b=pcBox(p);if(!b)continue;if(Math.abs(nx-p.x)<b[0]+.45&&Math.abs(nz-p.z)<b[1]+.45)return true}return false};
+ const turn=a=>{if(a.obstacleCooldown>0)return false;a.dir+=((Math.random()<.5?-1:1)*(Math.PI/2+Math.random()*Math.PI/4));a.obstacleCooldown=1.2;a.t=1+Math.random()*2;a.w=true;return true};
+ const obstacleAt=(a,x,z)=>{for(const n of near(x,z)){const nd=G.nodes[n.t];if(!nd||!nd.solid||n.gone||n.dead||n.fall>0)continue;const r=(n.colliderRadius||(nd.r||.4)*n.s+.35)+.18,dx=x-n.x,dz=z-n.z;if(dx*dx+dz*dz<r*r)return{x:n.x,z:n.z,r}}for(const p of PC){const b=pcBox(p);if(!b)continue;const hx=b[0]+.18,hz=b[1]+.18;if(Math.abs(x-p.x)<hx&&Math.abs(z-p.z)<hz)return{x:p.x,z:p.z,hx,hz,box:true}}return null};
+ const blocked=(a,dir)=>{const dist=a.k==='fish'?1.25:1.5,nx=a.x+Math.sin(dir)*dist,nz=a.z+Math.cos(dir)*dist,y=hgt(nx,nz),here=hgt(a.x,a.z);if(a.k==='fish')return y>=-.6?{terrain:true}:null;if(y<.15||y>8.5||Math.abs(nx)>94||Math.abs(nz)>94||y-here>.62)return{terrain:true};const sx=Math.cos(dir)*.24,sz=-Math.sin(dir)*.24;return obstacleAt(a,nx,nz)||obstacleAt(a,nx+sx,nz+sz)||obstacleAt(a,nx-sx,nz-sz)};
  for(let i=AL.length-1;i>=0;i--){const a=AL[i],D=AN[a.k],dx=P.x-a.x,dz=P.z-a.z,d=Math.hypot(dx,dz);
   if(a.dying>0){a.dying-=dt;const q=1-a.dying/.8;a.g.rotation.z=Math.min(1.5,q*2.2)*(a.side||1);a.g.position.y=Math.max(a.g.position.y-dt*.1,-.5);if(a.dying<=0){world.remove(a.g);AL.splice(i,1)}continue}
   if(a.k==='wolf'&&((dk<.15&&d>20)||d>70)){world.remove(a.g);AL.splice(i,1);continue}
-  let sp=0;a.t-=dt;a.cd-=dt;a.fl=Math.max(0,a.fl-dt);if(a.fleeCooldown>0){a.fleeCooldown-=dt;if(d>(D.fear||0)+3)a.fleeCooldown=0}
+  let sp=0;a.t-=dt;a.cd-=dt;a.obstacleCooldown=Math.max(0,(a.obstacleCooldown||0)-dt);a.fl=Math.max(0,a.fl-dt);if(a.fleeCooldown>0){a.fleeCooldown-=dt;if(d>(D.fear||0)+3)a.fleeCooldown=0}
   if(a.k==='wolf'){if(!dead&&d<40){a.dir=Math.atan2(dx,dz);if(fireNear&&d<9){a.dir+=Math.PI;sp=D.spd*.6}else if(d>1.3)sp=D.spd;if(d<1.5&&a.cd<=0&&!MENU){S.hp-=D.dmg*WP.diff;a.cd=1.3;a.lunge=.35;snd(90,.25,'sawtooth',.08);log(ico('ui_wolf',18)+' '+L('Волк кусает!'))}}}
   else if(a.k==='fish'){if(a.t<=0){a.t=2+Math.random()*4;a.dir+=(Math.random()-.5)*1.8;a.w=Math.random()<.8}sp=a.w?D.spd*.65:0}
   else if(D.fear&&(d<D.fear||a.fl>0)&&!(a.fleeCooldown>0)){if(!a.fleeTime){a.fleeTime=4+Math.random()*2;a.fleeFrom={x:P.x,z:P.z}}if(a.fleeTime>0&&Math.hypot(a.x-a.fleeFrom.x,a.z-a.fleeFrom.z)<19){a.fleeTime-=dt;a.dir=Math.atan2(-dx,-dz);sp=D.spd}else{a.fleeTime=0;a.fleeFrom=null;a.fleeCooldown=6;a.fl=0;a.t=0;a.w=false}}
   else{a.fleeTime=0;a.fleeFrom=null;if(a.t<=0){a.t=2+Math.random()*4;a.dir=Math.random()*6.28;a.w=Math.random()<.55}sp=a.w?D.spd*.3:0}
   if(sp){if(a.k!=='fish'){let sx=0,sz=0;for(let j=0;j<AL.length;j++){const b=AL[j];if(b===a||b.k==='fish'||b.dying>0)continue;const ex=a.x-b.x,ez=a.z-b.z,dd=Math.hypot(ex,ez);if(dd>0&&dd<1.65){const f=(1.65-dd)/1.65;sx+=ex/dd*f;sz+=ez/dd*f}}if(Math.hypot(sx,sz)>.08)a.dir=Math.atan2(Math.sin(a.dir)+sx*.55,Math.cos(a.dir)+sz*.55)}
-   if(blocked(a,a.dir)){let found=false;for(const off of[Math.PI/2+Math.random()*Math.PI/4,-(Math.PI/2+Math.random()*Math.PI/4),Math.PI*.72,-Math.PI*.72]){const candidate=a.dir+off;if(!blocked(a,candidate)){a.dir=candidate;found=true;break}}if(!found)turn(a)}
+   const pathHit=blocked(a,a.dir);if(pathHit&&!pathHit.terrain&&a.obstacleCooldown<=0){let found=false;for(const off of[.72,-.72,1.12,-1.12]){const candidate=a.dir+off;if(!blocked(a,candidate)){a.dir=candidate;a.obstacleCooldown=1.2;found=true;break}}if(!found)turn(a)}
    const nx=a.x+Math.sin(a.dir)*sp*dt,nz=a.z+Math.cos(a.dir)*sp*dt,ny=hgt(nx,nz),valid=a.k==='fish'?ny<-.6:(ny>.15&&ny<8.5&&ny-hgt(a.x,a.z)<=.62&&Math.abs(nx)<95&&Math.abs(nz)<95);
-   if(valid&&!blocked(a,a.dir)){a.x=nx;a.z=nz}else turn(a)}
+   const hit=a.k==='fish'?null:obstacleAt(a,nx,nz);
+   if(valid&&!hit){a.x=nx;a.z=nz}else if(valid&&hit){let ex=nx-hit.x,ez=nz-hit.z;if(hit.box){if(hit.hx-Math.abs(ex)<hit.hz-Math.abs(ez)){ex=Math.sign(ex)||1;ez=0}else{ez=Math.sign(ez)||1;ex=0}}else{const dd=Math.hypot(ex,ez)||1;ex/=dd;ez/=dd}let tx=-ez,tz=ex;if(tx*Math.sin(a.dir)+tz*Math.cos(a.dir)<0){tx=-tx;tz=-tz}const len=Math.hypot(nx-a.x,nz-a.z),sx=tx*len,sz=tz*len,qx=a.x+sx,qz=a.z+sz,qy=hgt(qx,qz);if(qy>.15&&qy<8.5&&qy-hgt(a.x,a.z)<=.62&&Math.abs(qx)<95&&Math.abs(qz)<95&&!obstacleAt(a,qx,qz)){a.x=qx;a.z=qz;if(a.obstacleCooldown<=0){a.dir=Math.atan2(sx,sz);a.obstacleCooldown=1.2}}else turn(a)}else turn(a)}
   a.stuckClock=(a.stuckClock||0)+dt;if(a.stuckClock>=.8){const moved=Math.hypot(a.x-a.lastX,a.z-a.lastZ);if(sp>0&&moved<.2){turn(a);a.fleeTime=0;a.fleeFrom=null;a.fl=0;a.t=0}a.lastX=a.x;a.lastZ=a.z;a.stuckClock=0}
   const y=hgt(a.x,a.z);a.g.position.set(a.x,a.k==='fish'?-.35+Math.sin(tm*2+i)*.04:Math.max(y,-.6),a.z);let df=a.dir-a.g.rotation.y;df=Math.atan2(Math.sin(df),Math.cos(df));a.g.rotation.y+=df*Math.min(1,dt*8);animAn(a,sp,dt,i)
  }
@@ -438,7 +440,7 @@ const FL=new Set(),TV=new THREE.Vector3(),WT={value:0};
 function playA(n){PA={n,t:0,d:{chop:.55,mine:.7,hit:.4,drink:1.2,eat:.9,build:1,pick:.6,hurt:.4}[n]||.5}}
 function poseP(dt){
  const t=tm,mv=dead?0:mvAmt,w=walkT;
- swimK+=((!dead&&gy(P.x,P.z)<WATER_LEVEL-.05?1:0)-swimK)*Math.min(1,dt*6);const sw=swimK;
+ const waterDepth=Math.max(0,WATER_LEVEL-gy(P.x,P.z));swimK+=(clamp(waterDepth/.7,0,1)-swimK)*Math.min(1,dt*6);const sw=swimK;
  if(dead)deadT+=dt;else deadT=0;
  if(PA.n){PA.t+=dt;if(PA.t>=PA.d)PA.n=''}
  const A=PA.n,u=A?PA.t/PA.d:0,bell=Math.sin(Math.min(1,u)*Math.PI),sg=Math.sin(w),amp=.7*mv,sa=.6*mv,idle=1-mv,br=Math.sin(t*1.8),tiredIdle=!dead&&!MENU&&mv<.08&&!!S&&((S.stamina!==undefined&&S.stamina<=20)||S.water<=15||S.warm<15),fatigueTarget=tiredIdle?1:breath*(1-clamp(mv*3,0,1));fatiguePose+=(fatigueTarget-fatiguePose)*Math.min(1,dt*(fatigueTarget>fatiguePose?3:1.8));const fatigue=fatiguePose,breathWave=Math.sin(t*3.59);
@@ -625,7 +627,7 @@ const langRow=()=>'<div class="mr"><div class="ml">'+ico('ui_lang',16)+' '+L('Я
 function pgMain(){const w=HAVEWORLD?L('Мир: {w} · сид {s} · день {d}',{w:'<b>'+esc(L(WP.name))+'</b>',s:'<b>'+esc(SEEDTXT)+'</b>',d:day}):L('Мира пока нет — создай новый');
  const saved=Object.values(SAVE_DB.worlds||{}).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
  const worlds=saved.length?'<div class="mr"><b>'+L('Мои миры')+'</b>'+saved.map(q=>'<button class="pr" data-a="worldload" data-v="'+esc(q.id)+'"><b>'+esc(L(q.name||'Мир'))+'</b><small>'+L('Сид мира: {s}',{s:esc(q.seed||'')})+' · '+L('День')+' '+(q.day||1)+'</small><i>'+(q.id===activeWorldId?L('Текущий мир'):L('Открыть'))+'</i></button>').join('')+'</div>':'<div class="info">'+L('Нет сохранённых миров')+'</div>';
- return '<div class="logo">'+ico('logo',72)+'<h1>'+GN()+'</h1><div class="sub">v0.0.5.6 '+L('Альфа')+' 3D</div></div><div class="info">'+w+'</div>'+
+ return '<div class="logo">'+ico('logo',72)+'<h1>'+GN()+'</h1><div class="sub">v0.0.5.7 '+L('Альфа')+' 3D</div></div><div class="info">'+w+'</div>'+
  (HAVEWORLD?icb('ui_play','Продолжить','resume'):'')+icb('ui_world','Новый мир','go','world')+worlds+icb('ui_char','Персонаж','go','char')+icb('ui_gear','Настройки','go','set')+langRow()}
 function pgWorld(){return '<h2>'+L('Новый мир')+'</h2>'+row('Название','<input type="text" id="wname" maxlength="24" value="'+esc(WF.name)+'">')+
  row('Сид (пусто — случайный мир)','<div class="sd"><input type="text" id="wseed" maxlength="24" placeholder="'+L('случайный')+'" value="'+esc(WF.seed)+'">'+icb('ui_dice','','dice')+'</div>')+
@@ -712,12 +714,12 @@ function applyLang(){const sb=(id,ic,t)=>$(id).innerHTML='<span class="cb">'+ico
  sb('bAct','ui_act','Действие (E)');sb('bCraft','ui_craft','Крафт (C)');sb('bNew','ui_redo','');
  $('bNew').title=L('Новая игра');$('bMenu').title=L('Меню (Esc)');$('bDel').title=L('Разобрать постройку (X)');
  $('dtxt').textContent=L('Вы погибли');$('bRe').textContent=L('Начать заново');$('menu').dataset.busy=L('Генерация мира...');
- $('gname').textContent=GN();$('gver').textContent='v0.0.5.6 '+L('Альфа')+' 3D';document.title=GN();document.documentElement.lang=ST.lang;$('pname').textContent=CH.name;
+ $('gname').textContent=GN();$('gver').textContent='v0.0.5.7 '+L('Альфа')+' 3D';document.title=GN();document.documentElement.lang=ST.lang;$('pname').textContent=CH.name;
  if(inv)refresh()}
 // ===== Симуляция =====
 const dark=()=>clamp(.35-Math.sin(time*6.2832)*.6,0,.8);
 function move(dx,dz){let nx=clamp(P.x+dx,-95,95),nz=clamp(P.z+dz,-95,95);
- for(const n of near(nx,nz)){const d=G.nodes[n.t];if(!d.solid||n.gone||n.fall>0)continue;const rr=d.r*n.s+.4,ex=nx-n.x,ez=nz-n.z,dd=Math.hypot(ex,ez);if(dd<rr&&dd>0){nx=n.x+ex/dd*rr;nz=n.z+ez/dd*rr}}
+ for(const n of near(nx,nz)){const d=G.nodes[n.t];if(!d||!d.solid||n.gone||n.fall>0)continue;const rr=n.colliderRadius||(d.r*n.s+.35),ex=nx-n.x,ez=nz-n.z,dd=Math.hypot(ex,ez);if(dd<rr){const q=dd||1,ux=dd?ex/q:Math.cos(P.f),uz=dd?ez/q:-Math.sin(P.f);nx=n.x+ux*rr;nz=n.z+uz*rr}}
  for(const p of PC){const b=pcBox(p);if(!b)continue;const hx=b[0]+.35,hz=b[1]+.35,ex=nx-p.x,ez=nz-p.z;
   if(Math.abs(ex)<hx&&Math.abs(ez)<hz){if(hx-Math.abs(ex)<hz-Math.abs(ez))nx=p.x+(ex<0?-1:1)*hx;else nz=p.z+(ez<0?-1:1)*hz}}
  P.x=nx;P.z=nz}
@@ -754,7 +756,7 @@ function step(dt){if(MENU)return;if(autoTest&&autoTest.active){const directions=
   if(S.hp<=0){dead=true;$('dead').hidden=false}
   saveT+=dt;if(saveT>8){saveT=0;save()}}}
  const ground=gy(P.x,P.z),surfaceY=ground<WATER_LEVEL-.05?WATER_LEVEL:Math.max(ground,-.6);
- P.y+=(surfaceY-P.y)*Math.min(1,dt*15);
+ P.y=Math.max(P.y,ground);P.y+=(surfaceY-P.y)*Math.min(1,dt*15);P.y=Math.max(P.y,ground);
  poseP(dt);updPts(swimSplash,dt,splashEmit);
  shk.forEach(n=>{n.sh-=dt;if(n.sh<=0){n.sh=0;shk.delete(n);put(n)}else put(n,Math.sin(n.sh*50)*n.sh*.5)});
  FL.forEach(n=>{n.fall-=dt;if(n.fall<=0){n.fall=0;n.gone=true;FL.delete(n);put(n);snd(70,.35,'sine',.12)}else{const u=1-n.fall/1.1;put(n,n.fs*u*u*1.5)}});
