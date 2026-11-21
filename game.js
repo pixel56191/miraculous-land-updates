@@ -45,8 +45,8 @@ const h=(x,y)=>{const n=Math.sin(x*127.1+y*311.7+seed)*43758.5453;return n-Math.
 const sm=a=>a*a*(3-2*a);
 function vn(x,y){const xi=Math.floor(x),yi=Math.floor(y),u=sm(x-xi),v=sm(y-yi),a=h(xi,yi),b=h(xi+1,yi),c=h(xi,yi+1),d=h(xi+1,yi+1);return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v}
 const WPD={wl:.4,amp:26,forest:.5,ftree:.5,res:1,animals:1,wolves:1,diff:1,day:240,start:.1,name:'Мир'};let WP=Object.assign({},WPD),SEEDTXT='';
-const hgt=(x,z)=>{const X=x+300,Z=z+300,e=vn(X/40,Z/40)*.6+vn(X/17,Z/17)*.28+vn(X/7,Z/7)*.12;
- const k=clamp(1-Math.hypot(x,z)/16,0,1),s=k*k*(3-2*k);const base=(e-WP.wl)*WP.amp*(1-s)+1.5*s;return typeof mlBiome==='function'&&mlBiome(x,z)==='desert'?base+Math.sin(x*.075+vn(x/70,z/70)*3)*.55+Math.cos(z*.08)*.4:base};
+const hgt=(x,z)=>{const X=x+300,Z=z+300,oldE=vn(X/40,Z/40)*.6+vn(X/17,Z/17)*.28+vn(X/7,Z/7)*.12,newE=mlPerlin(X/40,Z/40)*.6+mlPerlin(X/17,Z/17)*.28+mlPerlin(X/7,Z/7)*.12,blend=clamp((Math.max(Math.abs(x),Math.abs(z))-95)/30,0,1),e=oldE+(newE-oldE)*blend;
+ const k=clamp(1-Math.hypot(x,z)/16,0,1),s=k*k*(3-2*k);const base=(e-WP.wl)*WP.amp*(1-s)+1.5*s;return typeof mlBiome==='function'&&mlBiome(x,z)==='desert'&&Math.max(Math.abs(x),Math.abs(z))>95?base+Math.sin(x*.075+mlPerlin(x/70,z/70)*3)*.55+Math.cos(z*.08)*.4:base};
 // ===== Three.js: сцена, небо, свет =====
 const ren=new THREE.WebGLRenderer({antialias:true});ren.setPixelRatio(Math.min(devicePixelRatio,2));
 ren.shadowMap.enabled=true;ren.shadowMap.type=THREE.PCFSoftShadowMap;document.body.prepend(ren.domElement);
@@ -854,8 +854,9 @@ addEventListener('resize',resize);resize();
 // ===== v0.0.5.9: streaming chunks, deterministic biome and persistent edits =====
 const ML_CHUNK_SIZE=32,ML_CHUNKS=new Map();let ML_CHUNK_ROOT=null,ML_CHUNK_CHANGES={},ML_LEGACY_COUNT=0,ML_PENDING_HERB_CHANGES=null;
 const mlKey=(x,z)=>x+','+z;
+function mlPerlin(x,y){const ix=Math.floor(x),iy=Math.floor(y),fx=x-ix,fy=y-iy,fade=t=>t*t*t*(t*(t*6-15)+10),grad=(a,b)=>{const q=h(a+seed*.001,b-seed*.001)*Math.PI*2;return[Math.cos(q),Math.sin(q)]},dot=(a,b,dx,dy)=>{const v=grad(a,b);return v[0]*dx+v[1]*dy},u=fade(fx),v=fade(fy),a=dot(ix,iy,fx,fy),b=dot(ix+1,iy,fx-1,fy),c=dot(ix,iy+1,fx,fy-1),d=dot(ix+1,iy+1,fx-1,fy-1),x0=a+(b-a)*u,x1=c+(d-c)*u;return clamp(.5+(x0+(x1-x0)*v)*.72,0,1)}
 function mlBiome(x,z){
- const t=vn((x+seed*.013)/270,(z-seed*.007)/270),m=vn((x-seed*.009)/190,(z+seed*.011)/190);
+ const t=mlPerlin((x+seed*.013)/270,(z-seed*.007)/270),m=mlPerlin((x-seed*.009)/190,(z+seed*.011)/190);
  return t>.56&&m<.48?'desert':'temperate';
 }
 function mlChunkHash(x,z){return (seed^Math.imul(x+4096,73856093)^Math.imul(z+4096,19349663))|0}
@@ -1068,8 +1069,8 @@ function mlUpdateDungeon(dt){
 function mlEnsureBossBar(){if(document.getElementById('ml-boss-bar'))return;const d=document.createElement('div');d.id='ml-boss-bar';d.hidden=true;d.style.cssText='position:fixed;z-index:50;top:12px;left:50%;transform:translateX(-50%);width:min(340px,72vw);text-align:center;color:#ffe2a0;font-weight:700;text-shadow:0 2px 4px #000;pointer-events:none';d.innerHTML='<b>Фараон</b><div style="height:12px;border:1px solid #d7b45b;background:#241b10;border-radius:8px;overflow:hidden"><i style="display:block;width:100%;height:100%;background:#b52e25"></i></div>';document.body.appendChild(d)}
 mlEnsureBossBar();
 const mlAttackButton=$('bAct');
-mlAttackButton.addEventListener('pointerdown',e=>{if(Array.isArray(inv)&&hasTool('bow')&&ML_QUIVER&&ML_ARROWS>0){ML_BOW_DRAWING=true;ML_BOW_CHARGE=0;e.preventDefault()}});
-mlAttackButton.addEventListener('pointerup',e=>{if(ML_BOW_DRAWING){ML_BOW_DRAWING=false;ML_SKIP_BOW_CLICK=true;act();e.preventDefault()}});
+mlAttackButton.addEventListener('pointerdown',e=>{if(Array.isArray(inv)&&hasTool('bow')&&ML_QUIVER&&ML_ARROWS>0){ML_BOW_DRAWING=true;ML_BOW_CHARGE=0;try{mlAttackButton.setPointerCapture(e.pointerId)}catch(_){}e.preventDefault()}});
+mlAttackButton.addEventListener('pointerup',e=>{if(ML_BOW_DRAWING){ML_BOW_DRAWING=false;ML_SKIP_BOW_CLICK=true;act();ML_BOW_CHARGE=0;const bow=armR&&armR.getObjectByName('ml-bow');if(bow&&bow.userData.string)bow.userData.string.position.z=-.02;e.preventDefault()}});
 mlAttackButton.addEventListener('pointercancel',()=>{ML_BOW_DRAWING=false;ML_BOW_CHARGE=0;const bow=armR&&armR.getObjectByName('ml-bow');if(bow&&bow.userData.string)bow.userData.string.position.z=-.02});
 mlAttackButton.addEventListener('click',e=>{if(ML_SKIP_BOW_CLICK){ML_SKIP_BOW_CLICK=false;e.stopImmediatePropagation();e.preventDefault()}},true);
 const mlOldAct=act;act=function(){if(cool<=0&&!dead&&!MENU){if(mlShootArrow()){cool=.35;swing=.25;return}
