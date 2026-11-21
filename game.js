@@ -5,7 +5,7 @@ window.addEventListener('unhandledrejection',e=>window.__ML_STARTUP_FALLBACK(e.r
 try{const $=id=>document.getElementById(id);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // ===== Ядро: реестры (новый контент добавляется здесь или через Game.use) =====
-const G=window.Game={version:'0.0.5.9 Альфа 3D',items:{},nodes:{},recipes:[],mods:[],
+const G=window.Game={version:'0.0.5.10 Альфа 3D',items:{},nodes:{},recipes:[],mods:[],
  registerItem(id,o){o.ru=o.n;Object.defineProperty(o,'n',{get(){return L(this.ru)},enumerable:true});this.items[id]=o},registerNode(id,o){if(o.hint){o.hru=o.hint;Object.defineProperty(o,'hint',{get(){return L(this.hru)},enumerable:true})}this.nodes[id]=o},registerRecipe(r){this.recipes.push(r)},
  use(f){this.mods.push(f);f(this)}};
 G.use(g=>{
@@ -144,7 +144,7 @@ function buildWorld(){
   else if(y<1.7&&r>.94-.04*WP.res&&r<.94)addN('clay',px,y,pz,.7+R()*.5);else if(y>4.5&&r>.93-.05*WP.res&&r<.93)addN(r<.93-.025*WP.res?'coal':'iron',px,y,pz,.7+R()*.6);else if(r<.03*WP.res)addN('rock',px,y,pz,.6+R()*1.1);else if(r>.975)addN('bush',px,y,pz,.8+R()*.4)}
  const mk=(geo,mat,n,cs=true)=>{const m=new THREE.InstancedMesh(geo,mat,Math.max(1,n));m.castShadow=cs;m.receiveShadow=true;world.add(m);return m};
  const cone=(r,hh,y)=>new THREE.ConeGeometry(r,hh,7).translate(0,y,0);
- TR=[mk(new THREE.CylinderGeometry(.18,.28,2.4,6).translate(0,1.2,0),mt(0x5b3d24),cnt.tree),mk(cone(1.9,2.2,2.6),mt(0x2f6b34),cnt.tree),mk(cone(1.5,2,3.7),mt(0x38803c),cnt.tree),mk(cone(1.05,1.8,4.8),mt(0x43953f),cnt.tree)];
+ TR=[mk(new THREE.CylinderGeometry(.18,.28,2.4,6).translate(0,1.2,0),mt(0x5b3d24),cnt.tree),mk(cone(1.9,2.2,3.05),mt(0x2f6b34),cnt.tree),mk(cone(1.5,2,3.7),mt(0x38803c),cnt.tree),mk(cone(1.05,1.8,4.8),mt(0x43953f),cnt.tree)];
  const ig=new THREE.IcosahedronGeometry(1,1),ip=ig.attributes.position;
  for(let i=0;i<ip.count;i++){const x=ip.getX(i),y=ip.getY(i),z=ip.getZ(i),k=.8+h(x*9,z*7+y*5)*.4;ip.setXYZ(i,x*k,y*k,z*k)}
  ig.computeVertexNormals();RK=mk(ig,mt(0x8a8a86),cnt.rock);
@@ -306,7 +306,7 @@ function mkAn(k){const D=AN[k],g=new THREE.Group(),hd=new THREE.Group(),tl=new T
  for(const sx of[-1,1]){leg(sx*.14,.5,.32,.5,.055,f,dk);leg(sx*.14,.5,-.3,.5,.06,f,dk)}
  return out([0,.7,.35],[0,.62,-.36])}
 let ANIMAL_POP_TIMER=0,WOLF_POP_TIMER=0;
-function addAn(k,x,z){const o=mkAn(k),a={k,x,z,hp:AN[k].hp,dir:Math.random()*6.28,t:0,cd:0,fl:0,obstacleCooldown:0,lastX:x,lastZ:z,stuckClock:0,fleeTime:0,fleeFrom:null,g:o.g,legs:o.legs,hd:o.hd,hv:o.hp,tl:o.tl,tv:o.tp};world.add(o.g);AL.push(a);return a}
+function addAn(k,x,z){const o=mkAn(k),a={k,x,z,hp:AN[k].hp,dir:Math.random()*6.28,t:0,cd:0,fl:0,obstacleCooldown:0,targetAngle:Math.random()*6.28,targetLock:0,moveCheckTime:0,moveCheckX:x,moveCheckZ:z,animationFrozen:false,lastX:x,lastZ:z,stuckClock:0,fleeTime:0,fleeFrom:null,fleeTarget:null,fleeCooldown:0,g:o.g,legs:o.legs,hd:o.hd,hv:o.hp,tl:o.tl,tv:o.tp};world.add(o.g);AL.push(a);return a}
 function trySpawnAnimal(k,R=Math.random){
  for(let t=0;t<1800;t++){const x=(R()-.5)*180,z=(R()-.5)*180,y=hgt(x,z);
   if(Math.hypot(x,z)<14)continue;
@@ -344,37 +344,46 @@ function updAnimals(dt){
  updateAnimalPopulation(dt);updateWolfPopulation(dt);
  const dk=dark(),fireNear=F.some(f=>Math.hypot(f.x-P.x,f.z-P.z)<10),wolves=AL.filter(a=>a.k=='wolf'&&a.dying<=0).length;
  if(!dead&&!MENU&&WP.wolves&&dk>.5&&wolves<6&&Math.random()<dt*.08){const an=Math.random()*6.28,x=P.x+Math.cos(an)*34,z=P.z+Math.sin(an)*34;if(Math.abs(x)<92&&Math.abs(z)<92&&hgt(x,z)>.5)addAn('wolf',x,z)}
- const turn=a=>{if(a.obstacleCooldown>0)return false;a.dir+=((Math.random()<.5?-1:1)*(Math.PI/2+Math.random()*Math.PI/4));a.obstacleCooldown=1.2;a.t=1+Math.random()*2;a.w=true;return true};
+ let waterEdge=!!IN_WATER||hgt(P.x,P.z)<.35;if(!waterEdge){for(let q=0;q<8;q++){const an=q*Math.PI/4;if(hgt(P.x+Math.sin(an)*1.1,P.z+Math.cos(an)*1.1)<0){waterEdge=true;break}}}
+ const fishPanic=!dead&&!MENU&&SPR>0&&mvAmt>.55&&waterEdge;
+ const turn=a=>{if(a.obstacleCooldown>0||a.targetLock>0)return false;a.dir+=((Math.random()<.5?-1:1)*(Math.PI/2+Math.random()*Math.PI/4));a.obstacleCooldown=1.2;a.t=1+Math.random()*2;a.w=true;return true};
  const obstacleAt=(a,x,z)=>{for(const n of near(x,z)){const nd=G.nodes[n.t];if(!nd||!nd.solid||n.gone||n.dead||n.fall>0)continue;const r=(n.colliderRadius||(nd.r||.4)*n.s+.35)+.18,dx=x-n.x,dz=z-n.z;if(dx*dx+dz*dz<r*r)return{x:n.x,z:n.z,r}}for(const p of PC){const b=pcBox(p);if(!b)continue;const hx=b[0]+.35,hz=b[1]+.35;if(Math.abs(x-p.x)<hx&&Math.abs(z-p.z)<hz)return{x:p.x,z:p.z,hx,hz,box:true}}return null};
  const blocked=(a,dir)=>{const dist=a.k==='fish'?1.25:1.5,nx=a.x+Math.sin(dir)*dist,nz=a.z+Math.cos(dir)*dist,y=hgt(nx,nz),here=hgt(a.x,a.z);if(a.k==='fish')return y>=-.6?{terrain:true}:null;if(y<.15||y>8.5||Math.abs(nx)>94||Math.abs(nz)>94||y-here>.62)return{terrain:true};const sx=Math.cos(dir)*.24,sz=-Math.sin(dir)*.24;return obstacleAt(a,nx,nz)||obstacleAt(a,nx+sx,nz+sz)||obstacleAt(a,nx-sx,nz-sz)};
- for(let i=AL.length-1;i>=0;i--){const a=AL[i],D=AN[a.k],dx=P.x-a.x,dz=P.z-a.z,d=Math.hypot(dx,dz);
+ for(let i=AL.length-1;i>=0;i--){
+  const a=AL[i],D=AN[a.k],dx=P.x-a.x,dz=P.z-a.z,d=Math.hypot(dx,dz);
   if(a.dying>0){a.dying-=dt;const q=1-a.dying/.8;a.g.rotation.z=Math.min(1.5,q*2.2)*(a.side||1);a.g.position.y=Math.max(a.g.position.y-dt*.1,-.5);if(a.dying<=0){world.remove(a.g);AL.splice(i,1)}continue}
   if(a.k==='wolf'&&((dk<.15&&d>20)||d>70)){world.remove(a.g);AL.splice(i,1);continue}
-  let sp=0;a.t-=dt;a.cd-=dt;a.obstacleCooldown=Math.max(0,(a.obstacleCooldown||0)-dt);a.fl=Math.max(0,a.fl-dt);if(a.fleeCooldown>0){a.fleeCooldown-=dt;if(d>(D.fear||0)+3)a.fleeCooldown=0}
-  if(a.k==='wolf'){if(!dead&&d<40){a.dir=Math.atan2(dx,dz);if(fireNear&&d<9){a.dir+=Math.PI;sp=D.spd*.6}else if(d>1.3)sp=D.spd;if(d<1.5&&a.cd<=0&&!MENU){S.hp-=D.dmg*WP.diff;a.cd=1.3;a.lunge=.35;snd(90,.25,'sawtooth',.08);log(ico('ui_wolf',18)+' '+L('Волк кусает!'))}}}
-  else if(a.k==='fish'){if(a.t<=0){a.t=2+Math.random()*4;a.dir+=(Math.random()-.5)*1.8;a.w=Math.random()<.8}sp=a.w?D.spd*.65:0}
-  else if(D.fear&&(d<D.fear||a.fl>0)&&!(a.fleeCooldown>0)){if(!a.fleeTime){a.fleeTime=4+Math.random()*2;a.fleeFrom={x:P.x,z:P.z}}if(a.fleeTime>0&&Math.hypot(a.x-a.fleeFrom.x,a.z-a.fleeFrom.z)<19){a.fleeTime-=dt;a.dir=Math.atan2(-dx,-dz);sp=D.spd}else{a.fleeTime=0;a.fleeFrom=null;a.fleeCooldown=6;a.fl=0;a.t=0;a.w=false}}
-  else{a.fleeTime=0;a.fleeFrom=null;if(a.t<=0){a.t=2+Math.random()*4;a.dir=Math.random()*6.28;a.w=Math.random()<.55}sp=a.w?D.spd*.3:0}
-  if(sp){if(a.k!=='fish'){let sx=0,sz=0;for(let j=0;j<AL.length;j++){const b=AL[j];if(b===a||b.k==='fish'||b.dying>0)continue;const ex=a.x-b.x,ez=a.z-b.z,dd=Math.hypot(ex,ez);if(dd>0&&dd<1.65){const f=(1.65-dd)/1.65;sx+=ex/dd*f;sz+=ez/dd*f}}if(Math.hypot(sx,sz)>.08)a.dir=Math.atan2(Math.sin(a.dir)+sx*.55,Math.cos(a.dir)+sz*.55)}
-   const pathHit=blocked(a,a.dir);if(pathHit&&!pathHit.terrain&&a.obstacleCooldown<=0){let found=false;for(const off of[.72,-.72,1.12,-1.12]){const candidate=a.dir+off;if(!blocked(a,candidate)){a.dir=candidate;a.obstacleCooldown=1.2;found=true;break}}if(!found)turn(a)}
-   const prevX=a.x,prevZ=a.z,nx=a.x+Math.sin(a.dir)*sp*dt,nz=a.z+Math.cos(a.dir)*sp*dt,ny=hgt(nx,nz),valid=a.k==='fish'?ny<-.6:(ny>.15&&ny<8.5&&ny-hgt(a.x,a.z)<=.62&&Math.abs(nx)<95&&Math.abs(nz)<95);
-   const hit=a.k==='fish'?null:obstacleAt(a,nx,nz);
-   if(valid&&!hit){a.x=nx;a.z=nz}else if(valid&&hit){let ex=nx-hit.x,ez=nz-hit.z;if(hit.box){if(hit.hx-Math.abs(ex)<hit.hz-Math.abs(ez)){ex=Math.sign(ex)||1;ez=0}else{ez=Math.sign(ez)||1;ex=0}}else{const dd=Math.hypot(ex,ez)||1;ex/=dd;ez/=dd}let tx=-ez,tz=ex;if(tx*Math.sin(a.dir)+tz*Math.cos(a.dir)<0){tx=-tx;tz=-tz}const len=Math.hypot(nx-a.x,nz-a.z),sx=tx*len,sz=tz*len,qx=a.x+sx,qz=a.z+sz,qy=hgt(qx,qz);if(qy>.15&&qy<8.5&&qy-hgt(a.x,a.z)<=.62&&Math.abs(qx)<95&&Math.abs(qz)<95&&!obstacleAt(a,qx,qz)){a.x=qx;a.z=qz;if(a.obstacleCooldown<=0){a.dir=Math.atan2(sx,sz);a.obstacleCooldown=1.2}}else turn(a)}else turn(a)}
-  let actualMoveDist=Math.hypot(a.x-prevX,a.z-prevZ);
-  if(sp>0&&a.k!=='fish'&&actualMoveDist<.002){
-   const probeDist=Math.max(.16,sp*dt*2),contact=obstacleAt(a,a.x+Math.sin(a.dir)*probeDist,a.z+Math.cos(a.dir)*probeDist)||blocked(a,a.dir);
-   if(contact&&!contact.terrain){const base=a.dir,angle=(75+Math.random()*35)*Math.PI/180,step=Math.max(.12,sp*dt),sides=Math.random()<.5?[1,-1]:[-1,1];let diverted=false;
-    for(const side of sides){const candidate=base+side*angle,qx=a.x+Math.sin(candidate)*step,qz=a.z+Math.cos(candidate)*step,qy=hgt(qx,qz);
-     if(qy>.15&&qy<8.5&&qy-hgt(a.x,a.z)<=.62&&Math.abs(qx)<95&&Math.abs(qz)<95&&!obstacleAt(a,qx,qz)&&!blocked(a,candidate)){a.dir=candidate;a.x=qx;a.z=qz;a.obstacleCooldown=.35;diverted=true;break}}
-    if(!diverted){a.dir=base+sides[0]*angle;a.obstacleCooldown=.35}
-   }
-   actualMoveDist=Math.hypot(a.x-prevX,a.z-prevZ);
+  let sp=0;a.t-=dt;a.cd-=dt;a.obstacleCooldown=Math.max(0,(a.obstacleCooldown||0)-dt);a.targetLock=Math.max(0,(a.targetLock||0)-dt);a.fl=Math.max(0,a.fl-dt);
+  if(a.fleeCooldown>0){a.fleeCooldown-=dt;if(a.k!=='fish'&&d>(D.fear||0)+3)a.fleeCooldown=0}
+  if(a.k==='wolf'){
+   if(!dead&&d<40){a.dir=Math.atan2(dx,dz);if(fireNear&&d<9){a.dir+=Math.PI;sp=D.spd*.6}else if(d>1.3)sp=D.spd;if(d<1.5&&a.cd<=0&&!MENU){S.hp-=D.dmg*WP.diff;a.cd=1.3;a.lunge=.35;snd(90,.25,'sawtooth',.08);log(ico('ui_wolf',18)+' '+L('Волк кусает!'))}}
+  }else if(a.k==='fish'){
+   if(fishPanic&&d<4.8&&a.fleeCooldown<=0){const away=Math.atan2(a.x-P.x,a.z-P.z);let bestScore=-Infinity,best=null;for(let j=0;j<36;j++){const an=away+(j-18)*Math.PI/18;for(const radius of[8,9,10]){const tx=P.x+Math.sin(an)*radius,tz=P.z+Math.cos(an)*radius,depth=hgt(tx,tz);if(depth<-.6){const align=Math.cos(an-away),score=align*5+Math.min(2,-.6-depth)*.25+(radius-8)*.01;if(score>bestScore){bestScore=score;best={x:tx,z:tz}}}}}if(best){a.fleeTarget=best;a.fleeTime=3.5;a.fleeCooldown=3;a.w=true}}
+   if(a.fleeTime>0&&a.fleeTarget){a.fleeTime-=dt;const fx=a.fleeTarget.x-a.x,fz=a.fleeTarget.z-a.z,fd=Math.hypot(fx,fz);if(fd<.7||a.fleeTime<=0){a.fleeTime=0;a.fleeTarget=null;a.w=false;sp=0}else{a.dir=Math.atan2(fx,fz);a.w=true;sp=Math.max(D.spd*1.8,4.8)}}
+   else{if(a.t<=0){a.t=2+Math.random()*4;a.dir+=(Math.random()-.5)*1.8;a.w=Math.random()<.8}sp=a.w?D.spd*.65:0}
+  }else if(D.fear&&(d<D.fear||a.fl>0)&&!(a.fleeCooldown>0)){
+   if(!a.fleeTime){a.fleeTime=4+Math.random()*2;a.fleeFrom={x:P.x,z:P.z}}
+   if(a.fleeTime>0&&Math.hypot(a.x-a.fleeFrom.x,a.z-a.fleeFrom.z)<19){a.fleeTime-=dt;a.dir=Math.atan2(-dx,-dz);sp=D.spd}
+   else{a.fleeTime=0;a.fleeFrom=null;a.fleeCooldown=6;a.fl=0;a.t=0;a.w=false}
+  }else{a.fleeTime=0;a.fleeFrom=null;if(a.t<=0){a.t=2+Math.random()*4;a.dir=Math.random()*6.28;a.w=Math.random()<.55}sp=a.w?D.spd*.3:0}
+  const prevX=a.x,prevZ=a.z;let actualMoveDist=0;
+  if(sp){
+   if(a.k!=='fish'){let sx=0,sz=0;for(let j=0;j<AL.length;j++){const b=AL[j];if(b===a||b.k==='fish'||b.dying>0)continue;const ex=a.x-b.x,ez=a.z-b.z,dd=Math.hypot(ex,ez);if(dd>0&&dd<1.65){const f=(1.65-dd)/1.65;sx+=ex/dd*f;sz+=ez/dd*f}}if(Math.hypot(sx,sz)>.08)a.dir=Math.atan2(Math.sin(a.dir)+sx*.55,Math.cos(a.dir)+sz*.55)}
+   if(a.targetLock>0&&a.targetAngle!==undefined)a.dir=a.targetAngle;
+   const pathHit=blocked(a,a.dir);if(pathHit&&!pathHit.terrain&&a.obstacleCooldown<=0&&a.targetLock<=0){let found=false;for(const off of[.72,-.72,1.12,-1.12]){const candidate=a.dir+off;if(!blocked(a,candidate)){a.dir=candidate;a.obstacleCooldown=1.2;found=true;break}}if(!found)turn(a)}
+   const nx=a.x+Math.sin(a.dir)*sp*dt,nz=a.z+Math.cos(a.dir)*sp*dt,ny=hgt(nx,nz),valid=a.k==='fish'?ny<-.6:(ny>.15&&ny<8.5&&ny-hgt(a.x,a.z)<=.62&&Math.abs(nx)<95&&Math.abs(nz)<95),hit=a.k==='fish'?null:obstacleAt(a,nx,nz);
+   if(valid&&!hit){a.x=nx;a.z=nz}
+   else if(valid&&hit){
+    if(hit.box){let ex=nx-hit.x,ez=nz-hit.z;if(hit.hx-Math.abs(ex)<hit.hz-Math.abs(ez)){ex=Math.sign(ex)||1;ez=0}else{ez=Math.sign(ez)||1;ex=0}const dd=Math.hypot(ex,ez)||1,step=Math.hypot(nx-a.x,nz-a.z),qx=a.x+ex/dd*step,qz=a.z+ez/dd*step,qy=hgt(qx,qz);if(qy>.15&&qy<8.5&&qy-hgt(a.x,a.z)<=.62&&Math.abs(qx)<95&&Math.abs(qz)<95&&!obstacleAt(a,qx,qz)){a.x=qx;a.z=qz}else turn(a)}
+    else{let ex=nx-hit.x,ez=nz-hit.z,dd=Math.hypot(ex,ez);if(dd<1e-6){ex=a.x-hit.x;ez=a.z-hit.z;dd=Math.hypot(ex,ez)}if(dd<1e-6){ex=-Math.sin(a.dir);ez=-Math.cos(a.dir);dd=1}const ux=ex/dd,uz=ez/dd,minColliderDist=hit.r||.5,pushDist=minColliderDist+.15,qx=hit.x+ux*pushDist,qz=hit.z+uz*pushDist,qy=hgt(qx,qz);if(qy>.15&&qy<8.5&&Math.abs(qx)<95&&Math.abs(qz)<95){a.x=qx;a.z=qz}a.targetAngle=Math.atan2(ux,uz);a.dir=a.targetAngle;a.targetLock=1;a.obstacleCooldown=1}
+   }else if(a.k==='fish'){let bestDir=null,bestScore=-Infinity;for(const off of[0,.22,-.22,.45,-.45,.7,-.7,1,-1,1.35,-1.35]){const cd=a.dir+off,px=a.x+Math.sin(cd)*.55,pz=a.z+Math.cos(cd)*.55,depth=hgt(px,pz);if(depth<-.6){const score=-Math.abs(off)*2-depth*.15;if(score>bestScore){bestScore=score;bestDir=cd}}}if(bestDir!==null)a.dir=bestDir}
+   else turn(a)
   }
-  a.stuckClock=(a.stuckClock||0)+dt;if(a.stuckClock>=.8){const moved=Math.hypot(a.x-a.lastX,a.z-a.lastZ);if(sp>0&&moved<.2){turn(a);a.fleeTime=0;a.fleeFrom=null;a.fl=0;a.t=0}a.lastX=a.x;a.lastZ=a.z;a.stuckClock=0}
-  const y=hgt(a.x,a.z);a.g.position.set(a.x,a.k==='fish'?-.35+Math.sin(tm*2+i)*.04:Math.max(y,-.6),a.z);let df=a.dir-a.g.rotation.y;df=Math.atan2(Math.sin(df),Math.cos(df));a.g.rotation.y+=df*Math.min(1,dt*8);animAn(a,actualMoveDist>=.002?sp:0,dt,i)
+  actualMoveDist=Math.hypot(a.x-prevX,a.z-prevZ);a.moveCheckTime=(a.moveCheckTime||0)+dt;
+  if(a.moveCheckTime>=1){const sx=a.moveCheckX===undefined?a.x:a.moveCheckX,sz=a.moveCheckZ===undefined?a.z:a.moveCheckZ,moved=Math.hypot(a.x-sx,a.z-sz);a.animationFrozen=moved<.3;a.moveCheckX=a.x;a.moveCheckZ=a.z;a.moveCheckTime=0}
+  const y=hgt(a.x,a.z);a.g.position.set(a.x,a.k==='fish'?-.35+Math.sin(tm*2+i)*.04:Math.max(y,-.6),a.z);let df=a.dir-a.g.rotation.y;df=Math.atan2(Math.sin(df),Math.cos(df));a.g.rotation.y+=df*Math.min(1,dt*8);animAn(a,a.animationFrozen||actualMoveDist<.002?0:sp,dt,i)
  }
-}
-// ===== Строительство (0.0.4) =====
+}// ===== Строительство (0.0.4) =====
 const RKT=['rock','clay','iron','coal'],EK=['wall','window','door'],TINT={iron:new THREE.Color(1,.62,.5),coal:new THREE.Color(.35,.35,.4),clay:new THREE.Color(1.15,.96,.78)};
 let PC=[],openC=null,cbT=0,CB=[];
 Object.assign(ICON,{
@@ -637,7 +646,7 @@ const langRow=()=>'<div class="mr"><div class="ml">'+ico('ui_lang',16)+' '+L('Я
 function pgMain(){const w=HAVEWORLD?L('Мир: {w} · сид {s} · день {d}',{w:'<b>'+esc(L(WP.name))+'</b>',s:'<b>'+esc(SEEDTXT)+'</b>',d:day}):L('Мира пока нет — создай новый');
  const saved=Object.values(SAVE_DB.worlds||{}).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
  const worlds=saved.length?'<div class="mr"><b>'+L('Мои миры')+'</b>'+saved.map(q=>'<button class="pr" data-a="worldload" data-v="'+esc(q.id)+'"><b>'+esc(L(q.name||'Мир'))+'</b><small>'+L('Сид мира: {s}',{s:esc(q.seed||'')})+' · '+L('День')+' '+(q.day||1)+'</small><i>'+(q.id===activeWorldId?L('Текущий мир'):L('Открыть'))+'</i></button>').join('')+'</div>':'<div class="info">'+L('Нет сохранённых миров')+'</div>';
- return '<div class="logo">'+ico('logo',72)+'<h1>'+GN()+'</h1><div class="sub">v0.0.5.9 '+L('Альфа')+' 3D</div></div><div class="info">'+w+'</div>'+
+ return '<div class="logo">'+ico('logo',72)+'<h1>'+GN()+'</h1><div class="sub">v0.0.5.10 '+L('Альфа')+' 3D</div></div><div class="info">'+w+'</div>'+
  (HAVEWORLD?icb('ui_play','Продолжить','resume'):'')+icb('ui_world','Новый мир','go','world')+worlds+icb('ui_char','Персонаж','go','char')+icb('ui_gear','Настройки','go','set')+langRow()}
 function pgWorld(){return '<h2>'+L('Новый мир')+'</h2>'+row('Название','<input type="text" id="wname" maxlength="24" value="'+esc(WF.name)+'">')+
  row('Сид (пусто — случайный мир)','<div class="sd"><input type="text" id="wseed" maxlength="24" placeholder="'+L('случайный')+'" value="'+esc(WF.seed)+'">'+icb('ui_dice','','dice')+'</div>')+
@@ -724,7 +733,7 @@ function applyLang(){const sb=(id,ic,t)=>$(id).innerHTML='<span class="cb">'+ico
  sb('bAct','ui_act','Действие (E)');sb('bCraft','ui_craft','Крафт (C)');sb('bNew','ui_redo','');
  $('bNew').title=L('Новая игра');$('bMenu').title=L('Меню (Esc)');$('bDel').title=L('Разобрать постройку (X)');
  $('dtxt').textContent=L('Вы погибли');$('bRe').textContent=L('Начать заново');$('menu').dataset.busy=L('Генерация мира...');
- $('gname').textContent=GN();$('gver').textContent='v0.0.5.9 '+L('Альфа')+' 3D';document.title=GN();document.documentElement.lang=ST.lang;$('pname').textContent=CH.name;
+ $('gname').textContent=GN();$('gver').textContent='v0.0.5.10 '+L('Альфа')+' 3D';document.title=GN();document.documentElement.lang=ST.lang;$('pname').textContent=CH.name;
  if(inv)refresh()}
 // ===== Симуляция =====
 const dark=()=>clamp(.35-Math.sin(time*6.2832)*.6,0,.8);
