@@ -12,16 +12,36 @@
   "categories": [
     "games"
   ],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
   "version": "0.0.5.8",
   "files": {
     "index.html": {
       "sha256": "025ee287670c605f17720aa6f170b84328d3d2701861a74d5ddabb7c549ebaf8",
       "size": 10022,
-      "url": "index.html"
+      "url": "index.html",
+      "patch": {
+        "url": "patches/index.html.bsdiff",
+        "from_sha256": "025ee287670c605f17720aa6f170b84328d3d2701861a74d5ddabb7c549ebaf8",
+        "sha256": "ee674bb7c88ba6d5dc7c646fb22999a7d88050c6e21ca4109b7e6fa87af5ad1a",
+        "size": 190
+      }
     },
     "game.js": {
-      "sha256": "a77060d4165f9a5315869713ed249bc3c48c9a5e4bd18293237b8abdc137106e",
-      "size": 136661,
+      "sha256": "6ab1d897a9020bc5be481650dd79f86968f61c45efe0fd1abb174ee7645a2c2d",
+      "size": 136990,
       "url": "game.js"
     }
   }
