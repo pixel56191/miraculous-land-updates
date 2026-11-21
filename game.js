@@ -930,6 +930,7 @@ buildWorld=function(){
 move=function(dx,dz){let nx=P.x+dx,nz=P.z+dz;
  for(const n of near(nx,nz)){const d=G.nodes[n.t];if(!d||!d.solid||n.gone||n.fall>0)continue;const rr=n.colliderRadius||(d.r*n.s+.35),ex=nx-n.x,ez=nz-n.z,dd=Math.hypot(ex,ez);if(dd<rr){const q=dd||1,ux=dd?ex/q:Math.cos(P.f),uz=dd?ez/q:-Math.sin(P.f);nx=n.x+ux*rr;nz=n.z+uz*rr}}
  for(const p of PC){const b=pcBox(p);if(!b)continue;const hx=b[0]+.35,hz=b[1]+.35,ex=nx-p.x,ez=nz-p.z;if(Math.abs(ex)<hx&&Math.abs(ez)<hz){if(hx-Math.abs(ex)<hz-Math.abs(ez))nx=p.x+(ex<0?-1:1)*hx;else nz=p.z+(ez<0?-1:1)*hz}}
+ for(const pyr of ML_PYRAMIDS.values()){const candidate={x:nx,z:nz};resolvePyramidCollision(candidate,.42,pyr.colliders);nx=candidate.x;nz=candidate.z}
  P.x=nx;P.z=nz};
 const mlOldStep=step;
 step=function(dt){
@@ -1002,27 +1003,54 @@ function mlEnemyModel(type,parent){
  parent.add(g);
  return g;
 }
+function buildPyramidWithColliders(px,py,pz,worldX=px,worldZ=pz){
+ const group=new THREE.Group();group.position.set(px,py,pz);
+ const sandMat=new THREE.MeshStandardMaterial({color:0xd4b475,roughness:.9}),darkMat=new THREE.MeshStandardMaterial({color:0x8a6d3b,roughness:.95});
+ const foundation=new THREE.Mesh(new THREE.BoxGeometry(16.4,6,16.4),darkMat);foundation.position.set(0,-3,0);foundation.receiveShadow=true;group.add(foundation);
+ const tiers=[{size:16,h:2.2,y:1.1},{size:12,h:2.2,y:3.3},{size:8,h:2.2,y:5.5},{size:4,h:2,y:7.6}],thickness=1.6,doorHalfWidth=1.6;
+ const wall=(w,h,d,x,y,z)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),sandMat);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;group.add(m)};
+ tiers.forEach(t=>{const half=t.size/2,y=t.y,h=t.h;
+  wall(t.size,h,thickness,0,y,-half+thickness/2);
+  wall(thickness,h,t.size-2*thickness,-half+thickness/2,y,0);
+  wall(thickness,h,t.size-2*thickness,half-thickness/2,y,0);
+  const sideWidth=Math.max(0,(t.size-2*doorHalfWidth)/2),frontZ=half-thickness/2;
+  if(sideWidth>0){wall(sideWidth,h,thickness,-doorHalfWidth-sideWidth/2,y,frontZ);wall(sideWidth,h,thickness,doorHalfWidth+sideWidth/2,y,frontZ)}
+  if(t.size>4.2)wall(doorHalfWidth*2,.4,thickness,0,y+h/2-.2,frontZ);
+ });
+ for(const sx of[-1,1]){const post=new THREE.Mesh(new THREE.BoxGeometry(.28,2.15,1.2),darkMat);post.position.set(sx*1.48,1.075,7.6);post.castShadow=true;group.add(post)}
+ const lintel=new THREE.Mesh(new THREE.BoxGeometry(3.2,.28,1.2),darkMat);lintel.position.set(0,2.12,7.6);lintel.castShadow=true;group.add(lintel);
+ const half=8,wallThick=1.6,colliders=[
+  {minX:worldX-half,maxX:worldX+half,minZ:worldZ-half,maxZ:worldZ-half+wallThick},
+  {minX:worldX-half,maxX:worldX-half+wallThick,minZ:worldZ-half,maxZ:worldZ+half},
+  {minX:worldX+half-wallThick,maxX:worldX+half,minZ:worldZ-half,maxZ:worldZ+half},
+  {minX:worldX-half,maxX:worldX-doorHalfWidth,minZ:worldZ+half-wallThick,maxZ:worldZ+half},
+  {minX:worldX+doorHalfWidth,maxX:worldX+half,minZ:worldZ+half-wallThick,maxZ:worldZ+half}
+ ];
+ return{mesh:group,colliders};
+}
+function resolvePyramidCollision(pos,radius,colliders){
+ for(const b of colliders||[]){const x=Math.max(b.minX,Math.min(pos.x,b.maxX)),z=Math.max(b.minZ,Math.min(pos.z,b.maxZ)),dx=pos.x-x,dz=pos.z-z,d2=dx*dx+dz*dz;
+  if(d2<radius*radius){const d=Math.sqrt(d2)||.001,o=radius-d;pos.x+=dx/d*o;pos.z+=dz/d*o}
+ }return pos;
+}
+function mlPyramidBlocksSegment(a,b,colliders,radius=.25){
+ for(let i=0;i<=10;i++){const t=i/10,x=a.x+(b.x-a.x)*t,z=a.z+(b.z-a.z)*t;
+  for(const box of colliders||[]){const cx=Math.max(box.minX,Math.min(x,box.maxX)),cz=Math.max(box.minZ,Math.min(z,box.maxZ)),dx=x-cx,dz=z-cz;if(dx*dx+dz*dz<radius*radius)return true}
+ }return false;
+}
 function mlSpawnDungeon(c){
  const key=c.key;if(c.biome!=='desert'||Math.abs(mlChunkHash(c.cx,c.cz))%4!==0||ML_PYRAMIDS.has(key))return;
- const done=!!ML_DUNGEON_DONE[key],x=c.cx*32+16,z=c.cz*32+16,y=hgt(x,z),g=new THREE.Group();g.position.set(16,0,16);c.group.add(g);
- const sand=mt(0xc99b48),dark=mt(0x75552e),floor=new THREE.Mesh(new THREE.BoxGeometry(12,.5,12),sand);floor.position.set(0,y+.25,0);floor.receiveShadow=true;g.add(floor);
- for(let level=0;level<6;level++){
-  const half=7-level*1.05,yy=y+.5+level*1.15;
-  for(let ix=-Math.floor(half);ix<=Math.floor(half);ix+=2)for(let iz=-Math.floor(half);iz<=Math.floor(half);iz+=2){
-   if(level<2&&iz>half-1&&Math.abs(ix)<1.1)continue;
-   const b=new THREE.Mesh(new THREE.BoxGeometry(2.15,1.2,2.15),sand);b.position.set(ix,yy,iz);b.castShadow=true;b.receiveShadow=true;g.add(b);
-  }
- }
- const hall=new THREE.Group();g.add(hall);const enemies=[],columns=[];
- for(const sx of[-1,1])for(const sz of[-1,1]){const col=new THREE.Mesh(new THREE.CylinderGeometry(.42,.52,3.6,7),dark);col.position.set(sx*3,y+2.1,sz*3);col.castShadow=true;hall.add(col);columns.push({x:x+sx*3,y:y+2.1,z:z+sz*3})}
- const torchMat=new THREE.MeshBasicMaterial({color:0xffa33b});for(const sx of[-1,1]){const t=new THREE.Mesh(new THREE.ConeGeometry(.18,.6,6),torchMat);t.position.set(sx*5,y+2.8,0);hall.add(t)}
- const chest=BUILD.chest(),loot=ML_DUNGEON_CHESTS[key]||[{id:'gold_ingot',n:2+Math.floor(Math.abs(mlChunkHash(c.cx,c.cz))%4)},{id:'iron_ingot',n:3},{id:'bandage',n:2}];chest.position.set(0,y+.5,-4);g.add(chest);PC.push({pk:'chest',x,z:z-4,y:y+.5,rot:0,g:chest,p:1,inv:loot});
-
- if(!done){
-  for(let i=0;i<3;i++){const eg=mlEnemyModel('mummy',g);const e={type:'mummy',x:x+(i-1)*2,z:z+5-i*1.5,y:y+.5,hp:28,maxHp:28,cd:1+Math.random(),g:eg,chunk:key,dead:false};eg.position.set(e.x-x,e.y,e.z-z);enemies.push(e);ML_DUNGEON_ENEMIES.push(e)}
-  const bg=mlEnemyModel('pharaoh',g),boss={type:'pharaoh',x,z,y:y+.5,hp:260,maxHp:260,cd:2,spell:5,g:bg,chunk:key,dead:false};bg.position.set(0,y+.5,0);ML_DUNGEON_ENEMIES.push(boss);enemies.push(boss);
- }
- ML_PYRAMIDS.set(key,{group:g,x,z,y,enemies,columns,chunk:c});
+ const done=!!ML_DUNGEON_DONE[key],x=c.cx*32+16,z=c.cz*32+16,y=hgt(x,z),built=buildPyramidWithColliders(16,y,16,x,z),g=built.mesh;
+ c.group.add(g);const sand=mt(0xc99b48),dark=mt(0x75552e),hall=new THREE.Group();g.add(hall);
+ const enemies=[],columns=[];
+ const floor=new THREE.Mesh(new THREE.BoxGeometry(10,.18,10),sand);floor.position.set(0,.1,0);floor.receiveShadow=true;hall.add(floor);
+ for(const sx of[-1,1])for(const sz of[-1,1]){const col=new THREE.Mesh(new THREE.CylinderGeometry(.42,.52,3.6,7),dark);col.position.set(sx*3,2,sz*3);col.castShadow=true;hall.add(col);columns.push({x:x+sx*3,y:y+2,z:z+sz*3})}
+ const torchMat=new THREE.MeshBasicMaterial({color:0xffa33b});for(const sx of[-1,1]){const t=new THREE.Mesh(new THREE.ConeGeometry(.18,.6,6),torchMat);t.position.set(sx*5,2.8,0);hall.add(t)}
+ const chest=BUILD.chest(),loot=ML_DUNGEON_CHESTS[key]||[{id:'gold_ingot',n:2+Math.floor(Math.abs(mlChunkHash(c.cx,c.cz))%4)},{id:'iron_ingot',n:3},{id:'bandage',n:2}];
+ chest.position.set(0,.5,-4);g.add(chest);PC.push({pk:'chest',x,z:z-4,y:y+.5,rot:0,g:chest,p:1,inv:loot});
+ if(!done){for(let i=0;i<3;i++){const eg=mlEnemyModel('mummy',g),e={type:'mummy',x:x+(i-1)*2,z:z+5-i*1.5,y:y+.5,hp:28,maxHp:28,cd:1+Math.random(),g:eg,chunk:key,dead:false};eg.position.set(e.x-x,e.y-y,e.z-z);enemies.push(e);ML_DUNGEON_ENEMIES.push(e)}
+  const bg=mlEnemyModel('pharaoh',g),boss={type:'pharaoh',x,z,y:y+.5,hp:260,maxHp:260,cd:2,spell:5,g:bg,chunk:key,dead:false};bg.position.set(0,.5,0);ML_DUNGEON_ENEMIES.push(boss);enemies.push(boss)}
+ ML_PYRAMIDS.set(key,{group:g,x,z,y,enemies,columns,colliders:built.colliders,chunk:c});
 }
 const mlPrevMakeChunk=mlMakeChunk;
 mlMakeChunk=function(cx,cz){mlPrevMakeChunk(cx,cz);const c=ML_CHUNKS.get(mlKey(cx,cz));if(!c)return;mlSpawnDungeon(c);if((Math.abs(cx)>2||Math.abs(cz)>2)&&!c.animalsSpawned){c.animalsSpawned=true;const R=rng(mlChunkHash(cx,cz)^0x51a7);for(let i=0;i<2;i++){const x=cx*32+4+R()*24,z=cz*32+4+R()*24;if(hgt(x,z)>.4){const a=addAn(R()<.7?'rabbit':'deer',x,z);a.chunkKey=c.key}}if(R()<.18){const x=cx*32+8+R()*16,z=cz*32+8+R()*16;if(hgt(x,z)>.4){const a=addAn('wolf',x,z);a.chunkKey=c.key}}}};
@@ -1069,7 +1097,7 @@ function mlArrowHit(p,prev){
 function mlUpdateProjectiles(dt){
  for(let i=ML_ARROW_PROJECTILES.length-1;i>=0;i--){const a=ML_ARROW_PROJECTILES[i],prev=a.pos.clone();a.life-=dt;a.vel.y-=8.8*dt;a.pos.addScaledVector(a.vel,dt);a.g.position.copy(a.pos);a.g.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),a.vel.clone().normalize());
   if(mlArrowHit(a.pos,prev)||a.life<=0||a.pos.y<hgt(a.pos.x,a.pos.z)+.08){world.remove(a.g);a.g.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material)o.material.dispose()});ML_ARROW_PROJECTILES.splice(i,1)}}
- for(let i=ML_SAND_PROJECTILES.length-1;i>=0;i--){const p=ML_SAND_PROJECTILES[i];p.life-=dt;p.pos.addScaledVector(p.vel,dt);p.g.position.copy(p.pos);let blocked=false;for(const c of ML_PYRAMIDS.values())for(const col of c.columns||[])if(mlDistSeg(new THREE.Vector3(col.x,col.y,col.z),p.prev,p.pos)<.7)blocked=true;
+ for(let i=ML_SAND_PROJECTILES.length-1;i>=0;i--){const p=ML_SAND_PROJECTILES[i];p.life-=dt;p.pos.addScaledVector(p.vel,dt);p.g.position.copy(p.pos);let blocked=false;for(const c of ML_PYRAMIDS.values())if(mlPyramidBlocksSegment(p.prev,p.pos,c.colliders,.28))blocked=true;
   if(blocked)p.life=0;if(!blocked&&Math.hypot(p.pos.x-P.x,p.pos.z-P.z)<.85&&Math.abs(p.pos.y-(P.y+1))<1){S.hp=Math.max(0,S.hp-13*(ML_CROWN?.75:1));log(L('Песчаный вихрь задел вас'));p.life=0}
   if(p.life<=0||p.pos.y<hgt(p.pos.x,p.pos.z)){world.remove(p.g);ML_SAND_PROJECTILES.splice(i,1)}else p.prev.copy(p.pos)}
 }
@@ -1079,8 +1107,9 @@ function mlUpdateDungeon(dt){
   e.cd-=dt;if(e.type==='pharaoh')e.spell-=dt;
   if(d<22&&!dead){
    if(d>1.65){const step=Math.min(d-1.5,(e.type==='pharaoh'?1.25:1.7)*dt),nx=e.x+dx/(d||1)*step,nz=e.z+dz/(d||1)*step;
-    const blocked=near(nx,nz).some(n=>{const def=G.nodes[n.t];return def&&def.solid&&!n.gone&&!n.dead&&Math.hypot(nx-n.x,nz-n.z)<(def.r||.4)*n.s+.55})||ML_PYRAMIDS.get(e.chunk)?.columns?.some(col=>Math.hypot(nx-col.x,nz-col.z)<.8);
-    if(!blocked){e.x=nx;e.z=nz;e.g.position.x=e.x-(ML_PYRAMIDS.get(e.chunk)?.x||0);e.g.position.z=e.z-(ML_PYRAMIDS.get(e.chunk)?.z||0)}
+    const pyr=ML_PYRAMIDS.get(e.chunk),candidate={x:nx,z:nz};if(pyr)resolvePyramidCollision(candidate,.42,pyr.colliders);
+    const blocked=near(nx,nz).some(n=>{const def=G.nodes[n.t];return def&&def.solid&&!n.gone&&!n.dead&&Math.hypot(nx-n.x,nz-n.z)<(def.r||.4)*n.s+.55})||Math.hypot(candidate.x-nx,candidate.z-nz)>.001;
+    if(!blocked){e.x=candidate.x;e.z=candidate.z;e.g.position.x=e.x-(pyr?.x||0);e.g.position.z=e.z-(pyr?.z||0)}
    }else if(e.cd<=0){S.hp=Math.max(0,S.hp-(e.type==='pharaoh'?16:7)*(ML_CROWN?.75:1));e.cd=e.type==='pharaoh'?1.35:1.6;log(e.type==='pharaoh'?L('Фараон ударил посохом!'):L('Мумия атакует!'))}
    if(e.type==='pharaoh'&&e.spell<=0&&d>3&&d<15){const g=new THREE.Mesh(new THREE.SphereGeometry(.34,7,6),new THREE.MeshBasicMaterial({color:0xc99a35}));world.add(g);const pos=new THREE.Vector3(e.x,e.y+1.5,e.z),dir=new THREE.Vector3(dx,0,dz).normalize();ML_SAND_PROJECTILES.push({g,pos:pos.clone(),prev:pos.clone(),vel:dir.multiplyScalar(7).add(new THREE.Vector3(0,.15,0)),life:3});e.spell=6}
   }
