@@ -969,32 +969,59 @@ G.registerRecipe({out:'quiver',n:1,in:{hide:3,fiber:4},at:'bench'});
 function mlBox(parent,w,h,d,color,x,y,z){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({color,roughness:.88,flatShading:true}));m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
 function createMummyMesh(isPharaoh = false) {
   const group = new THREE.Group();
-  const scale = isPharaoh ? 1.35 : 1.0;
-  const skinMat = new THREE.MeshStandardMaterial({ color: 0x5c5346, roughness: 0.9 });
-  const bandageMat = new THREE.MeshStandardMaterial({ color: isPharaoh ? 0xd8c39e : 0xc8bfa8, roughness: 0.85 });
+  const scale = isPharaoh ? 1.38 : 1.0;
+  const skinMat = new THREE.MeshStandardMaterial({ color: 0x5c5346, roughness: 0.9, flatShading: true });
+  const bandageMat = new THREE.MeshStandardMaterial({ color: isPharaoh ? 0xd8c39e : 0xc8bfa8, roughness: 0.85, flatShading: true });
   const eyeMat = new THREE.MeshBasicMaterial({ color: isPharaoh ? 0xff3b30 : 0x76ff03 });
   const goldMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.7, roughness: 0.25 });
-  const legGeo = new THREE.BoxGeometry(0.24, 0.7, 0.24);
-  const leftLeg = new THREE.Mesh(legGeo, bandageMat); leftLeg.position.set(-0.15, 0.35, 0);
-  const rightLeg = new THREE.Mesh(legGeo, bandageMat); rightLeg.position.set(0.15, 0.35, 0);
-  group.add(leftLeg, rightLeg);
-  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.75, 0.32), bandageMat); torso.position.set(0, 1.05, 0); group.add(torso);
-  for (let i = 0; i < 3; i++) { const strip = new THREE.Mesh(new THREE.BoxGeometry(0.61, 0.08, 0.35), skinMat); strip.position.set(0, 0.85 + i * 0.22, 0); group.add(strip); }
-  const head = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.46, 0.46), bandageMat); head.position.set(0, 1.68, 0);
-  const brow = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.12, 0.48), skinMat); brow.position.set(0, 1.76, 0);
-  const leftEye = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.06, 0.04), eyeMat); leftEye.position.set(-0.11, 1.68, 0.23);
-  const rightEye = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.06, 0.04), eyeMat); rightEye.position.set(0.11, 1.68, 0.23);
+  const leftLegPivot = new THREE.Group();
+  leftLegPivot.position.set(-0.15, 0.7, 0);
+  const leftLeg = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.7, 0.24), bandageMat);
+  leftLeg.position.set(0, -0.35, 0);
+  leftLegPivot.add(leftLeg);
+  const rightLegPivot = new THREE.Group();
+  rightLegPivot.position.set(0.15, 0.7, 0);
+  const rightLeg = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.7, 0.24), bandageMat);
+  rightLeg.position.set(0, -0.35, 0);
+  rightLegPivot.add(rightLeg);
+  group.add(leftLegPivot, rightLegPivot);
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.75, 0.32), bandageMat);
+  torso.position.set(0, 1.05, 0);
+  group.add(torso);
+  for (let i = 0; i < 3; i++) {
+    const strip = new THREE.Mesh(new THREE.BoxGeometry(0.61, 0.08, 0.35), skinMat);
+    strip.position.set(0, 0.85 + i * 0.22, 0);
+    group.add(strip);
+  }
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.46, 0.46), bandageMat);
+  head.position.set(0, 1.68, 0);
+  const brow = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.12, 0.48), skinMat);
+  brow.position.set(0, 1.76, 0);
+  const leftEye = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.06, 0.04), eyeMat);
+  leftEye.position.set(-0.11, 1.68, 0.23);
+  const rightEye = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.06, 0.04), eyeMat);
+  rightEye.position.set(0.11, 1.68, 0.23);
   group.add(head, brow, leftEye, rightEye);
-  const armGeo = new THREE.BoxGeometry(0.2, 0.2, 0.65);
-  const leftArm = new THREE.Mesh(armGeo, bandageMat); leftArm.position.set(-0.4, 1.28, 0.25);
-  const rightArm = new THREE.Mesh(armGeo, bandageMat); rightArm.position.set(0.4, 1.28, 0.25);
-  group.add(leftArm, rightArm);
+  const leftArmPivot = new THREE.Group();
+  leftArmPivot.position.set(-0.4, 1.35, 0);
+  const leftArm = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.65), bandageMat);
+  leftArm.position.set(0, 0, 0.3);
+  leftArmPivot.add(leftArm);
+  const rightArmPivot = new THREE.Group();
+  rightArmPivot.position.set(0.4, 1.35, 0);
+  const rightArm = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.65), bandageMat);
+  rightArm.position.set(0, 0, 0.3);
+  rightArmPivot.add(rightArm);
+  group.add(leftArmPivot, rightArmPivot);
   if (isPharaoh) {
-    const crown = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.25, 0.54), goldMat); crown.position.set(0, 1.98, 0);
-    const cobra = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.16, 0.1), goldMat); cobra.position.set(0, 2.02, 0.28);
+    const crown = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.25, 0.54), goldMat);
+    crown.position.set(0, 1.98, 0);
+    const cobra = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.16, 0.1), goldMat);
+    cobra.position.set(0, 2.02, 0.28);
     group.add(crown, cobra);
   }
   group.scale.set(scale, scale, scale);
+  group.userData.rig = { leftLegPivot, rightLegPivot, leftArmPivot, rightArmPivot };
   group.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
   return group;
 }
@@ -1003,35 +1030,74 @@ function mlEnemyModel(type,parent){
  parent.add(g);
  return g;
 }
-function buildPyramidWithColliders(px,py,pz,worldX=px,worldZ=pz){
- const group=new THREE.Group();group.position.set(px,py,pz);
- const sandMat=new THREE.MeshStandardMaterial({color:0xd4b475,roughness:.9}),darkMat=new THREE.MeshStandardMaterial({color:0x8a6d3b,roughness:.95});
- const foundation=new THREE.Mesh(new THREE.BoxGeometry(16.4,6,16.4),darkMat);foundation.position.set(0,-3,0);foundation.receiveShadow=true;group.add(foundation);
- const tiers=[{size:16,h:2.2,y:1.1},{size:12,h:2.2,y:3.3},{size:8,h:2.2,y:5.5},{size:4,h:2,y:7.6}],thickness=1.6,doorHalfWidth=1.6;
- const wall=(w,h,d,x,y,z)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),sandMat);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;group.add(m)};
- tiers.forEach(t=>{const half=t.size/2,y=t.y,h=t.h;
-  wall(t.size,h,thickness,0,y,-half+thickness/2);
-  wall(thickness,h,t.size-2*thickness,-half+thickness/2,y,0);
-  wall(thickness,h,t.size-2*thickness,half-thickness/2,y,0);
-  const sideWidth=Math.max(0,(t.size-2*doorHalfWidth)/2),frontZ=half-thickness/2;
-  if(sideWidth>0){wall(sideWidth,h,thickness,-doorHalfWidth-sideWidth/2,y,frontZ);wall(sideWidth,h,thickness,doorHalfWidth+sideWidth/2,y,frontZ)}
-  if(t.size>4.2)wall(doorHalfWidth*2,.4,thickness,0,y+h/2-.2,frontZ);
- });
- for(const sx of[-1,1]){const post=new THREE.Mesh(new THREE.BoxGeometry(.28,2.15,1.2),darkMat);post.position.set(sx*1.48,1.075,7.6);post.castShadow=true;group.add(post)}
- const lintel=new THREE.Mesh(new THREE.BoxGeometry(3.2,.28,1.2),darkMat);lintel.position.set(0,2.12,7.6);lintel.castShadow=true;group.add(lintel);
- const half=8,wallThick=1.6,colliders=[
-  {minX:worldX-half,maxX:worldX+half,minZ:worldZ-half,maxZ:worldZ-half+wallThick},
-  {minX:worldX-half,maxX:worldX-half+wallThick,minZ:worldZ-half,maxZ:worldZ+half},
-  {minX:worldX+half-wallThick,maxX:worldX+half,minZ:worldZ-half,maxZ:worldZ+half},
-  {minX:worldX-half,maxX:worldX-doorHalfWidth,minZ:worldZ+half-wallThick,maxZ:worldZ+half},
-  {minX:worldX+doorHalfWidth,maxX:worldX+half,minZ:worldZ+half-wallThick,maxZ:worldZ+half}
- ];
- return{mesh:group,colliders};
+function createPyramidStructure(px, pz) {
+  const py = hgt(px, pz);
+  const group = new THREE.Group();
+  group.position.set(px, py, pz);
+  const sandMat = new THREE.MeshStandardMaterial({ color: 0xd4b475, roughness: 0.9, flatShading: true });
+  const darkMat = new THREE.MeshStandardMaterial({ color: 0x8a6d3b, roughness: 0.95, flatShading: true });
+  const foundation = new THREE.Mesh(new THREE.BoxGeometry(16.4, 6.2, 16.4), darkMat);
+  foundation.position.set(0, -3.0, 0);
+  foundation.receiveShadow = true;
+  group.add(foundation);
+  const wallH = 3.2;
+  const backWall = new THREE.Mesh(new THREE.BoxGeometry(16, wallH, 1.6), sandMat);
+  backWall.position.set(0, wallH / 2, -7.2);
+  const leftWall = new THREE.Mesh(new THREE.BoxGeometry(1.6, wallH, 16), sandMat);
+  leftWall.position.set(-7.2, wallH / 2, 0);
+  const rightWall = new THREE.Mesh(new THREE.BoxGeometry(1.6, wallH, 16), sandMat);
+  rightWall.position.set(7.2, wallH / 2, 0);
+  const frontLeft = new THREE.Mesh(new THREE.BoxGeometry(6.4, wallH, 1.6), sandMat);
+  frontLeft.position.set(-4.8, wallH / 2, 7.2);
+  const frontRight = new THREE.Mesh(new THREE.BoxGeometry(6.4, wallH, 1.6), sandMat);
+  frontRight.position.set(4.8, wallH / 2, 7.2);
+  group.add(backWall, leftWall, rightWall, frontLeft, frontRight);
+  const roofTiers = [
+    { size: 13.5, h: 2.0, y: 4.2 },
+    { size: 9.5, h: 2.0, y: 6.2 },
+    { size: 5.5, h: 2.0, y: 8.2 },
+    { size: 2.2, h: 1.6, y: 10.0 }
+  ];
+  roofTiers.forEach(t => {
+    const tier = new THREE.Mesh(new THREE.BoxGeometry(t.size, t.h, t.size), sandMat);
+    tier.position.set(0, t.y, 0);
+    tier.castShadow = true;
+    tier.receiveShadow = true;
+    group.add(tier);
+  });
+  const colliders = [
+    { minX: px - 8.0, maxX: px + 8.0, minZ: pz - 8.0, maxZ: pz - 6.4 },
+    { minX: px - 8.0, maxX: px - 6.4, minZ: pz - 8.0, maxZ: pz + 8.0 },
+    { minX: px + 6.4, maxX: px + 8.0, minZ: pz - 8.0, maxZ: pz + 8.0 },
+    { minX: px - 8.0, maxX: px - 1.6, minZ: pz + 6.4, maxZ: pz + 8.0 },
+    { minX: px + 1.6, maxX: px + 8.0, minZ: pz + 6.4, maxZ: pz + 8.0 }
+  ];
+  return { mesh: group, x: px, y: py + 0.1, z: pz, colliders };
 }
-function resolvePyramidCollision(pos,radius,colliders){
- for(const b of colliders||[]){const x=Math.max(b.minX,Math.min(pos.x,b.maxX)),z=Math.max(b.minZ,Math.min(pos.z,b.maxZ)),dx=pos.x-x,dz=pos.z-z,d2=dx*dx+dz*dz;
-  if(d2<radius*radius){const d=Math.sqrt(d2)||.001,o=radius-d;pos.x+=dx/d*o;pos.z+=dz/d*o}
- }return pos;
+function buildPyramidWithColliders(px, py, pz, worldX = px, worldZ = pz) {
+  const built = createPyramidStructure(worldX, worldZ);
+  built.mesh.position.set(px, built.y - 0.1, pz);
+  return { mesh: built.mesh, colliders: built.colliders };
+}
+function resolvePyramidWalls(pos, radius, pyramidsList) {
+  for (const pyr of pyramidsList) {
+    if (!pyr || !pyr.colliders) continue;
+    for (const box of pyr.colliders) {
+      const cx = Math.max(box.minX, Math.min(pos.x, box.maxX));
+      const cz = Math.max(box.minZ, Math.min(pos.z, box.maxZ));
+      const dx = pos.x - cx, dz = pos.z - cz;
+      const dSq = dx * dx + dz * dz;
+      if (dSq < radius * radius) {
+        const d = Math.sqrt(dSq) || 0.001;
+        pos.x += (dx / d) * (radius - d);
+        pos.z += (dz / d) * (radius - d);
+      }
+    }
+  }
+}
+function resolvePyramidCollision(pos, radius, colliders) {
+  resolvePyramidWalls(pos, radius, [{ colliders }]);
+  return pos;
 }
 function mlPyramidBlocksSegment(a,b,colliders,radius=.25){
  for(let i=0;i<=10;i++){const t=i/10,x=a.x+(b.x-a.x)*t,z=a.z+(b.z-a.z)*t;
@@ -1101,20 +1167,82 @@ function mlUpdateProjectiles(dt){
   if(blocked)p.life=0;if(!blocked&&Math.hypot(p.pos.x-P.x,p.pos.z-P.z)<.85&&Math.abs(p.pos.y-(P.y+1))<1){S.hp=Math.max(0,S.hp-13*(ML_CROWN?.75:1));log(L('Песчаный вихрь задел вас'));p.life=0}
   if(p.life<=0||p.pos.y<hgt(p.pos.x,p.pos.z)){world.remove(p.g);ML_SAND_PROJECTILES.splice(i,1)}else p.prev.copy(p.pos)}
 }
-function mlUpdateDungeon(dt){
- let bossNear=null;
- for(const e of ML_DUNGEON_ENEMIES){if(e.dead)continue;const dx=P.x-e.x,dz=P.z-e.z,d=Math.hypot(dx,dz);if(e.type==='pharaoh'&&d<20)bossNear=e;
-  e.cd-=dt;if(e.type==='pharaoh')e.spell-=dt;
-  if(d<22&&!dead){
-   if(d>1.65){const step=Math.min(d-1.5,(e.type==='pharaoh'?1.25:1.7)*dt),nx=e.x+dx/(d||1)*step,nz=e.z+dz/(d||1)*step;
-    const pyr=ML_PYRAMIDS.get(e.chunk),candidate={x:nx,z:nz};if(pyr)resolvePyramidCollision(candidate,.42,pyr.colliders);
-    const blocked=near(nx,nz).some(n=>{const def=G.nodes[n.t];return def&&def.solid&&!n.gone&&!n.dead&&Math.hypot(nx-n.x,nz-n.z)<(def.r||.4)*n.s+.55})||Math.hypot(candidate.x-nx,candidate.z-nz)>.001;
-    if(!blocked){e.x=candidate.x;e.z=candidate.z;e.g.position.x=e.x-(pyr?.x||0);e.g.position.z=e.z-(pyr?.z||0)}
-   }else if(e.cd<=0){S.hp=Math.max(0,S.hp-(e.type==='pharaoh'?16:7)*(ML_CROWN?.75:1));e.cd=e.type==='pharaoh'?1.35:1.6;log(e.type==='pharaoh'?L('Фараон ударил посохом!'):L('Мумия атакует!'))}
-   if(e.type==='pharaoh'&&e.spell<=0&&d>3&&d<15){const g=new THREE.Mesh(new THREE.SphereGeometry(.34,7,6),new THREE.MeshBasicMaterial({color:0xc99a35}));world.add(g);const pos=new THREE.Vector3(e.x,e.y+1.5,e.z),dir=new THREE.Vector3(dx,0,dz).normalize();ML_SAND_PROJECTILES.push({g,pos:pos.clone(),prev:pos.clone(),vel:dir.multiplyScalar(7).add(new THREE.Vector3(0,.15,0)),life:3});e.spell=6}
+function updateMummyOrPharaoh(mob, dt, time, pyramidsList) {
+  const dx = P.x - mob.x;
+  const dz = P.z - mob.z;
+  const dist = Math.hypot(dx, dz);
+  const isPharaoh = mob.isPharaoh || mob.type === 'pharaoh';
+  const aggroRange = isPharaoh ? 12.0 : 15.0;
+  let speed = 0;
+  const mesh = mob.mesh || mob.g;
+  if (!dead && !MENU && dist < aggroRange) {
+    const targetRot = Math.atan2(dx, dz);
+    const diff = Math.atan2(Math.sin(targetRot - mesh.rotation.y), Math.cos(targetRot - mesh.rotation.y));
+    mesh.rotation.y += diff * Math.min(1, dt * 6.0);
+    if (dist > 1.35) {
+      speed = isPharaoh ? 2.4 : 2.8;
+      mob.x += Math.sin(mesh.rotation.y) * speed * dt;
+      mob.z += Math.cos(mesh.rotation.y) * speed * dt;
+      resolvePyramidWalls(mob, 0.45, pyramidsList);
+    }
   }
- }
- const bar=document.getElementById('ml-boss-bar');if(bossNear){bar.hidden=false;bar.querySelector('i').style.width=Math.max(0,bossNear.hp/bossNear.maxHp*100)+'%';bar.querySelector('b').textContent=L('Фараон')}else if(bar)bar.hidden=true;
+  let floorY = hgt(mob.x, mob.z);
+  for (const pyr of pyramidsList) {
+    if (Math.abs(mob.x - pyr.x) < 7.8 && Math.abs(mob.z - pyr.z) < 7.8) {
+      floorY = Math.max(floorY, pyr.y);
+    }
+  }
+  mob.y = floorY;
+  const pyr = pyramidsList.find(q => q && q.x !== undefined && q.z !== undefined);
+  mesh.position.set(pyr ? mob.x - pyr.x : mob.x, pyr ? mob.y - pyr.y : mob.y, pyr ? mob.z - pyr.z : mob.z);
+  const rig = mesh.userData.rig;
+  if (rig) {
+    if (speed > 0.1) {
+      const swing = Math.sin(time * 7.5) * 0.65;
+      rig.leftLegPivot.rotation.x = swing;
+      rig.rightLegPivot.rotation.x = -swing;
+      rig.leftArmPivot.rotation.x = Math.sin(time * 7.5) * 0.12;
+      rig.rightArmPivot.rotation.x = -Math.sin(time * 7.5) * 0.12;
+    } else {
+      rig.leftLegPivot.rotation.x = 0;
+      rig.rightLegPivot.rotation.x = 0;
+      rig.leftArmPivot.rotation.x = Math.sin(time * 2.0) * 0.05;
+      rig.rightArmPivot.rotation.x = -Math.sin(time * 2.0) * 0.05;
+    }
+  }
+}
+function mlUpdateDungeon(dt) {
+  let bossNear = null;
+  const animTime = performance.now() / 1000;
+  for (const e of ML_DUNGEON_ENEMIES) {
+    if (e.dead) continue;
+    const pyr = ML_PYRAMIDS.get(e.chunk);
+    updateMummyOrPharaoh(e, dt, animTime, pyr ? [pyr] : []);
+    const dx = P.x - e.x, dz = P.z - e.z, d = Math.hypot(dx, dz);
+    if (e.type === 'pharaoh' && d < 20) bossNear = e;
+    e.cd -= dt;
+    if (e.type === 'pharaoh') e.spell -= dt;
+    if (d < 22 && !dead) {
+      if (d <= 1.65 && e.cd <= 0) {
+        S.hp = Math.max(0, S.hp - (e.type === 'pharaoh' ? 16 : 7) * (ML_CROWN ? .75 : 1));
+        e.cd = e.type === 'pharaoh' ? 1.35 : 1.6;
+        log(e.type === 'pharaoh' ? L('Фараон ударил посохом!') : L('Мумия атакует!'));
+      }
+      if (e.type === 'pharaoh' && e.spell <= 0 && d > 3 && d < 15) {
+        const g = new THREE.Mesh(new THREE.SphereGeometry(.34, 7, 6), new THREE.MeshBasicMaterial({ color: 0xc99a35 }));
+        world.add(g);
+        const pos = new THREE.Vector3(e.x, e.y + 1.5, e.z), dir = new THREE.Vector3(dx, 0, dz).normalize();
+        ML_SAND_PROJECTILES.push({ g, pos: pos.clone(), prev: pos.clone(), vel: dir.multiplyScalar(7).add(new THREE.Vector3(0, .15, 0)), life: 3 });
+        e.spell = 6;
+      }
+    }
+  }
+  const bar = document.getElementById('ml-boss-bar');
+  if (bossNear) {
+    bar.hidden = false;
+    bar.querySelector('i').style.width = Math.max(0, bossNear.hp / bossNear.maxHp * 100) + '%';
+    bar.querySelector('b').textContent = L('Фараон');
+  } else if (bar) bar.hidden = true;
 }
 function mlEnsureBossBar(){if(document.getElementById('ml-boss-bar'))return;const d=document.createElement('div');d.id='ml-boss-bar';d.hidden=true;d.style.cssText='position:fixed;z-index:50;top:12px;left:50%;transform:translateX(-50%);width:min(340px,72vw);text-align:center;color:#ffe2a0;font-weight:700;text-shadow:0 2px 4px #000;pointer-events:none';d.innerHTML='<b>Фараон</b><div style="height:12px;border:1px solid #d7b45b;background:#241b10;border-radius:8px;overflow:hidden"><i style="display:block;width:100%;height:100%;background:#b52e25"></i></div>';document.body.appendChild(d)}
 mlEnsureBossBar();
