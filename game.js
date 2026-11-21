@@ -5,7 +5,7 @@ window.addEventListener('unhandledrejection',e=>window.__ML_STARTUP_FALLBACK(e.r
 try{const $=id=>document.getElementById(id);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // ===== Ядро: реестры (новый контент добавляется здесь или через Game.use) =====
-const G=window.Game={version:'0.0.5.7 Альфа 3D',items:{},nodes:{},recipes:[],mods:[],
+const G=window.Game={version:'0.0.5.8 Альфа 3D',items:{},nodes:{},recipes:[],mods:[],
  registerItem(id,o){o.ru=o.n;Object.defineProperty(o,'n',{get(){return L(this.ru)},enumerable:true});this.items[id]=o},registerNode(id,o){if(o.hint){o.hru=o.hint;Object.defineProperty(o,'hint',{get(){return L(this.hru)},enumerable:true})}this.nodes[id]=o},registerRecipe(r){this.recipes.push(r)},
  use(f){this.mods.push(f);f(this)}};
 G.use(g=>{
@@ -638,7 +638,7 @@ const langRow=()=>'<div class="mr"><div class="ml">'+ico('ui_lang',16)+' '+L('Я
 function pgMain(){const w=HAVEWORLD?L('Мир: {w} · сид {s} · день {d}',{w:'<b>'+esc(L(WP.name))+'</b>',s:'<b>'+esc(SEEDTXT)+'</b>',d:day}):L('Мира пока нет — создай новый');
  const saved=Object.values(SAVE_DB.worlds||{}).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
  const worlds=saved.length?'<div class="mr"><b>'+L('Мои миры')+'</b>'+saved.map(q=>'<button class="pr" data-a="worldload" data-v="'+esc(q.id)+'"><b>'+esc(L(q.name||'Мир'))+'</b><small>'+L('Сид мира: {s}',{s:esc(q.seed||'')})+' · '+L('День')+' '+(q.day||1)+'</small><i>'+(q.id===activeWorldId?L('Текущий мир'):L('Открыть'))+'</i></button>').join('')+'</div>':'<div class="info">'+L('Нет сохранённых миров')+'</div>';
- return '<div class="logo">'+ico('logo',72)+'<h1>'+GN()+'</h1><div class="sub">v0.0.5.7 '+L('Альфа')+' 3D</div></div><div class="info">'+w+'</div>'+
+ return '<div class="logo">'+ico('logo',72)+'<h1>'+GN()+'</h1><div class="sub">v0.0.5.8 '+L('Альфа')+' 3D</div></div><div class="info">'+w+'</div>'+
  (HAVEWORLD?icb('ui_play','Продолжить','resume'):'')+icb('ui_world','Новый мир','go','world')+worlds+icb('ui_char','Персонаж','go','char')+icb('ui_gear','Настройки','go','set')+langRow()}
 function pgWorld(){return '<h2>'+L('Новый мир')+'</h2>'+row('Название','<input type="text" id="wname" maxlength="24" value="'+esc(WF.name)+'">')+
  row('Сид (пусто — случайный мир)','<div class="sd"><input type="text" id="wseed" maxlength="24" placeholder="'+L('случайный')+'" value="'+esc(WF.seed)+'">'+icb('ui_dice','','dice')+'</div>')+
