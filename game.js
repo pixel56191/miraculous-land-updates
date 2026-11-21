@@ -5,7 +5,7 @@ window.addEventListener('unhandledrejection',e=>window.__ML_STARTUP_FALLBACK(e.r
 try{const $=id=>document.getElementById(id);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 // ===== Ядро: реестры (новый контент добавляется здесь или через Game.use) =====
-const G=window.Game={version:'0.0.5.1 Альфа 3D',items:{},nodes:{},recipes:[],mods:[],
+const G=window.Game={version:'0.0.5.3 Альфа 3D',items:{},nodes:{},recipes:[],mods:[],
  registerItem(id,o){o.ru=o.n;Object.defineProperty(o,'n',{get(){return L(this.ru)},enumerable:true});this.items[id]=o},registerNode(id,o){if(o.hint){o.hru=o.hint;Object.defineProperty(o,'hint',{get(){return L(this.hru)},enumerable:true})}this.nodes[id]=o},registerRecipe(r){this.recipes.push(r)},
  use(f){this.mods.push(f);f(this)}};
 G.use(g=>{
@@ -437,7 +437,7 @@ function poseP(dt){
  swimK+=((!dead&&gy(P.x,P.z)<WATER_LEVEL-.05?1:0)-swimK)*Math.min(1,dt*6);const sw=swimK;
  if(dead)deadT+=dt;else deadT=0;
  if(PA.n){PA.t+=dt;if(PA.t>=PA.d)PA.n=''}
- const A=PA.n,u=A?PA.t/PA.d:0,bell=Math.sin(Math.min(1,u)*Math.PI),sg=Math.sin(w),amp=(.7+.3*spr)*mv,sa=(.6+.35*spr)*mv,idle=1-mv,br=Math.sin(t*1.8),fatigue=breath*(1-clamp(mv*3,0,1));
+ const A=PA.n,u=A?PA.t/PA.d:0,bell=Math.sin(Math.min(1,u)*Math.PI),sg=Math.sin(w),amp=(.7+.3*spr)*mv,sa=(.6+.35*spr)*mv,idle=1-mv,br=Math.sin(t*1.8),tiredIdle=!dead&&!MENU&&mv<.08&&!!S&&((S.stamina!==undefined&&S.stamina<=20)||S.water<=15||S.warm<15),fatigueTarget=tiredIdle?1:breath*(1-clamp(mv*3,0,1));fatiguePose+=(fatigueTarget-fatiguePose)*Math.min(1,dt*(fatigueTarget>fatiguePose?3:1.8));const fatigue=fatiguePose,breathWave=Math.sin(t*3.59);
  let lx=sg*amp,rx=-sg*amp,alx=-sg*sa,arx=sg*sa,alz=-.03*idle*br,arz=.03*idle*br,lean=.04*mv+.22*spr*mv+.012*idle*br,twist=sg*.12*mv,hx=0,dy=Math.abs(sg)*(.05+.04*spr)*mv,fw=0;
  let hyT=Math.sin(t*.35)*.35*idle+Math.sin(t*.9)*.1*idle;
  if(TG&&mv<.2&&!A&&!MENU){let a=Math.atan2(TG.x-P.x,TG.z-P.z)-P.f;a=Math.atan2(Math.sin(a),Math.cos(a));hyT=clamp(a,-.9,.9)}
@@ -457,7 +457,7 @@ function poseP(dt){
   pl.position.set(P.x+Math.sin(P.f)*fw,P.y-swimSink-(P.y<0&&sw<.5?.2:0)+dy-(dead?.25*kd:0)+Math.sin(t*2.5)*.06*tread,P.z+Math.cos(P.f)*fw);
  pl.rotation.set(dead?-Math.min(1.45,deadT*2.4):1.2*movingSwim,P.f,0);
  legL.rotation.x=lx;legR.rotation.x=rx;armL.rotation.set(alx,0,alz);armR.rotation.set(arx,0,arz);
- upB.rotation.set(lean+Math.sin(t*2.1)*.025*fatigue,twist,0);upB.scale.y=1+br*.008+Math.sin(t*2.1)*.018*fatigue;upB.position.y=.85+Math.sin(t*2.1)*.025*fatigue;head.rotation.set(hx-lean*.5-.16*fatigue,lookY,0);armL.rotation.z+=.1*fatigue;armR.rotation.z-=.1*fatigue;if(mouthMesh){mouthMesh.scale.y=1+fatigue*(.4+.6*(.5+.5*Math.sin(t*3.8)));mouthMesh.scale.x=1+fatigue*.18}if(cheekL&&cheekR){const puff=1+fatigue*.12*Math.max(0,Math.sin(t*3.8));cheekL.scale.set(.95,puff,1);cheekR.scale.set(.95,puff,1)}if(steamPuffs)steamPuffs.children.forEach((p,i)=>{const q=Math.max(0,Math.sin(t*3.8-i*.8))*fatigue;p.visible=q>.05;p.material.opacity=q*.38;p.position.y=-.1+i*.045+q*.16;p.scale.setScalar(.7+q*1.4)});
+ upB.rotation.set(lean+Math.sin(t*2.1)*.025*fatigue,twist,0);upB.scale.y=1+br*.008+breathWave*.032*fatigue;upB.position.y=.85+breathWave*.045*fatigue;head.position.y=1.72-.045*fatigue;head.rotation.set(hx-lean*.5-.27*fatigue,lookY,0);armL.rotation.z+=.1*fatigue;armR.rotation.z-=.1*fatigue;if(mouthMesh){mouthMesh.scale.y=1+fatigue*(.4+.6*(.5+.5*breathWave));mouthMesh.scale.x=1+fatigue*.18}if(cheekL&&cheekR){const puff=1+fatigue*.16*Math.max(0,breathWave);cheekL.scale.set(.95,puff,1);cheekR.scale.set(.95,puff,1)}if(steamPuffs){const phase=(t%1.75)/1.75,exhale=phase>.46&&phase<.82?Math.sin((phase-.46)/.36*Math.PI):0;steamPuffs.children.forEach((p,i)=>{const q=exhale*fatigue;p.visible=q>.025;p.material.opacity=q*(.25+i*.035);p.position.x=(i-1)*(.025+exhale*.018);p.position.y=-.1+i*.035+exhale*.14;p.position.z=.29+i*.025+exhale*.08;p.scale.setScalar(.65+exhale*.95)})}
  $('hurt').style.opacity=Math.max(Math.max(0,hurtT)*.8,S.hp<30&&!dead?.25+.15*Math.sin(t*4):0);hurtT-=dt*1.6}
 function pivRot(gp,pv,rx,ry){gp.rotation.set(rx,ry,0);TV.copy(pv).applyEuler(gp.rotation);gp.position.copy(pv).sub(TV)}
 function animAn(a,sp,dt,i){const k=a.k,t=tm+i*1.7,g=a.g,mv=sp>.3;a.ph=(a.ph||0)+dt*(5+sp*1.6);
@@ -492,11 +492,15 @@ function mkPts(g,cnt,size,col,op,add){const gm=new THREE.BufferGeometry();gm.set
 function updPts(o,dt,em){const ar=o.p.geometry.attributes.position.array;o.st.forEach((s,i)=>{s.l-=dt;if(s.l<=0)em(s);s.x+=s.vx*dt;s.y+=s.vy*dt;s.z+=s.vz*dt;ar[i*3]=s.x;ar[i*3+1]=s.y;ar[i*3+2]=s.z});o.p.geometry.attributes.position.needsUpdate=true}
 const spk=s=>{s.l=.7+Math.random();s.x=(Math.random()-.5)*.3;s.y=.45;s.z=(Math.random()-.5)*.3;s.vx=(Math.random()-.5)*.5;s.vy=1+Math.random()*1.3;s.vz=(Math.random()-.5)*.5},
  smk=s=>{s.l=2+Math.random()*1.5;s.x=(Math.random()-.5)*.2;s.y=1;s.z=(Math.random()-.5)*.2;s.vx=.35+Math.random()*.2;s.vy=.6+Math.random()*.3;s.vz=(Math.random()-.5)*.1};
-const swimSplash=mkPts(pl,28,.065,0xffffff,.9,1);
+const swimSplash=mkPts(pl,48,.085,0xffffff,.78,0);
 function splashEmit(s){
- if(!(IN_WATER&&FAST_SWIM&&mvAmt>.15)){s.l=.12;s.x=0;s.y=-9;s.z=0;s.vx=s.vy=s.vz=0;return}
- s.l=.25+Math.random()*.3;s.x=(Math.random()-.5)*.8;s.y=.05+Math.random()*.18;s.z=(Math.random()-.5)*.65;
- s.vx=(Math.random()-.5)*1.2;s.vy=.5+Math.random()*1.2;s.vz=(Math.random()-.5)*1.2
+ if(!(IN_WATER&&mvAmt>.12)){s.l=.12;s.x=0;s.y=-9;s.z=0;s.vx=s.vy=s.vz=0;return}
+ const fast=!!FAST_SWIM,side=Math.random()<.5?-1:1;
+ s.l=(fast?.15:.28)+Math.random()*(fast?.14:.22);
+ s.x=side*(.3+Math.random()*.25);s.y=.92+Math.random()*.28;s.z=(Math.random()<.72?.12+Math.random()*.55:-.25-Math.random()*.35);
+ s.vx=side*(.35+Math.random()*(fast?1.35:.6))+(Math.random()-.5)*.25;
+ s.vy=.35+Math.random()*(fast?1.65:.85);
+ s.vz=(s.z>0?1:-1)*(.25+Math.random()*(fast?1.1:.45));
 }
 // ===== Главное меню, персонаж, мир, настройки (0.0.4.2) =====
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -525,7 +529,7 @@ const HAIR=['Лысый','Короткая','Хвост','Длинные','Пу�
  HAT=['Нет','Кепка','Шапка','Шляпа','Повязка'],GL=['Нет','Круглые','Солнечные','Квадратные'],SCARF=['Нет','Шарф'],PACK=['Нет','Маленький','Большой'];
 const chM=(c,r=.8)=>new THREE.MeshStandardMaterial({color:c,roughness:r});
 function clr(g,keep){for(let i=g.children.length-1;i>=0;i--){const c=g.children[i];if(keep&&keep.includes(c))continue;c.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material)o.material.dispose()});g.remove(c)}}
-let mouthMesh=null,cheekL=null,cheekR=null,steamPuffs=null,menuScene=null,menuCamera=null,menuPlayer=null,menuFlame=null,menuFireGlow=null,menuOrbit=0,menuDioramaReady=false,breath=0;
+let mouthMesh=null,cheekL=null,cheekR=null,steamPuffs=null,menuScene=null,menuCamera=null,menuPlayer=null,menuFlame=null,menuFireGlow=null,menuOrbit=0,menuDioramaReady=false,breath=0,fatiguePose=0;
 function applyChar(){
  const C=CH,sk=chM(PAL.skin[C.skin]),hr=chM(PAL.hair[C.hc],.95),sh=chM(PAL.cloth[C.sc]),pn=chM(PAL.pants[C.pc]),so=chM(PAL.shoe[C.shc]),ac=chM(PAL.acc[C.ac]),bk=chM(0x111111,.4);
  const sp=(g,r,x,y,z,sx,sy,sz,m,ws=12)=>{const b=new THREE.Mesh(new THREE.SphereGeometry(r,ws,ws-2),m);b.position.set(x,y,z);b.scale.set(sx,sy,sz);b.castShadow=true;g.add(b);return b};
@@ -617,7 +621,7 @@ const langRow=()=>'<div class="mr"><div class="ml">'+ico('ui_lang',16)+' '+L('Я
 function pgMain(){const w=HAVEWORLD?L('Мир: {w} · сид {s} · день {d}',{w:'<b>'+esc(L(WP.name))+'</b>',s:'<b>'+esc(SEEDTXT)+'</b>',d:day}):L('Мира пока нет — создай новый');
  const saved=Object.values(SAVE_DB.worlds||{}).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
  const worlds=saved.length?'<div class="mr"><b>'+L('Мои миры')+'</b>'+saved.map(q=>'<button class="pr" data-a="worldload" data-v="'+esc(q.id)+'"><b>'+esc(L(q.name||'Мир'))+'</b><small>'+L('Сид мира: {s}',{s:esc(q.seed||'')})+' · '+L('День')+' '+(q.day||1)+'</small><i>'+(q.id===activeWorldId?L('Текущий мир'):L('Открыть'))+'</i></button>').join('')+'</div>':'<div class="info">'+L('Нет сохранённых миров')+'</div>';
- return '<div class="logo">'+ico('logo',72)+'<h1>'+GN()+'</h1><div class="sub">v0.0.5.2 '+L('Альфа')+' 3D</div></div><div class="info">'+w+'</div>'+
+ return '<div class="logo">'+ico('logo',72)+'<h1>'+GN()+'</h1><div class="sub">v0.0.5.3 '+L('Альфа')+' 3D</div></div><div class="info">'+w+'</div>'+
  (HAVEWORLD?icb('ui_play','Продолжить','resume'):'')+icb('ui_world','Новый мир','go','world')+worlds+icb('ui_char','Персонаж','go','char')+icb('ui_gear','Настройки','go','set')+langRow()}
 function pgWorld(){return '<h2>'+L('Новый мир')+'</h2>'+row('Название','<input type="text" id="wname" maxlength="24" value="'+esc(WF.name)+'">')+
  row('Сид (пусто — случайный мир)','<div class="sd"><input type="text" id="wseed" maxlength="24" placeholder="'+L('случайный')+'" value="'+esc(WF.seed)+'">'+icb('ui_dice','','dice')+'</div>')+
@@ -704,7 +708,7 @@ function applyLang(){const sb=(id,ic,t)=>$(id).innerHTML='<span class="cb">'+ico
  sb('bAct','ui_act','Действие (E)');sb('bCraft','ui_craft','Крафт (C)');sb('bNew','ui_redo','');
  $('bNew').title=L('Новая игра');$('bMenu').title=L('Меню (Esc)');$('bDel').title=L('Разобрать постройку (X)');
  $('dtxt').textContent=L('Вы погибли');$('bRe').textContent=L('Начать заново');$('menu').dataset.busy=L('Генерация мира...');
- $('gname').textContent=GN();$('gver').textContent='v0.0.5.2 '+L('Альфа')+' 3D';document.title=GN();document.documentElement.lang=ST.lang;$('pname').textContent=CH.name;
+ $('gname').textContent=GN();$('gver').textContent='v0.0.5.3 '+L('Альфа')+' 3D';document.title=GN();document.documentElement.lang=ST.lang;$('pname').textContent=CH.name;
  if(inv)refresh()}
 // ===== Симуляция =====
 const dark=()=>clamp(.35-Math.sin(time*6.2832)*.6,0,.8);
