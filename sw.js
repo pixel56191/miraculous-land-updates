@@ -16,6 +16,12 @@ async function digestHex(buffer) {
   return Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('');
 }
 
+function cacheBustedUrl(url) {
+  const fresh = new URL(url);
+  fresh.searchParams.set('t', String(Date.now()));
+  return fresh.href;
+}
+
 async function fetchWithTimeout(url, options = {}, timeoutMs = 10000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -63,7 +69,7 @@ async function refreshChangedAssets(announce = true) {
     if (announce) await notifyClients('ML_UPDATE_CHECKING');
     let manifestResponse, manifest;
     try {
-      manifestResponse = await fetchWithTimeout(MANIFEST_URL, {cache: 'no-store'}, 4000);
+      manifestResponse = await fetchWithTimeout(cacheBustedUrl(MANIFEST_URL), {cache: 'no-store'}, 4000);
       if (!manifestResponse.ok) throw new Error('Manifest request failed');
       manifest = await manifestResponse.clone().json();
       if (!manifest.files || typeof manifest.files !== 'object') throw new Error('Invalid update manifest');
@@ -113,7 +119,7 @@ async function refreshChangedAssets(announce = true) {
         const previousHash = oldManifest && oldManifest.files && oldManifest.files[name] && oldManifest.files[name].sha256;
         const cached = await nextCache.match(assetUrl);
         if (cached && previousHash === info.sha256) continue;
-        const response = await fetchWithTimeout(assetUrl, {cache: 'no-store'}, 15000);
+        const response = await fetchWithTimeout(cacheBustedUrl(assetUrl), {cache: 'no-store'}, 15000);
         if (!response.ok) throw new Error('Could not download ' + name);
         const actualHash = await digestHex(await response.clone().arrayBuffer());
         if (actualHash.toLowerCase() !== String(info.sha256).toLowerCase()) throw new Error('SHA-256 mismatch for ' + name);
