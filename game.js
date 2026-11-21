@@ -956,7 +956,7 @@ restoreWorld=function(slot){
 
 
 // ===== v0.0.5.9: desert structures, dungeon enemies, bow and quiver =====
-let ML_QUIVER=false,ML_ARROWS=0,ML_CROWN=false,ML_ARROW_PROJECTILES=[],ML_SAND_PROJECTILES=[],ML_DUNGEON_ENEMIES=[],ML_DUNGEON_DONE={},ML_DUNGEON_CHESTS={};
+let ML_QUIVER=false,ML_ARROWS=0,ML_CROWN=false,ML_BOW_CHARGE=0,ML_BOW_DRAWING=false,ML_SKIP_BOW_CLICK=false,ML_ARROW_PROJECTILES=[],ML_SAND_PROJECTILES=[],ML_DUNGEON_ENEMIES=[],ML_DUNGEON_DONE={},ML_DUNGEON_CHESTS={};
 const ML_PYRAMIDS=new Map();
 G.registerItem('feather',{n:'Перо чайки'});G.registerItem('wooden_bow',{n:'Деревянный лук',tool:'bow'});G.registerItem('arrow',{n:'Стрела'});G.registerItem('quiver',{n:'Колчан'});G.registerItem('gold_ingot',{n:'Золотой слиток'});G.registerItem('pharaoh_crown',{n:'Корона Фараона'});
 G.registerRecipe({out:'wooden_bow',n:1,in:{wood:5,fiber:3},at:'bench'});
@@ -1013,7 +1013,7 @@ function mlQuiverUI(){
 const mlOldRefresh=refresh;
 refresh=function(){mlOldRefresh();mlQuiverUI()};
 function mlEquipVisual(){
- if(armR&&!armR.getObjectByName('ml-bow')&&Array.isArray(inv)&&hasTool('bow')){const bg=new THREE.Group();bg.name='ml-bow';const arc=new THREE.Mesh(new THREE.TorusGeometry(.34,.035,6,14,Math.PI),mt(0x8a5527));arc.rotation.z=Math.PI/2;bg.add(arc);const string=new THREE.Mesh(new THREE.CylinderGeometry(.008,.008,.65,4),mt(0xd9d0b4));string.position.z=-.02;bg.add(string);armR.add(bg)}
+ if(armR&&!armR.getObjectByName('ml-bow')&&Array.isArray(inv)&&hasTool('bow')){const bg=new THREE.Group();bg.name='ml-bow';const arc=new THREE.Mesh(new THREE.TorusGeometry(.34,.035,6,14,Math.PI),mt(0x8a5527));arc.rotation.z=Math.PI/2;bg.add(arc);const string=new THREE.Mesh(new THREE.CylinderGeometry(.008,.008,.65,4),mt(0xd9d0b4));string.position.z=-.02;bg.add(string);bg.userData.string=string;armR.add(bg)}
  if(armR){const b=armR.getObjectByName('ml-bow');if(b)b.visible=Array.isArray(inv)&&hasTool('bow')}
  if(ML_QUIVER&&!pl.getObjectByName('ml-quiver')){const q=new THREE.Group();q.name='ml-quiver';const b=new THREE.Mesh(new THREE.BoxGeometry(.42,.58,.18),mt(0x79502d));b.position.set(0,1.15,-.34);q.add(b);for(let i=0;i<4;i++){const a=new THREE.Mesh(new THREE.CylinderGeometry(.018,.018,.52,5),mt(0xbda36d));a.position.set((i-1.5)*.075,1.25,-.22);a.rotation.z=.1;q.add(a)}pl.add(q)}
  const q=pl.getObjectByName('ml-quiver');if(q)q.visible=ML_QUIVER;
@@ -1034,7 +1034,7 @@ function mlShootArrow(){
  const dir=cam.getWorldDirection(new THREE.Vector3()).normalize(),origin=new THREE.Vector3(P.x,P.y+1.45,P.z).addScaledVector(dir,.7);
  const g=new THREE.Group(),shaft=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.72,5),mt(0x9a7443)),tip=new THREE.Mesh(new THREE.ConeGeometry(.065,.18,5),mt(0x9da4a7));
  shaft.rotation.x=Math.PI/2;tip.rotation.x=-Math.PI/2;tip.position.z=.43;g.add(shaft,tip);g.position.copy(origin);g.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),dir);world.add(g);
- ML_ARROW_PROJECTILES.push({g,pos:origin,vel:dir.multiplyScalar(23),life:4});snd(420,.07,'triangle');return true;
+ const power=18+ML_BOW_CHARGE*12;ML_ARROW_PROJECTILES.push({g,pos:origin,vel:dir.multiplyScalar(power),life:4});ML_BOW_CHARGE=0;ML_BOW_DRAWING=false;const bow=armR&&armR.getObjectByName('ml-bow');if(bow&&bow.userData.string)bow.userData.string.position.z=-.02;snd(420,.07,'triangle');return true;
 }
 function mlDistSeg(p,a,b){const v=b.clone().sub(a),w=p.clone().sub(a),d=v.lengthSq(),t=d?clamp(w.dot(v)/d,0,1):0;return p.distanceTo(a.clone().addScaledVector(v,t))}
 function mlArrowHit(p,prev){
@@ -1060,19 +1060,24 @@ function mlUpdateDungeon(dt){
     const blocked=near(nx,nz).some(n=>{const def=G.nodes[n.t];return def&&def.solid&&!n.gone&&!n.dead&&Math.hypot(nx-n.x,nz-n.z)<(def.r||.4)*n.s+.55})||ML_PYRAMIDS.get(e.chunk)?.columns?.some(col=>Math.hypot(nx-col.x,nz-col.z)<.8);
     if(!blocked){e.x=nx;e.z=nz;e.g.position.x=e.x-(ML_PYRAMIDS.get(e.chunk)?.x||0);e.g.position.z=e.z-(ML_PYRAMIDS.get(e.chunk)?.z||0)}
    }else if(e.cd<=0){S.hp=Math.max(0,S.hp-(e.type==='pharaoh'?16:7)*(ML_CROWN?.75:1));e.cd=e.type==='pharaoh'?1.35:1.6;log(e.type==='pharaoh'?L('Фараон ударил посохом!'):L('Мумия атакует!'))}
-   if(e.type==='pharaoh'&&e.spell<=0&&d>3&&d<15){const g=new THREE.Mesh(new THREE.SphereGeometry(.34,7,6),new THREE.MeshBasicMaterial({color:0xc99a35}));world.add(g);const pos=new THREE.Vector3(e.x,e.y+1.5,e.z),dir=new THREE.Vector3(dx,0,dz).normalize();ML_SAND_PROJECTILES.push({g,pos:pos.clone(),prev:pos.clone(),vel:dir.multiplyScalar(7).add(new THREE.Vector3(0,1.2,0)),life:3});e.spell=6}
+   if(e.type==='pharaoh'&&e.spell<=0&&d>3&&d<15){const g=new THREE.Mesh(new THREE.SphereGeometry(.34,7,6),new THREE.MeshBasicMaterial({color:0xc99a35}));world.add(g);const pos=new THREE.Vector3(e.x,e.y+1.5,e.z),dir=new THREE.Vector3(dx,0,dz).normalize();ML_SAND_PROJECTILES.push({g,pos:pos.clone(),prev:pos.clone(),vel:dir.multiplyScalar(7).add(new THREE.Vector3(0,.15,0)),life:3});e.spell=6}
   }
  }
  const bar=document.getElementById('ml-boss-bar');if(bossNear){bar.hidden=false;bar.querySelector('i').style.width=Math.max(0,bossNear.hp/bossNear.maxHp*100)+'%';bar.querySelector('b').textContent=L('Фараон')}else if(bar)bar.hidden=true;
 }
 function mlEnsureBossBar(){if(document.getElementById('ml-boss-bar'))return;const d=document.createElement('div');d.id='ml-boss-bar';d.hidden=true;d.style.cssText='position:fixed;z-index:50;top:12px;left:50%;transform:translateX(-50%);width:min(340px,72vw);text-align:center;color:#ffe2a0;font-weight:700;text-shadow:0 2px 4px #000;pointer-events:none';d.innerHTML='<b>Фараон</b><div style="height:12px;border:1px solid #d7b45b;background:#241b10;border-radius:8px;overflow:hidden"><i style="display:block;width:100%;height:100%;background:#b52e25"></i></div>';document.body.appendChild(d)}
 mlEnsureBossBar();
+const mlAttackButton=$('bAct');
+mlAttackButton.addEventListener('pointerdown',e=>{if(Array.isArray(inv)&&hasTool('bow')&&ML_QUIVER&&ML_ARROWS>0){ML_BOW_DRAWING=true;ML_BOW_CHARGE=0;e.preventDefault()}});
+mlAttackButton.addEventListener('pointerup',e=>{if(ML_BOW_DRAWING){ML_BOW_DRAWING=false;ML_SKIP_BOW_CLICK=true;act();e.preventDefault()}});
+mlAttackButton.addEventListener('pointercancel',()=>{ML_BOW_DRAWING=false;ML_BOW_CHARGE=0;const bow=armR&&armR.getObjectByName('ml-bow');if(bow&&bow.userData.string)bow.userData.string.position.z=-.02});
+mlAttackButton.addEventListener('click',e=>{if(ML_SKIP_BOW_CLICK){ML_SKIP_BOW_CLICK=false;e.stopImmediatePropagation();e.preventDefault()}},true);
 const mlOldAct=act;act=function(){if(cool<=0&&!dead&&!MENU){if(mlShootArrow()){cool=.35;swing=.25;return}
   if(!hasTool('bow')){let bird=null,bd0=3.1;for(const b of BIRDS){const d=b.g.position.distanceTo(new THREE.Vector3(P.x,P.y+1,P.z));if(d<bd0){bd0=d;bird=b}}if(bird){world.remove(bird.g);BIRDS.splice(BIRDS.indexOf(bird),1);add('feather',1+Math.floor(Math.random()*2));add('meat',1);cool=.45;snd(240,.08,'sawtooth');log(L('Добыты перья и мясо чайки'));return}}
   let best=null,bd=3;for(const e of ML_DUNGEON_ENEMIES){if(e.dead)continue;const d=Math.hypot(e.x-P.x,e.z-P.z);if(d<bd){bd=d;best=e}}
   if(best){best.hp-=ML_CROWN?18:14;cool=.55;swing=.35;if(best.hp<=0){best.dead=true;best.g.visible=false;if(best.type==='pharaoh'){ML_DUNGEON_DONE[best.chunk]=true;add('gold_ingot',12);add('bandage',4);add('pharaoh_crown',1);log(L('Фараон повержен!'))}else add('bandage',1)}return}
  }return mlOldAct()};
-const mlOldStepCombat=step;step=function(dt){mlOldStepCombat(dt);if(!MENU&&!dead){mlUpdateDungeon(dt);mlUpdateProjectiles(dt)}};
+const mlOldStepCombat=step;step=function(dt){mlOldStepCombat(dt);if(!MENU&&!dead){mlUpdateDungeon(dt);mlUpdateProjectiles(dt)}if(ML_BOW_DRAWING){ML_BOW_CHARGE=Math.min(1,ML_BOW_CHARGE+dt*1.5);const bow=armR&&armR.getObjectByName('ml-bow');if(bow&&bow.userData.string)bow.userData.string.position.z=-.02-ML_BOW_CHARGE*.12}};
 const mlOldSaveCombat=save;save=function(){mlOldSaveCombat();try{if(activeWorldId&&SAVE_DB.worlds[activeWorldId]){const st=SAVE_DB.worlds[activeWorldId].state;st.mlCombat={quiver:ML_QUIVER,arrows:ML_ARROWS,crown:ML_CROWN,dungeonDone:ML_DUNGEON_DONE};for(const [key,pyr] of ML_PYRAMIDS){const chest=PC.find(p=>p.g&&p.g.parent===pyr.group);if(chest)ML_DUNGEON_CHESTS[key]=chest.inv}st.dungeonChests=ML_DUNGEON_CHESTS;localStorage.setItem(SAVE_KEY,JSON.stringify(SAVE_DB))}}catch(e){}};
 const mlOldRestoreCombat=restoreWorld;restoreWorld=function(slot){const c=slot&&slot.state&&slot.state.mlCombat||{};ML_QUIVER=!!c.quiver;ML_ARROWS=c.arrows||0;ML_CROWN=!!c.crown;ML_DUNGEON_DONE=c.dungeonDone||{};ML_DUNGEON_CHESTS=slot&&slot.state&&slot.state.dungeonChests||{};const ok=mlOldRestoreCombat(slot);if(ok){mlEquipVisual();mlQuiverUI()}return ok};
 
