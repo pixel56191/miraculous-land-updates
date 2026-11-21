@@ -68,6 +68,49 @@ body.menu #dock,body.menu #hud,body.menu #hint,body.menu #top,body.menu #toast{d
 #autotest-report pre{max-height:35vh;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:#0006;border-radius:8px;padding:10px;font:12px/1.45 monospace}
 #autotest-report button{width:100%;margin-top:12px;padding:11px}
 </style></head><body>
+<script>(function(){
+var errorBox=document.createElement('pre');
+errorBox.id='ml-startup-error';
+errorBox.style.cssText='display:none;position:fixed;z-index:99998;left:8px;right:8px;top:92px;bottom:8px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:14px;border:2px solid #d65b4d;border-radius:10px;background:rgba(15,8,8,.97);color:#fff;font:12px/1.5 monospace;touch-action:pan-y;user-select:text';
+document.body.appendChild(errorBox);
+function showError(err){
+var msg=err&&err.stack?err.stack:(typeof err==='string'?err:JSON.stringify(err));
+errorBox.textContent='MIRACULOUS LAND — ОШИБКА ЗАПУСКА\n\n'+(msg||'Неизвестная ошибка');
+errorBox.style.display='block';
+}
+window.__ML_SHOW_STARTUP_ERROR=showError;
+window.onerror=function(message,source,line,column,error){
+showError(error||String(message)+'\n'+String(source||'')+':'+line+':'+column);
+return false;
+};
+window.addEventListener('unhandledrejection',function(event){showError(event.reason||'Unhandled promise rejection')});
+var button=document.createElement('button');
+button.type='button';
+button.textContent='🔄 Обновить из GitHub';
+button.style.cssText='position:fixed;top:44px;right:16px;z-index:99999;padding:9px 12px;border:1px solid #8bbd78;border-radius:10px;background:#253f20;color:#fff;font:600 13px system-ui,sans-serif;box-shadow:0 3px 12px #0009;touch-action:manipulation';
+function fallbackUpdate(){
+try{
+if(window.MLAndroid&&typeof window.MLAndroid.checkUpdatesFromGame==='function'){window.MLAndroid.checkUpdatesFromGame();return}
+if(!('serviceWorker'in navigator))throw new Error('Service Worker недоступен');
+navigator.serviceWorker.getRegistration('./').then(function(reg){return reg||navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'})}).then(function(reg){if(reg.active)reg.active.postMessage({type:'ML_CHECK_UPDATES'});return reg.update()}).catch(showError);
+}catch(e){showError(e)}
+}
+button.addEventListener('click',function(){try{if(typeof window.ML_CHECK_UPDATES==='function')window.ML_CHECK_UPDATES();else fallbackUpdate()}catch(e){showError(e)}});
+document.body.appendChild(button);
+if('serviceWorker'in navigator){
+navigator.serviceWorker.addEventListener('message',function(event){var data=event.data||{},status=document.getElementById('update-status');if(!status)return;
+if(data.type==='ML_UPDATE_CHECKING'){status.textContent='Проверка обновлений...';status.hidden=false}
+else if(data.type==='ML_UPDATE_DOWNLOADING'){status.textContent='Загрузка файлов...';status.hidden=false}
+else if(data.type==='ML_UPDATE_READY'||data.type==='ML_ASSETS_UPDATED'){try{if(typeof window.save==='function')window.save()}catch(_){};setTimeout(function(){window.location.reload()},180)}
+else if(data.type==='ML_UPDATE_DONE'||data.type==='ML_UPDATE_OFFLINE'||data.type==='ML_UPDATE_FAILED'){setTimeout(function(){status.hidden=true},350)}
+});
+window.addEventListener('load',function(){if(!navigator.onLine){var s=document.getElementById('update-status');if(s)s.hidden=true}
+navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'}).then(function(reg){return reg.update()}).catch(function(){var s=document.getElementById('update-status');if(s)s.hidden=true});
+setTimeout(function(){var s=document.getElementById('update-status');if(s&&s.textContent==='Проверка обновлений...')s.hidden=true},5000);
+});
+}
+})();</script>
+
 <div id="top"><button id="bMenu"></button><b id="gname"></b><span id="gver"></span><span id="pname"></span><span id="top-right"><span id="clock"></span><span id="weather-label"></span><span id="status-label"></span><span id="fps" hidden></span></span></div>
 <div id="update-status" role="status" aria-live="polite">Проверка обновлений...</div>
 <div id="hud"></div><div id="toast"></div><div id="hint" hidden></div>
