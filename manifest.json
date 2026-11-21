@@ -29,8 +29,8 @@
   "version": "0.0.5.2",
   "files": {
     "index.html": {
-      "sha256": "615fd5872b5bc09676d2f3e15a0861984dd97a0b8b31c4e08bfec14226a79aea",
-      "size": 9925,
+      "sha256": "b174e9e4aaec79d13f9a2fcad43baa8776d4dd0478fe528e3219c183c9a09f70",
+      "size": 10013,
       "url": "index.html",
       "patch": {
         "url": "patches/index.html.bsdiff",
