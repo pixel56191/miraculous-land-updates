@@ -621,7 +621,7 @@ const langRow=()=>'<div class="mr"><div class="ml">'+ico('ui_lang',16)+' '+L('Я
 function pgMain(){const w=HAVEWORLD?L('Мир: {w} · сид {s} · день {d}',{w:'<b>'+esc(L(WP.name))+'</b>',s:'<b>'+esc(SEEDTXT)+'</b>',d:day}):L('Мира пока нет — создай новый');
  const saved=Object.values(SAVE_DB.worlds||{}).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
  const worlds=saved.length?'<div class="mr"><b>'+L('Мои миры')+'</b>'+saved.map(q=>'<button class="pr" data-a="worldload" data-v="'+esc(q.id)+'"><b>'+esc(L(q.name||'Мир'))+'</b><small>'+L('Сид мира: {s}',{s:esc(q.seed||'')})+' · '+L('День')+' '+(q.day||1)+'</small><i>'+(q.id===activeWorldId?L('Текущий мир'):L('Открыть'))+'</i></button>').join('')+'</div>':'<div class="info">'+L('Нет сохранённых миров')+'</div>';
- return '<div class="logo">'+ico('logo',72)+'<h1>'+GN()+'</h1><div class="sub">v0.0.5.4 '+L('Альфа')+' 3D</div></div><div class="info">'+w+'</div>'+
+ return '<div class="logo">'+ico('logo',72)+'<h1>'+GN()+'</h1><div class="sub">v0.0.5.5 '+L('Альфа')+' 3D</div></div><div class="info">'+w+'</div>'+
  (HAVEWORLD?icb('ui_play','Продолжить','resume'):'')+icb('ui_world','Новый мир','go','world')+worlds+icb('ui_char','Персонаж','go','char')+icb('ui_gear','Настройки','go','set')+langRow()}
 function pgWorld(){return '<h2>'+L('Новый мир')+'</h2>'+row('Название','<input type="text" id="wname" maxlength="24" value="'+esc(WF.name)+'">')+
  row('Сид (пусто — случайный мир)','<div class="sd"><input type="text" id="wseed" maxlength="24" placeholder="'+L('случайный')+'" value="'+esc(WF.seed)+'">'+icb('ui_dice','','dice')+'</div>')+
@@ -708,7 +708,7 @@ function applyLang(){const sb=(id,ic,t)=>$(id).innerHTML='<span class="cb">'+ico
  sb('bAct','ui_act','Действие (E)');sb('bCraft','ui_craft','Крафт (C)');sb('bNew','ui_redo','');
  $('bNew').title=L('Новая игра');$('bMenu').title=L('Меню (Esc)');$('bDel').title=L('Разобрать постройку (X)');
  $('dtxt').textContent=L('Вы погибли');$('bRe').textContent=L('Начать заново');$('menu').dataset.busy=L('Генерация мира...');
- $('gname').textContent=GN();$('gver').textContent='v0.0.5.4 '+L('Альфа')+' 3D';document.title=GN();document.documentElement.lang=ST.lang;$('pname').textContent=CH.name;
+ $('gname').textContent=GN();$('gver').textContent='v0.0.5.5 '+L('Альфа')+' 3D';document.title=GN();document.documentElement.lang=ST.lang;$('pname').textContent=CH.name;
  if(inv)refresh()}
 // ===== Симуляция =====
 const dark=()=>clamp(.35-Math.sin(time*6.2832)*.6,0,.8);
@@ -727,15 +727,14 @@ function step(dt){if(MENU)return;if(autoTest&&autoTest.active){const directions=
   let ix=(KEYS.KeyD||KEYS.ArrowRight?1:0)-(KEYS.KeyA||KEYS.ArrowLeft?1:0),iy=(KEYS.KeyW||KEYS.ArrowUp?1:0)-(KEYS.KeyS||KEYS.ArrowDown?1:0);
   if(joy){const l=Math.hypot(joy.dx,joy.dy);if(l>8){const k=Math.min(1,l/50);ix=joy.dx/l*k;iy=-joy.dy/l*k}}
   const l=Math.hypot(ix,iy);mvAmt=Math.min(1,l);IN_WATER=gy(P.x,P.z)<WATER_LEVEL-.05?1:0;
-  const burstInput=!!(KEYS.ShiftLeft||KEYS.ShiftRight||(joy&&Math.hypot(joy.dx,joy.dy)>70));
-  const burstAllowed=S.water>=15&&S.warm>=15&&(S.stamina===undefined||S.stamina>=15);
+  const burstAllowed=S.water>=15&&S.warm>=15&&(S.stamina===undefined||S.stamina>=15),joyDistance=joy?Math.hypot(joy.dx,joy.dy):0,joyBoost=!!(joy&&joyDistance>=38&&burstAllowed),burstInput=!!(KEYS.ShiftLeft||KEYS.ShiftRight||joyBoost);
   FAST_SWIM=IN_WATER&&burstAllowed&&burstInput&&l>.5?1:0;
-  SPR=IN_WATER?FAST_SWIM:(burstAllowed&&burstInput&&l>.5?1:0);
+  SPR=IN_WATER?FAST_SWIM:(burstAllowed&&burstInput&&l>.5?1:0);updateJoyVisual(!!(joyBoost&&l>.5));
   const swimRateTarget=FAST_SWIM?6.5:5;swimAnimRate+=(swimRateTarget-swimAnimRate)*Math.min(1,dt*5);swimAnimPhase+=dt*swimAnimRate;if(!IN_WATER&&SPR)breath=Math.min(1,breath+dt*.7);else breath=Math.max(0,breath-dt*.1);
   if(l>.01){if(l>1){ix/=l;iy/=l}
-   const mx=ix*Math.cos(yaw)-iy*Math.sin(yaw),mz=-ix*Math.sin(yaw)-iy*Math.cos(yaw),spd=(IN_WATER?2.6:5.2)*mvAmt*(SPR?1.6:1);
+   const mx=ix*Math.cos(yaw)-iy*Math.sin(yaw),mz=-ix*Math.sin(yaw)-iy*Math.cos(yaw),boostMultiplier=SPR?(IN_WATER?1.45:1.5):1,spd=(IN_WATER?2.6:5.2)*mvAmt*boostMultiplier;
    move(mx/Math.max(.01,mvAmt)*spd*dt,mz/Math.max(.01,mvAmt)*spd*dt);
-   let d=Math.atan2(mx,mz)-P.f;d=Math.atan2(Math.sin(d),Math.cos(d));P.f+=d*Math.min(1,dt*12);walkT+=dt*(spd/(SPR?1.6:1))*1.7*(SPR?1.3:1);const st=Math.floor(walkT/Math.PI);if(st!=lastSt){lastSt=st;if(IN_WATER)snd(260+Math.random()*100,.07,'sine',.025);else snd(70+Math.random()*40,.06,'triangle',.04)}}
+   let d=Math.atan2(mx,mz)-P.f;d=Math.atan2(Math.sin(d),Math.cos(d));P.f+=d*Math.min(1,dt*12);walkT+=dt*(spd/boostMultiplier)*1.7*(SPR?1.3:1);const st=Math.floor(walkT/Math.PI);if(st!=lastSt){lastSt=st;if(IN_WATER)snd(260+Math.random()*100,.07,'sine',.025);else snd(70+Math.random()*40,.06,'triangle',.04)}}
   if(!autoTest||!autoTest.active){time+=dt/WP.day;if(time>=1){time-=1;day++}
   acc+=dt;if(acc>=1){acc-=1;nodes.forEach(n=>{if(n.dead&&--n.rt<=0){n.dead=false;put(n)}})}
   const dk=dark(),fire=F.some(f=>Math.hypot(f.x-P.x,f.z-P.z)<9),shel=PC.some(p=>p.pk=='roof'&&Math.abs(p.x-P.x)<=1.1&&Math.abs(p.z-P.z)<=1.1);
@@ -816,13 +815,15 @@ function hud(){bars.forEach(b=>$('i-'+b[0]).style.width=Math.max(0,S[b[0]])+'%')
 addEventListener('keydown',e=>{if(e.target.tagName=='INPUT'&&e.code!='Escape')return;KEYS[e.code]=1;if(e.code=='KeyE'||e.code=='Space'){act();e.preventDefault()}if(e.code=='KeyC')$('craft').hidden=!$('craft').hidden;if(e.code=='KeyX'&&!MENU)demolish();if(e.code=='Escape')toggleMenu()});
 addEventListener('keyup',e=>KEYS[e.code]=0);
 const cv=ren.domElement;
+const joyVisual=document.createElement('div'),joyKnob=document.createElement('div');joyVisual.setAttribute('aria-hidden','true');Object.assign(joyVisual.style,{position:'fixed',left:'0',top:'0',width:'106px',height:'106px',margin:'-53px 0 0 -53px',border:'2px solid rgba(230,240,225,.48)',borderRadius:'50%',background:'rgba(20,30,20,.16)',boxShadow:'0 0 0 1px rgba(0,0,0,.22)',pointerEvents:'none',zIndex:'15',display:'none',boxSizing:'border-box',transition:'border-color .08s,box-shadow .08s'});Object.assign(joyKnob.style,{position:'absolute',left:'50%',top:'50%',width:'34px',height:'34px',margin:'-17px 0 0 -17px',borderRadius:'50%',background:'rgba(225,235,220,.32)',border:'1px solid rgba(240,245,235,.58)',boxSizing:'border-box'});joyVisual.appendChild(joyKnob);document.body.appendChild(joyVisual);
+function updateJoyVisual(boost){if(!joy){joyVisual.style.display='none';return}joyVisual.style.display='block';joyVisual.style.left=joy.x+'px';joyVisual.style.top=joy.y+'px';const d=Math.hypot(joy.dx,joy.dy),k=Math.min(1,d/53),x=d?joy.dx/d*53*k:0,y=d?joy.dy/d*53*k:0;joyKnob.style.transform=`translate(${x}px,${y}px)`;const color=boost?(IN_WATER?'#69cfff':'#ffad55'):'rgba(230,240,225,.48)';joyVisual.style.borderColor=color;joyVisual.style.boxShadow=boost?`0 0 12px ${color},0 0 0 1px ${color}66`:'0 0 0 1px rgba(0,0,0,.22)'}
 cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);
- if(e.pointerType=='touch'&&e.clientX<innerWidth*.45&&!joy)joy={id:e.pointerId,x:e.clientX,y:e.clientY,dx:0,dy:0};
+ if(e.pointerType=='touch'&&e.clientX<innerWidth*.45&&!joy){joy={id:e.pointerId,x:e.clientX,y:e.clientY,dx:0,dy:0};updateJoyVisual(false)}
  else if(!look)look={id:e.pointerId,x:e.clientX,y:e.clientY}});
 cv.addEventListener('pointermove',e=>{
- if(joy&&joy.id==e.pointerId){joy.dx=e.clientX-joy.x;joy.dy=e.clientY-joy.y}
+ if(joy&&joy.id==e.pointerId){joy.dx=e.clientX-joy.x;joy.dy=e.clientY-joy.y;updateJoyVisual(Math.hypot(joy.dx,joy.dy)>=38&&S.water>=15&&S.warm>=15&&(S.stamina===undefined||S.stamina>=15))}
  else if(look&&look.id==e.pointerId){yaw-=(e.clientX-look.x)*.005*ST.sens;pit=clamp(pit+(e.clientY-look.y)*.004*ST.sens,.12,1.3);look.x=e.clientX;look.y=e.clientY}});
-const up=e=>{if(joy&&joy.id==e.pointerId)joy=null;if(look&&look.id==e.pointerId)look=null};
+const up=e=>{if(joy&&joy.id==e.pointerId){joy=null;joyVisual.style.display='none'}if(look&&look.id==e.pointerId)look=null};
 cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
 cv.addEventListener('wheel',e=>{dist=clamp(dist+e.deltaY*.01,4,18)});
 $('bAct').onclick=act;$('bCraft').onclick=()=>$('craft').hidden=!$('craft').hidden;
